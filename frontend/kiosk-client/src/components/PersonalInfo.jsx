@@ -97,7 +97,7 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
                         <option value="Santo Niño III">Santo Niño III</option>
                         <option value="Victoria Reyes">Victoria Reyes</option>
                     </select><div className="text-sm text-gray-500">
-                        <p className="mt-4 text-center">ID Upload not yet implemented.</p>
+
                     </div>
 
 

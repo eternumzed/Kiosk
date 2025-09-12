@@ -8,9 +8,9 @@ require('dotenv').config({
 });
 const config = require('./config/db.js');
 
-const PORT = process.env.PORT || '5000';
+const PORT = '5000';
 const corsOptions = {
-    origin: 'http://localhost:5173', // Specify the allowed origin
+    origin: 'http://localhost:4000', // Specify the allowed origin
     methods: ['GET', 'POST'], // Specify allowed HTTP methods
     allowedHeaders: ['Content-Type'], // Specify allowed headers
     credentials: true, // Allow credentials (cookies, authentication)
@@ -22,14 +22,19 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 config.dbMain;
-
+const paymentRoutes = require("./routes/paymentRoute.js");
 const userRoutes = require('./routes/userRoute.js');
+
 app.use('/api/users', userRoutes);
+app.use('/api/payment', paymentRoutes);
+
 
 app.get('/', (req, res) => {
     res.send('Hello world!');
 
 })
+
+
 
 app.listen(PORT, () => {
     console.log(`>> Listening at PORT: ${PORT}`)
