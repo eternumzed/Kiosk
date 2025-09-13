@@ -1,7 +1,3 @@
-/* src/components/PersonalInfo.jsx */
-import React from 'react';
-
-
 const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) => {
     return (
         <div className="w-full flex-grow flex flex-col items-center justify-center p-4">

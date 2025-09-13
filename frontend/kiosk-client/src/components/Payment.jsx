@@ -1,5 +1,3 @@
-import axios from "axios";
-
 const Payment = ({ formData, getFee, paymentStatus, setPaymentStatus, handleBack, handlePayment }) => {
  
 

@@ -3,7 +3,7 @@ const express = require("express");
 const axios = require("axios");
 const router = express.Router();
 
-const PAYMONGO_SECRET_KEY = process.env.PAYMONGO_SECRET_KEY; // ✅ keep in .env
+const PAYMONGO_SECRET_KEY = process.env.PAYMONGO_SECRET_KEY; 
 
 router.post("/create-checkout", async (req, res) => {
     try {
@@ -24,7 +24,7 @@ router.post("/create-checkout", async (req, res) => {
                         line_items: [
                             {
                                 currency: "PHP",
-                                amount: amount * 100, // PayMongo uses centavos
+                                amount: amount * 100,
                                 description: document,
                                 name: document,
                                 quantity: 1,
@@ -53,7 +53,7 @@ router.post("/create-checkout", async (req, res) => {
 
         res.json({
             checkoutUrl: checkoutData.attributes.checkout_url,
-            reference: checkoutData.id, // ✅ unique PayMongo reference
+            reference: checkoutData.id, 
             description: checkoutData.attributes.description,
             amount: checkoutData.attributes.line_items[0].amount / 100,
             currency: checkoutData.attributes.line_items[0].currency,

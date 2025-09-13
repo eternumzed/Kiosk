@@ -19,14 +19,16 @@ const Home = ({ handleNext }) => {
                     Request Document
                 </button>
                 <button
+                    onClick={() => navigate("/track-request")}
                     className="w-full bg-gray-200 text-gray-800 font-bold text-xl py-6 px-8 rounded-2xl shadow-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-300"
-                    disabled
+
                 >
                     Track Request
                 </button>
                 <button
+                    onClick={() => navigate("/help")}
                     className="w-full bg-gray-200 text-gray-800 font-bold text-xl py-6 px-8 rounded-2xl shadow-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-300"
-                    disabled
+
                 >
                     Help
                 </button>

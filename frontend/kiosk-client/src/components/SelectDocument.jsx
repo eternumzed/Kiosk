@@ -1,7 +1,3 @@
-/* src/components/SelectDocument.jsx */
-import React from 'react';
-
-
 const SelectDocument = ({ filteredDocuments, searchQuery, setSearchQuery, selectedCategory, setSelectedCategory, handleDocumentSelect, handleBack, handleNext }) => {
     return (
         <div className="w-full flex-grow flex flex-col items-center justify-center p-4">

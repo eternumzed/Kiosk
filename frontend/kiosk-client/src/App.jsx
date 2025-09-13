@@ -1,4 +1,3 @@
-// App.jsx
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
@@ -9,6 +8,8 @@ import SelectDocument from "./components/SelectDocument";
 import Payment from "./components/Payment";
 import Confirmation from "./components/Confirmation";
 import Home from "./components/Home";
+import TrackRequest from "./components/TrackRequest";
+import Help from "./components/Help";
 
 const documents = [
   { name: "Cedula", fee: 50, category: "Civil Registry" },
@@ -44,7 +45,7 @@ const AnimatedRoutes = ({
   selectedCategory,
   setSelectedCategory,
   getFee,
-  handlePayment, // ✅ now passed in
+  handlePayment, 
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -53,8 +54,18 @@ const AnimatedRoutes = ({
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         {/* HOME */}
-        <Route path="/" element={<PageTransition><Home /></PageTransition>} />
-
+        <Route
+          path="/"
+          element={<PageTransition><Home /></PageTransition>} />
+        {/* TRACK REQUEST */}
+        <Route
+          path="/track-request"
+          element={<PageTransition><TrackRequest /></PageTransition>}
+        />
+        {/* HELP */}
+        <Route
+          path="/help"
+          element={<PageTransition><Help /></PageTransition>}></Route>
         {/* PERSONAL INFO */}
         <Route
           path="/personal-info"
@@ -87,8 +98,8 @@ const AnimatedRoutes = ({
                 handleDocumentSelect={(doc) =>
                   setFormData({
                     ...formData,
-                    document: doc.name, // 👈 PayMongo needs this
-                    amount: doc.fee,    // 👈 store fee too
+                    document: doc.name, 
+                    amount: doc.fee,    
                   })
                 }
                 handleNext={() => navigate("/payment")}
@@ -97,8 +108,6 @@ const AnimatedRoutes = ({
             </PageTransition>
           }
         />
-
-
         {/* PAYMENT */}
         <Route
           path="/payment"
@@ -110,18 +119,18 @@ const AnimatedRoutes = ({
                 paymentStatus={paymentStatus}
                 setPaymentStatus={setPaymentStatus}
                 setRequestRef={setRequestRef}
-                handlePayment={handlePayment}   // ✅ comes from App
+                handlePayment={handlePayment}   
                 handleBack={() => navigate("/select-document")}
               />
             </PageTransition>
           }
         />
-
-
         {/* CONFIRMATION */}
         <Route
           path="/confirmation"
-          element={<PageTransition><Confirmation requestRef={requestRef} /></PageTransition>}
+          element={<PageTransition><Confirmation 
+            requestRef={requestRef} 
+            /></PageTransition>}
         />
       </Routes>
     </AnimatePresence>
@@ -157,7 +166,7 @@ const App = () => {
         amount: getFee(),
       });
 
-      console.log("PayMongo response:", res.data);  // 👈 add this log
+      console.log("PayMongo response:", res.data); 
 
       if (res.data.checkoutUrl) {
         setRequestRef({
@@ -193,7 +202,7 @@ const App = () => {
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
           getFee={getFee}
-          handlePayment={handlePayment} // ✅ passed down
+          handlePayment={handlePayment}
         />
       </div>
     </Router>
