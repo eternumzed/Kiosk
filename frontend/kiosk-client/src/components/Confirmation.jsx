@@ -1,4 +1,25 @@
-const Confirmation = ({ requestRef, paymentData, resetUI }) => {
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import axios from 'axios';
+
+
+const Confirmation = ({resetUI}) => {
+
+  const [searchParams] = useSearchParams();
+  const [request, setRequest] = useState(null);
+
+  const requestId = searchParams.get('requestId');
+
+  useEffect(() => {
+    if (requestId) {
+      axios.get(`http://localhost:5000/api/request/${requestId}`)
+        .then(res => setRequest(res.data))
+        .catch(err => console.error(err));
+    }
+  }, [requestId]);
+
+  if (!request) return <p>Loading..</p>;
+
   return (
     <div className="w-full flex-grow flex flex-col items-center justify-center p-4">
       <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-xl transition-all duration-300 text-center">
@@ -9,14 +30,15 @@ const Confirmation = ({ requestRef, paymentData, resetUI }) => {
 
         <div className="p-4 bg-green-50 rounded-lg mb-6">
           <p className="text-sm font-bold text-green-700">Reference ID:</p>
-          <p className="text-xl font-extrabold text-green-800 break-words">{requestRef}</p>
+          <p className="text-xl font-extrabold text-green-800 break-words">{request.referenceNumber}</p>
         </div>
 
         <div className="space-y-2 text-gray-700">
-          <p><span className="font-semibold">Document:</span> {paymentData?.document}</p>
-          <p><span className="font-semibold">Description:</span> {paymentData?.description}</p>
-          <p><span className="font-semibold">Amount:</span> ₱{paymentData?.amount} {paymentData?.currency}</p>
-          <p><span className="font-semibold">Status:</span> {paymentData?.status}</p>
+          <p><span className="font-semibold">Document:</span> {request.document}</p>
+          <p><span className="font-semibold">Full Name:</span> {request.fullName}</p>
+          <p><span className="font-semibold">Amount:</span> ₱{request.amount}</p>
+          <p><span className="font-semibold">Status:</span> {request.status}</p>
+          <p><span className="font-semibold">Payment Status:</span> {request.paymentStatus}</p>
         </div>
 
         <div className="mt-6 flex flex-col sm:flex-row gap-4">

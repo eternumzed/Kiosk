@@ -22,11 +22,13 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 config.dbMain;
-const paymentRoutes = require("./routes/paymentRoute.js");
+const paymentRoutes = require('./routes/paymentRoute.js');
+const requestRoutes = require('./routes/requestRoute.js');
 const userRoutes = require('./routes/userRoute.js');
 
 app.use('/api/users', userRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/request', requestRoutes);
 
 
 app.get('/', (req, res) => {
