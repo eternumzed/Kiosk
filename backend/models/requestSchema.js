@@ -17,17 +17,18 @@ const RequestSchema = new Schema({
     paymongoPaymentId: { type: String },
     currency: { type: String },
     paidAt: { type: Date },
-    referenceNumber: { type: String, index: true, sparse: true },
+    referenceNumber: { type: String, unique: true },
+
 
     status: {
         type: String,
-        enum: ["pending", "processing", "completed", "cancelled"],
-        default: "pending"
+        enum: ["Pending", "Processing", "Completed", "Cancelled"],
+        default: "Pending"
     },
     paymentStatus: {
         type: String,
-        enum: ["unpaid", "processing", "paid", "failed"],
-        default: "unpaid"
+        enum: ["Unpaid", "Processing", "Paid", "Failed"],
+        default: "Unpaid"
     },
     remarks: { type: String },
 

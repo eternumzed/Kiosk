@@ -1,24 +1,26 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 
 
-const Confirmation = ({resetUI}) => {
+const Confirmation = ({ handleNext, resetUI }) => {
 
-  const [searchParams] = useSearchParams();
   const [request, setRequest] = useState(null);
 
-  const requestId = searchParams.get('requestId');
-
   useEffect(() => {
-    if (requestId) {
-      axios.get(`http://localhost:5000/api/request/${requestId}`)
-        .then(res => setRequest(res.data))
-        .catch(err => console.error(err));
-    }
-  }, [requestId]);
+    const params = new URLSearchParams(location.search);
+    const requestId = params.get("requestId");
 
-  if (!request) return <p>Loading..</p>;
+    if (requestId) {
+      axios
+        .get(`http://localhost:5000/api/request/${requestId}`)
+        .then((res) => setRequest(res.data))
+        .catch((err) => console.error("Error fetching request:", err));
+    }
+  }, [location]);
+
+  if (!request) {
+    return <p>Loading confirmation...</p>;
+  }
 
   return (
     <div className="w-full flex-grow flex flex-col items-center justify-center p-4">
@@ -49,14 +51,17 @@ const Confirmation = ({resetUI}) => {
             Print Receipt
           </button>
           <button
-            onClick={resetUI}
+            onClick={() => {
+              handleNext()
+              resetUI()
+            }}
             className="flex-1 bg-green-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg hover:bg-green-700 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300"
           >
             Done
           </button>
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 

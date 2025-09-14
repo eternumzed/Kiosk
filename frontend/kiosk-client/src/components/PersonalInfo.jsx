@@ -15,12 +15,20 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
                     />
                     <input
                         className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200"
+                        type="email"
+                        name="email"
+                        placeholder="Email"
+                        value={formData.email}
+                        onChange={handleFormChange}
+                        required
+                    />
+                    <input
+                        className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200"
                         type="tel"
                         name="contactNumber"
                         placeholder="Contact Number"
                         value={formData.contactNumber}
                         onChange={handleFormChange}
-                        required
                     />
                     <select
                         name="barangay"

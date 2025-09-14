@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 
 import PersonalInfo from "./components/PersonalInfo";
@@ -45,7 +45,8 @@ const AnimatedRoutes = ({
   selectedCategory,
   setSelectedCategory,
   getFee,
-  handlePayment, 
+  handlePayment,
+  resetUI
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -98,8 +99,8 @@ const AnimatedRoutes = ({
                 handleDocumentSelect={(doc) =>
                   setFormData({
                     ...formData,
-                    document: doc.name, 
-                    amount: doc.fee,    
+                    document: doc.name,
+                    amount: doc.fee,
                   })
                 }
                 handleNext={() => navigate("/payment")}
@@ -119,7 +120,7 @@ const AnimatedRoutes = ({
                 paymentStatus={paymentStatus}
                 setPaymentStatus={setPaymentStatus}
                 setRequestRef={setRequestRef}
-                handlePayment={handlePayment}   
+                handlePayment={handlePayment}
                 handleBack={() => navigate("/select-document")}
               />
             </PageTransition>
@@ -128,9 +129,13 @@ const AnimatedRoutes = ({
         {/* CONFIRMATION */}
         <Route
           path="/confirmation"
-          element={<PageTransition><Confirmation 
-            requestRef={requestRef} 
-            /></PageTransition>}
+          element={<PageTransition><Confirmation
+            requestRef={requestRef}
+            resetUI={resetUI}
+            handleNext={() => {
+              navigate("/")
+            }}
+          /></PageTransition>}
         />
       </Routes>
     </AnimatePresence>
@@ -138,15 +143,49 @@ const AnimatedRoutes = ({
 };
 
 
+// --------------------------------------------------------------------------------------------------------------------------------
+
 const App = () => {
-  const [formData, setFormData] = useState({
-    fullName: "",
-    contactNumber: "",
-    address: "",
-    barangay: "",
-    document: "",
+
+  const [formData, setFormData] = useState(() => {
+    const savedData = localStorage.getItem('documentRequestFormData');
+    return savedData ? JSON.parse(savedData) : {
+      fullName: '',
+      contactNumber: '',
+      email: '',
+      address: '',
+      barangay: '',
+      document: '',
+      amount: '',
+    }
   });
-  const [paymentStatus, setPaymentStatus] = useState("pending");
+
+  const resetUI = () => {
+    setFormData({
+      fullName: '',
+      contactNumber: '',
+      email: '',
+      address: '',
+      barangay: '',
+      document: '',
+      amount: '',
+    });
+    setPaymentStatus('Pending');
+    setRequestRef({
+      reference: '',
+      description: '',
+      amount: '',
+      currency: '',
+    });
+    localStorage.removeItem('documentRequestFormData');
+  };
+
+  useEffect(() => {
+    localStorage.setItem('documentRequestFormData', JSON.stringify(formData));
+  }, [formData]);
+
+
+  const [paymentStatus, setPaymentStatus] = useState("Pending");
   const [requestRef, setRequestRef] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -157,16 +196,22 @@ const App = () => {
   };
 
 
+
   const handlePayment = async () => {
     try {
-      setPaymentStatus("processing");
+      setPaymentStatus("Processing");
 
       const res = await axios.post("http://localhost:5000/api/payment/create-checkout", {
+        fullName: formData.fullName,
+        contactNumber: formData.contactNumber,
+        email: formData.email,
+        address: formData.address,
+        barangay: formData.barangay,
         document: formData.document,
         amount: getFee(),
       });
 
-      console.log("PayMongo response:", res.data); 
+      console.log("PayMongo response:", res.data);
 
       if (res.data.checkoutUrl) {
         setRequestRef({
@@ -182,7 +227,7 @@ const App = () => {
       }
     } catch (err) {
       console.error("Payment error:", err.response?.data || err.message);
-      setPaymentStatus("failed");
+      setPaymentStatus("Failed");
     }
   };
 
@@ -203,6 +248,7 @@ const App = () => {
           setSelectedCategory={setSelectedCategory}
           getFee={getFee}
           handlePayment={handlePayment}
+          resetUI={resetUI}
         />
       </div>
     </Router>

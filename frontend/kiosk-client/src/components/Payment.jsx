@@ -1,5 +1,6 @@
 const Payment = ({ formData, getFee, paymentStatus, setPaymentStatus, handleBack, handlePayment }) => {
- 
+
+  console.log("Form data after selecting doc:", formData);
 
   return (
     <div className="w-full flex-grow flex flex-col items-center justify-center p-4">
@@ -19,14 +20,13 @@ const Payment = ({ formData, getFee, paymentStatus, setPaymentStatus, handleBack
           </button>
           <button
             onClick={handlePayment}
-            disabled={paymentStatus === "processing"}
-            className={`w-full font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105 ${
-              paymentStatus === "processing"
+            disabled={paymentStatus === "Processing"}
+            className={`w-full font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105 ${paymentStatus === "Processing"
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-green-600 text-white hover:bg-green-700"
-            }`}
+              }`}
           >
-            {paymentStatus === "processing" ? "Processing..." : "Pay Now"}
+            {paymentStatus === "Processing" ? "Processing..." : "Pay Now"}
           </button>
         </div>
       </div>

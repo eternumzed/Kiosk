@@ -1,23 +1,53 @@
 // paymentController.js
 const axios = require('axios')
 const Request = require('../models/requestSchema.js');
-const { v4: uuidv4 } = require('uuid');
+const Counter = require('../models/counter.js');
+
+
+function getDocCode(documentName) {
+    if (!documentName) return "DOC";
+
+    const map = {
+        "cedula": "CED",
+        "birth certificate": "BC",
+        "marriage certificate": "MC",
+        "death certificate": "DC",
+        "barangay clearance": "BRGY",
+        "building permit": "BP",
+        "health certificate": "HC",
+    };
+
+    return map[documentName.toLowerCase()] || "DOC";
+}
+
 
 exports.createCheckout = async (req, res) => {
     try {
-        const { fullName, contactNumber, address, barangay, document, amount } = req.body;
+        const { fullName, email, contactNumber, address, barangay, document, amount } = req.body;
 
 
-        const referenceNumber = uuidv4().split("-")[0].toUpperCase();
+        const year = new Date().getFullYear();
+
+
+        const counter = await Counter.findOneAndUpdate(
+            { name: 'requestCounter', year },
+            { $inc: { seq: 1 } },
+            { new: true, upsert: true, setDefaultsOnInsert: true }
+        );
+
+        const docCode = getDocCode(document);
+        const seqNum = String(counter.seq).padStart(4, '0');
+        const referenceNumber = `${docCode}-${year}-${seqNum}`;
 
         const newRequest = await Request.create({
             fullName,
             document,
             contactNumber,
+            email,
             address,
             barangay,
             amount,
-            status: "pending",
+            status: "Pending",
             referenceNumber
 
         });
@@ -36,12 +66,22 @@ exports.createCheckout = async (req, res) => {
                                 quantity: 1,
                             },
                         ],
-                        description: `Request for ${document}`,
+                        description: `Request for ${document} by ${fullName}`,
                         payment_method_types: ["gcash", "card", "paymaya", "qrph", "grab_pay"],
                         success_url: `http://localhost:4000/confirmation?requestId=${newRequest._id}`,
-                        cancel_url: "http://localhost:4000/",
+                        cancel_url: `http://localhost:4000/payment`,
+                        billing: {
+                            name: fullName,
+                            email: email,
+                            phone: contactNumber || ""
+                        },
+                        reference_number: referenceNumber,
+                        send_email_receipt: true
                     },
+
                 },
+
+
             },
             {
                 headers: {
@@ -53,8 +93,7 @@ exports.createCheckout = async (req, res) => {
 
 
         newRequest.paymongoId = checkoutRes.data.data.id;
-        newRequest.referenceNumber = checkoutRes.data.data.attributes.reference_number;
-        console.log(checkoutRes.data);
+        newRequest.checkoutUrl = checkoutRes.data.data.attributes.checkout_url;
         await newRequest.save();
 
         res.json({

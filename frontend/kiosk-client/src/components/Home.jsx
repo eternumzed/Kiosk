@@ -1,9 +1,8 @@
-/* src/components/Home.jsx */
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 
 
 
-const Home = ({ handleNext }) => {
+const Home = () => {
     const navigate = useNavigate();
 
     return (
