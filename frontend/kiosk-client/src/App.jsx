@@ -40,8 +40,6 @@ const AnimatedRoutes = ({
   setPaymentStatus,
   requestRef,
   setRequestRef,
-  searchQuery,
-  setSearchQuery,
   selectedCategory,
   setSelectedCategory,
   getFee,
@@ -88,12 +86,7 @@ const AnimatedRoutes = ({
           element={
             <PageTransition>
               <SelectDocument
-                filteredDocuments={documents.filter(
-                  (doc) =>
-                    (selectedCategory === "All" || doc.category === selectedCategory) &&
-                    doc.name.toLowerCase().includes(searchQuery.toLowerCase())
-                )}
-                setSearchQuery={setSearchQuery}
+        
                 selectedCategory={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
                 handleDocumentSelect={(doc) =>
@@ -187,7 +180,7 @@ const App = () => {
 
   const [paymentStatus, setPaymentStatus] = useState("Pending");
   const [requestRef, setRequestRef] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+
   const [selectedCategory, setSelectedCategory] = useState("All");
 
   const getFee = () => {
@@ -242,8 +235,6 @@ const App = () => {
           setPaymentStatus={setPaymentStatus}
           requestRef={requestRef}
           setRequestRef={setRequestRef}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
           getFee={getFee}
