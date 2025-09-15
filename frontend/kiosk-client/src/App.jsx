@@ -86,7 +86,11 @@ const AnimatedRoutes = ({
           element={
             <PageTransition>
               <SelectDocument
-        
+                filteredDocuments={documents.filter(
+                  (doc) =>
+                    (selectedCategory === "All" || doc.category === selectedCategory)
+                 
+                )}
                 selectedCategory={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
                 handleDocumentSelect={(doc) =>
@@ -180,7 +184,6 @@ const App = () => {
 
   const [paymentStatus, setPaymentStatus] = useState("Pending");
   const [requestRef, setRequestRef] = useState("");
-
   const [selectedCategory, setSelectedCategory] = useState("All");
 
   const getFee = () => {
