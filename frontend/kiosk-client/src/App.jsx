@@ -53,6 +53,7 @@ const App = () => {
   }, [formData]);
 
   const [paymentStatus, setPaymentStatus] = useState("Pending");
+  const [status, setStatus] = useState("Pending");
   const [requestRef, setRequestRef] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
@@ -94,6 +95,15 @@ const App = () => {
       setPaymentStatus("Failed");
     }
   };
+
+  const handleRequest = async () => {
+    try {
+      setStatus("Processing");
+      const res = await axios.post("http://localhost:5000/api/request", { referenceNumber: referenceNumber })
+    } catch (err) {
+
+    }
+  }
 
   return (
     <Router>
