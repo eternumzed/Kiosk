@@ -11,4 +11,18 @@ exports.request = async (req, res) => {
     }
 };
 
+exports.trackRequest = async (req, res) => {
+
+    try {
+        res.json({
+            yungRefNumberMo: req.params.id
+        })
+    }
+    catch (err) {
+        console.log(err)
+    }
+
+}
+
+
 

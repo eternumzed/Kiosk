@@ -96,14 +96,6 @@ const App = () => {
     }
   };
 
-  const handleRequest = async () => {
-    try {
-      setStatus("Processing");
-      const res = await axios.post("http://localhost:5000/api/request", { referenceNumber: referenceNumber })
-    } catch (err) {
-
-    }
-  }
 
   return (
     <Router>

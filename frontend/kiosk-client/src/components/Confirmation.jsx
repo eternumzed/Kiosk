@@ -13,7 +13,11 @@ const Confirmation = ({ handleNext, resetUI }) => {
     if (requestId) {
       axios
         .get(`http://localhost:5000/api/request/${requestId}`)
-        .then((res) => setRequest(res.data))
+        .then((res) => {
+          console.log('THE REQUEST ID IS' + requestId)
+          setRequest(res.data)
+
+        })
         .catch((err) => console.error("Error fetching request:", err));
     }
   }, [location]);

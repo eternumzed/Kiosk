@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import axios from 'axios';
 
 const TrackRequest = () => {
     const [referenceNumber, setReferenceNumber] = useState('');
@@ -7,26 +8,25 @@ const TrackRequest = () => {
     const [error, setError] = useState(false);
     const navigate = useNavigate();
 
-    const handleTrack = async (e) => {
+    const handleTracking = async (e) => {
         e.preventDefault();
         setStatus('searching');
         setError(false);
-       
-        await new Promise(resolve => setTimeout(resolve, 1500));
 
-        if (referenceNumber.length > 5) {
-            setStatus('found');
-        } else {
-            setError(true);
-            setStatus(null);
+        if (referenceNumber) {
+            axios
+                .get(`http://localhost:5000/api/request/track-request/${referenceNumber}`)
+                .then((res) => console.log(res.data))
+                .catch((err) => console.error("Error fetching request:", err));
         }
+
     };
 
     return (
         <div className="w-full flex-grow flex flex-col items-center justify-center p-4">
             <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-xl transition-all duration-300">
                 <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Track Your Request</h2>
-                <form onSubmit={handleTrack} className="space-y-4">
+                <form onSubmit={handleTracking} className="space-y-4">
                     <input
                         className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200"
                         type="text"
@@ -46,7 +46,7 @@ const TrackRequest = () => {
                         <button
                             type="submit"
                             className="w-full bg-green-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg hover:bg-green-700 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300"
-                            onClick={() => alert('Tracking your request')}
+                            onClick={() => handleTracking()}
                         >
                             Track
                         </button>
