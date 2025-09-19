@@ -14,12 +14,11 @@ exports.request = async (req, res) => {
 exports.trackRequest = async (req, res) => {
 
     try {
-        res.json({
-            yungRefNumberMo: req.params.id
-        })
-    }
-    catch (err) {
-        console.log(err)
+        const request = await Request.find({ referenceNumber: req.params.id });
+        if (!request) return res.status(404).json({ error: "Request reference number not found" });
+        res.json(request);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 
 }

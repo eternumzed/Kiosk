@@ -4,23 +4,33 @@ import axios from 'axios';
 
 const TrackRequest = () => {
     const [referenceNumber, setReferenceNumber] = useState('');
-    const [status, setStatus] = useState('Pending');
+    const [request, setRequest] = useState(null);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
     const navigate = useNavigate();
 
     const handleTracking = async (e) => {
         e.preventDefault();
-        setStatus('searching');
+        setRequest(null);
         setError(false);
 
         if (referenceNumber) {
-            axios
-                .get(`http://localhost:5000/api/request/track-request/${referenceNumber}`)
-                .then((res) => console.log(res.data))
-                .catch((err) => console.error("Error fetching request:", err));
+            try {
+
+                const res = await axios.get(`http://localhost:5000/api/request/track-request/${referenceNumber}`);
+                console.log(res.data[0])
+                setRequest(res.data[0]);
+                setLoading(false);
+            } catch (err) {
+                console.error("Error fetching request:", err.response?.data || err.message);
+                setError(true);
+                setLoading(false);
+            }
         }
 
     };
+
+
 
     return (
         <div className="w-full flex-grow flex flex-col items-center justify-center p-4">
@@ -46,23 +56,38 @@ const TrackRequest = () => {
                         <button
                             type="submit"
                             className="w-full bg-green-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg hover:bg-green-700 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300"
-                            onClick={() => handleTracking()}
+                            disabled={loading}
                         >
-                            Track
+                            {loading ? 'Tracking...' : 'Track'}
                         </button>
                     </div>
                 </form>
 
-                {status === 'searching' && (
-                    <div className="mt-6 text-center text-gray-500">
-                        Searching for your request...
+                {loading && (
+                    <div className="mt-6 p-4 bg-gray-100 rounded-lg text-gray-800 text-center">
+                        <h3 className="font-bold">Searching for your request...</h3>
+                        <p className="mt-2">This may take a moment.</p>
                     </div>
                 )}
 
-                {status === 'found' && (
-                    <div className="mt-6 p-4 bg-green-100 rounded-lg text-green-800 text-center">
-                        <h3 className="font-bold">Status Found!</h3>
-                        <p className="mt-2">Reference **{referenceNumber}** is currently being processed.</p>
+                {request && (
+                    <div className="mt-6 p-4 rounded-lg text-center">
+                        <h3 className="font-bold text-lg text-gray-800 mb-2">Request Details:</h3>
+                        <p className="text-xl font-extrabold break-words">Ref No: {request.referenceNumber}</p>
+                        <p className="mt-2 text-md">Document: {request.document}</p>
+                        <p className={`mt-2 text-xl font-bold ${request.status === 'Pending' ? 'text-yellow-600' :
+                            request.status === 'Processing' ? 'text-blue-600' :
+                                request.status === 'Completed' ? 'text-green-600' :
+                                    'text-red-600'
+                            }`}>
+                            Status: {request.status}
+                        </p>
+                        {request.status === 'Completed' && (
+                            <p className="mt-2 text-sm text-gray-600">You may claim it during office hours.</p>
+                        )}
+                        {request.status === 'Cancelled ' && (
+                            <p className="mt-2 text-sm text-gray-600">Your request was cancelled. Contact us for details.</p>
+                        )}
                     </div>
                 )}
 
