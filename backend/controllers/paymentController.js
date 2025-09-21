@@ -3,7 +3,6 @@ const axios = require('axios')
 const Request = require('../models/requestSchema.js');
 const Counter = require('../models/counter.js');
 
-
 function getDocCode(documentName) {
     if (!documentName) return "DOC";
 
@@ -25,10 +24,7 @@ exports.createCheckout = async (req, res) => {
     try {
         const { fullName, email, contactNumber, address, barangay, document, amount } = req.body;
 
-
         const year = new Date().getFullYear();
-
-
         const counter = await Counter.findOneAndUpdate(
             { name: 'requestCounter', year },
             { $inc: { seq: 1 } },
@@ -51,7 +47,6 @@ exports.createCheckout = async (req, res) => {
             referenceNumber
 
         });
-
 
         const checkoutRes = await axios.post(
             "https://api.paymongo.com/v1/checkout_sessions",
@@ -78,10 +73,7 @@ exports.createCheckout = async (req, res) => {
                         reference_number: referenceNumber,
                         send_email_receipt: true
                     },
-
                 },
-
-
             },
             {
                 headers: {
@@ -90,7 +82,6 @@ exports.createCheckout = async (req, res) => {
                 },
             }
         );
-
 
         newRequest.paymongoId = checkoutRes.data.data.id;
         newRequest.checkoutUrl = checkoutRes.data.data.attributes.checkout_url;
@@ -105,7 +96,6 @@ exports.createCheckout = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
-
 
 exports.handleWebhook = async (req, res) => {
     try {

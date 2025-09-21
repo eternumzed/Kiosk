@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter as Router, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axios from 'axios';
 
@@ -16,10 +16,16 @@ const TrackRequest = () => {
 
         if (referenceNumber) {
             try {
-
                 const res = await axios.get(`http://localhost:5000/api/request/track-request/${referenceNumber}`);
-                console.log(res.data[0])
-                setRequest(res.data[0]);
+                console.log(res.data[0]);
+
+                if (res.data[0] !== undefined) {
+                    setLoading(true)
+                    setRequest(res.data[0]);
+                } else {
+                    setLoading(true)
+                    setError(true)
+                }
                 setLoading(false);
             } catch (err) {
                 console.error("Error fetching request:", err.response?.data || err.message);
@@ -29,8 +35,6 @@ const TrackRequest = () => {
         }
 
     };
-
-
 
     return (
         <div className="w-full flex-grow flex flex-col items-center justify-center p-4">

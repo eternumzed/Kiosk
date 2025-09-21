@@ -53,7 +53,6 @@ const App = () => {
   }, [formData]);
 
   const [paymentStatus, setPaymentStatus] = useState("Pending");
-  const [status, setStatus] = useState("Pending");
   const [requestRef, setRequestRef] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
@@ -95,7 +94,6 @@ const App = () => {
       setPaymentStatus("Failed");
     }
   };
-
 
   return (
     <Router>

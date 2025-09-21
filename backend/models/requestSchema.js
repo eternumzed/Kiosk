@@ -19,7 +19,6 @@ const RequestSchema = new Schema({
     paidAt: { type: Date },
     referenceNumber: { type: String, unique: true },
 
-
     status: {
         type: String,
         enum: ["Pending", "Processing", "Completed", "Cancelled"],
@@ -33,7 +32,6 @@ const RequestSchema = new Schema({
     remarks: { type: String },
 
 }, { timestamps: true });
-
 
 
 module.exports = mongoose.model('Request', RequestSchema);
