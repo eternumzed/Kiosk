@@ -1,4 +1,6 @@
-const { spawn } = require('child_process');
+const fs = require('fs');
+const { exec } = require('child_process');
+const path = require('path');
 
 exports.print = async (req, res) => {
   try {
@@ -24,12 +26,13 @@ exports.print = async (req, res) => {
 
     const centerText = (text) => {
       const lines = wrapText(text);
-      return lines.map((line) => {
+      return lines.map(line => {
         const spaces = Math.floor((lineWidth - line.length) / 2);
         return ' '.repeat(Math.max(0, spaces)) + line;
       }).join('\n');
     };
 
+    // Left-align text
     const leftText = (label, value) => {
       const lines = wrapText(`${label}: ${value}`);
       return lines.join('\n');
@@ -54,22 +57,23 @@ ${centerText('Thank you!')}
 
     const receiptText = formatReceipt(req.body);
 
+    const filePath = path.join(process.env.TEMP, 'receipt.txt');
+    fs.writeFileSync(filePath, receiptText, 'utf8');
+
     const printerName = 'KioskPrinterWired';
 
-    const ps = spawn('powershell.exe', ['-Command', `Out-Printer -Name "${printerName}"`]);
+    const printCommand = `print /D:"${printerName}" "${filePath}"`;
 
-    ps.stdin.write(receiptText);
-    ps.stdin.end();
+    exec(printCommand, (err, stdout, stderr) => {
+      console.log('=== stdout ===\n', stdout);
+      console.log('=== stderr ===\n', stderr);
 
-    ps.stdout.on('data', (data) => console.log('stdout:', data.toString()));
-    ps.stderr.on('data', (data) => console.error('stderr:', data.toString()));
-
-    ps.on('close', (code) => {
-      if (code === 0) {
-        return res.send('Receipt sent to printer');
-      } else {
-        return res.status(500).send(`Printing failed with code ${code}`);
+      if (err) {
+        console.error('Printing error:', err);
+        return res.status(500).send('Failed to print receipt');
       }
+
+      return res.send('Receipt sent to printer');
     });
 
   } catch (error) {
