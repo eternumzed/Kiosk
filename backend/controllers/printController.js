@@ -1,27 +1,43 @@
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 
 exports.print = async (req, res) => {
   try {
+    const lineWidth = 32;
+
+    const wrapText = (text) => {
+      if (!text) return [''];
+      const words = text.split(' ');
+      const lines = [];
+      let currentLine = '';
+
+      words.forEach((word) => {
+        if ((currentLine + ' ' + word).trim().length <= lineWidth) {
+          currentLine = (currentLine + ' ' + word).trim();
+        } else {
+          if (currentLine) lines.push(currentLine);
+          currentLine = word;
+        }
+      });
+      if (currentLine) lines.push(currentLine);
+      return lines;
+    };
+
+    const centerText = (text) => {
+      const lines = wrapText(text);
+      return lines.map((line) => {
+        const spaces = Math.floor((lineWidth - line.length) / 2);
+        return ' '.repeat(Math.max(0, spaces)) + line;
+      }).join('\n');
+    };
+
+    const leftText = (label, value) => {
+      const lines = wrapText(`${label}: ${value}`);
+      return lines.join('\n');
+    };
+
+    const separator = '-'.repeat(lineWidth);
+
     const formatReceipt = ({ referenceNumber, fullName, document, amount, status, paymentStatus }) => {
-      const lineWidth = 32;
-
-      const centerText = (text) => {
-        if (!text) text = '';
-        const cleanText = text.replace(/\r?\n/g, '');
-        const truncated = cleanText.length > lineWidth ? cleanText.slice(0, lineWidth) : cleanText;
-        const spaces = Math.floor((lineWidth - truncated.length) / 2);
-        return ' '.repeat(Math.max(0, spaces)) + truncated;
-      };
-
-      const leftText = (label, value) => {
-        const safeLabel = label || '';
-        const safeValue = value || '';
-        const line = `${safeLabel}: ${safeValue}`;
-        return line.length > lineWidth ? line.slice(0, lineWidth) : line;
-      };
-
-      const separator = '-'.repeat(lineWidth);
-
       return `
 ${centerText('*** MUNICIPALITY RECEIPT ***')}
 ${separator}
@@ -38,22 +54,22 @@ ${centerText('Thank you!')}
 
     const receiptText = formatReceipt(req.body);
 
-    const psText = receiptText.replace(/"/g, '`"').replace(/\n/g, '`n');
-
     const printerName = 'KioskPrinterWired';
-    const psCommand = `powershell.exe -Command "$text = \\"${psText}\\"; $text | Out-Printer -Name \\"${printerName}\\""`;
 
+    const ps = spawn('powershell.exe', ['-Command', `Out-Printer -Name "${printerName}"`]);
 
-    exec(psCommand, (err, stdout, stderr) => {
-      console.log('=== PowerShell stdout ===\n', stdout);
-      console.log('=== PowerShell stderr ===\n', stderr);
+    ps.stdin.write(receiptText);
+    ps.stdin.end();
 
-      if (err) {
-        console.error('Printing error:', err);
-        return res.status(500).send('Failed to print receipt');
+    ps.stdout.on('data', (data) => console.log('stdout:', data.toString()));
+    ps.stderr.on('data', (data) => console.error('stderr:', data.toString()));
+
+    ps.on('close', (code) => {
+      if (code === 0) {
+        return res.send('Receipt sent to printer');
+      } else {
+        return res.status(500).send(`Printing failed with code ${code}`);
       }
-
-      return res.send('Receipt sent to printer');
     });
 
   } catch (error) {
