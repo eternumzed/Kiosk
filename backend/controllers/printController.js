@@ -7,7 +7,6 @@ exports.print = async (req, res) => {
       const spaces = Math.floor((lineWidth - text.length) / 2);
       return ' '.repeat(Math.max(0, spaces)) + text;
     };
-
     const separator = '-'.repeat(lineWidth);
 
     return `
@@ -26,13 +25,16 @@ ${centerText('Thank you!')}
 
   const receiptText = formatReceipt(req.body);
 
-  
-  const escapedText = receiptText.replace(/"/g, '""').replace(/\n/g, '`n');
+   const psText = receiptText.replace(/"/g, '`"').replace(/\n/g, '`n');
 
-  
-  const psCommand = `Add-Content -Path $env:TEMP\\receipt.ps1 -Value "${escapedText}" ; Start-Process powershell -ArgumentList '-Command Add-Content -Path $env:TEMP\\\\receipt.txt -Value "${escapedText}"; Start-Process -FilePath $env:TEMP\\\\receipt.txt -Verb Print'`;
+  const psCommand = `powershell.exe -Command "$text = \\"${psText}\\"; $text | Out-Printer`;
 
-  exec(`powershell.exe -Command "${psCommand}"`, (err, stdout, stderr) => {
+  exec(psCommand, (err, stdout, stderr) => {
+    console.log('=== PowerShell stdout ===');
+    console.log(stdout);       
+    console.log('=== PowerShell stderr ===');
+    console.log(stderr);       
+
     if (err) {
       console.error('Printing error:', err);
       return res.status(500).send('Failed to print receipt');
