@@ -24,9 +24,12 @@ app.use(bodyParser.json());
 config.dbMain;
 const paymentRoutes = require('./routes/paymentRoute.js');
 const requestRoutes = require('./routes/requestRoute.js');
+const printRoutes = require('./routes/printRoute.js');
 
 app.use('/api/payment', paymentRoutes);
 app.use('/api/request', requestRoutes);
+app.use('/api/print', printRoutes);
+
 
 app.get('/', (req, res) => {
     res.send('Hello world!');

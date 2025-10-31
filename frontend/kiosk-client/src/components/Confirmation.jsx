@@ -48,11 +48,27 @@ const Confirmation = ({ handleNext, resetUI }) => {
 
         <div className="mt-6 flex flex-col sm:flex-row gap-4">
           <button
-            onClick={() => window.print()}
+            onClick={async () => {
+              try {
+                await axios.post('http://localhost:5000/api/print', {
+                  referenceNumber: request.referenceNumber,
+                  fullName: request.fullName,
+                  document: request.document,
+                  amount: request.amount,
+                  status: request.status,
+                  paymentStatus: request.paymentStatus,
+                });
+                alert('Receipt printed successfully!');
+              } catch (err) {
+                console.error('Printing error:', err);
+                alert('Failed to print receipt.');
+              }
+            }}
             className="flex-1 bg-gray-200 text-gray-800 font-semibold py-4 px-6 rounded-lg shadow-lg hover:bg-gray-300 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-300"
           >
             Print Receipt
           </button>
+
           <button
             onClick={() => {
               handleNext()
