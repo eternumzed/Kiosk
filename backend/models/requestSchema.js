@@ -15,6 +15,7 @@ const RequestSchema = new Schema({
     checkoutUrl: { type: String },
     paymongoSessionId: { type: String },
     paymongoPaymentId: { type: String },
+    paymentMethod: { type: String, default: "" },
     currency: { type: String },
     paidAt: { type: Date },
     referenceNumber: { type: String, unique: true },

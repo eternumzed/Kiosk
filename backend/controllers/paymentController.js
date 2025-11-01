@@ -3,6 +3,10 @@ const axios = require('axios')
 const Request = require('../models/requestSchema.js');
 const Counter = require('../models/counter.js');
 
+const kioskUrl = process.env.VITE_KIOSK_URL;
+
+const paymentMethodTypes = ["gcash", "card", "paymaya", "qrph", "grab_pay", "shopee_pay", "billease", "brankas_bdo", "brankas_landbank", "brankas_metrobank"];
+
 function getDocCode(documentName) {
     if (!documentName) return "DOC";
 
@@ -62,9 +66,9 @@ exports.createCheckout = async (req, res) => {
                             },
                         ],
                         description: `Request for ${document} by ${fullName}`,
-                        payment_method_types: ["gcash", "card", "paymaya", "qrph", "grab_pay"],
-                        success_url: `http://localhost:4000/confirmation?requestId=${newRequest._id}`,
-                        cancel_url: `http://localhost:4000/payment`,
+                        payment_method_types: paymentMethodTypes,
+                        success_url: `${kioskUrl}/confirmation?requestId=${newRequest._id}`,
+                        cancel_url: `${kioskUrl}/payment`,
                         billing: {
                             name: fullName,
                             email: email,
@@ -97,17 +101,81 @@ exports.createCheckout = async (req, res) => {
     }
 };
 
+
 exports.handleWebhook = async (req, res) => {
     try {
+        const event = req.body.data;
+        const eventType = event?.attributes?.type;
 
-        console.log("Webhook received:", req.body);
+        if (eventType === 'checkout_session.payment.paid') {
+            const checkoutData = event.attributes.data.attributes;
+            const refNum = checkoutData.reference_number;
+            const paymentMethod = checkoutData.payment_method_used;
 
-        // TODO: find the Request by paymongoId or referenceNumber
-        // TODO: update its paymentStatus, paidAt, etc.
+            let paymentLabel = '';
 
-        res.sendStatus(200); // must respond quickly
+            switch (paymentMethod) {
+                case 'gcash':
+                    paymentLabel = 'GCash';
+                    break;
+                case 'card':
+                    paymentLabel = 'Credit/Debit Card';
+                    break;
+                case 'paymaya':
+                    paymentLabel = 'PayMaya';
+                    break;
+                case 'grab_pay':
+                    paymentLabel = 'GrabPay';
+                    break;
+                case 'shopee_pay':
+                    paymentLabel = 'ShopeePay';
+                    break;
+                case 'billease':
+                    paymentLabel = 'BillEase';
+                    break;
+                case 'qrph':
+                    paymentLabel = 'QR Ph';
+                    break;
+                case 'brankas_bdo':
+                    paymentLabel = 'Brankas (BDO)';
+                    break;
+                case 'brankas_landbank':
+                    paymentLabel = 'Brankas (Landbank)';
+                    break;
+                case 'brankas_metrobank':
+                    paymentLabel = 'Brankas (Metrobank)';
+                    break;
+                default:
+                    paymentLabel = paymentMethod || 'Unknown';
+                    break;
+            }
+
+            const paidAt = new Date().toLocaleString("en-US", {
+                timeZone: "Asia/Manila"
+            })
+
+            const updatedRequest = await Request.findOneAndUpdate(
+                { referenceNumber: refNum },
+                {
+                    $set: {
+                        status: 'Pending',
+                        paymentMethod: paymentLabel,
+                        paidAt,
+                    },
+                },
+                { new: true }
+            );
+
+            if (updatedRequest) {
+                console.log(`Updated record for ${refNum}:`, updatedRequest);
+            } else {
+                console.warn(`No request found for reference: ${refNum}`);
+            }
+        }
+
+        res.sendStatus(200);
     } catch (err) {
-        console.error("Webhook error:", err.message);
-        res.status(500).json({ error: err.message });
+        console.error('Webhook processing error:', err);
+        res.sendStatus(500);
     }
 };

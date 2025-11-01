@@ -17,14 +17,18 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ type: '*/*' }));
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
 
 config.dbMain;
 const paymentRoutes = require('./routes/paymentRoute.js');
 const requestRoutes = require('./routes/requestRoute.js');
 const printRoutes = require('./routes/printRoute.js');
+
+// app.use((req, res, next) => {
+//     console.log(`Incoming ${req.method} ${req.originalUrl}`);
+//     next();
+// });
 
 app.use('/api/payment', paymentRoutes);
 app.use('/api/request', requestRoutes);

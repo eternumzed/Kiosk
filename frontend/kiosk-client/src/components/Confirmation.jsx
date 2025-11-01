@@ -34,17 +34,21 @@ const Confirmation = ({ handleNext, resetUI }) => {
         </p>
 
         <div className="p-4 bg-green-50 rounded-lg mb-6">
-          <p className="text-sm font-bold text-green-700">Reference ID:</p>
+          <p className="text-sm font-bold text-green-700">Reference No:</p>
           <p className="text-xl font-extrabold text-green-800 break-words">{request.referenceNumber}</p>
         </div>
 
         <div className="space-y-2 text-gray-700">
-          <p><span className="font-semibold">Document:</span> {request.document}</p>
           <p><span className="font-semibold">Full Name:</span> {request.fullName}</p>
+          <p><span className="font-semibold">Document:</span> {request.document}</p>
           <p><span className="font-semibold">Amount:</span> ₱{request.amount}</p>
+          <p><span className="font-semibold">Payment Method:</span> {request.paymentMethod}</p>
           <p><span className="font-semibold">Status:</span> {request.status}</p>
-          <p><span className="font-semibold">Payment Status:</span> {request.paymentStatus}</p>
+          <p><span className="font-semibold">Date:</span> {new Date(request.paidAt).toLocaleString("en-US", {
+            timeZone: "Asia/Manila"
+          })}</p>
         </div>
+
 
         <div className="mt-6 flex flex-col sm:flex-row gap-4">
           <button
@@ -55,8 +59,11 @@ const Confirmation = ({ handleNext, resetUI }) => {
                   fullName: request.fullName,
                   document: request.document,
                   amount: request.amount,
+                  paymentMethod: request.paymentMethod,
                   status: request.status,
-                  paymentStatus: request.paymentStatus,
+                  date: new Date(request.paidAt).toLocaleString("en-US", {
+                    timeZone: "Asia/Manila"
+                  }),
                 });
                 alert('Receipt printed successfully!');
               } catch (err) {
