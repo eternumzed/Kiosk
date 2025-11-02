@@ -3,7 +3,7 @@ const axios = require('axios')
 const Request = require('../models/requestSchema.js');
 const Counter = require('../models/counter.js');
 
-const kioskUrl = process.env.VITE_KIOSK_URL;
+const kioskUrl = "http://localhost:4000" || process.env.VITE_KIOSK_URL;
 
 const paymentMethodTypes = ["gcash", "card", "paymaya", "qrph", "grab_pay", "shopee_pay", "billease", "brankas_bdo", "brankas_landbank", "brankas_metrobank"];
 
