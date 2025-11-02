@@ -4,9 +4,9 @@ const Help = ({ handleBack }) => {
     const videoUrl = "/kiosk-tutorial.mp4";
 
     return (
-        <div className="w-full h-screen flex flex-col items-center p-2 bg-gray-200 overflow-hidden">
+        <div className="w-full h-screen flex flex-col items-center bg-gray-200 overflow-hidden">
             
-            <div className="w-full max-w-6xl pt-6 flex justify-start">
+            <div className="w-full max-w-6xl flex justify-start">
                 <button
                     onClick={handleBack}
                     className="flex items-center space-x-2 p-2 bg-gray-900 text-white font-bold rounded-xl shadow-lg hover:bg-gray-700 transition-all duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-gray-500 text-lg"
