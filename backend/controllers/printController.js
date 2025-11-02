@@ -141,3 +141,17 @@ exports.print = async (req, res) => {
         res.status(500).send(`Error printing receipt: ${err.message || err}`);
     }
 }
+
+(async () => {
+  const printer = await choosePrinter();
+  if (printer) {
+    console.log(`[INIT] Warming up printer: ${printer}`);
+    const buffer = Buffer.from(" ", "ascii"); 
+    try {
+      await sendToPrinter(printer, buffer);
+      console.log("[INIT] Printer ready.");
+    } catch (err) {
+      console.warn("[INIT] Warm-up failed:", err.message);
+    }
+  }
+})();
