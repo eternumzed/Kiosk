@@ -65,10 +65,8 @@ const Confirmation = ({ handleNext, resetUI }) => {
                     timeZone: "Asia/Manila"
                   }),
                 });
-                alert('Receipt printed successfully!');
               } catch (err) {
                 console.error('Printing error:', err);
-                alert('Failed to print receipt.');
               }
             }}
             className="flex-1 bg-gray-200 text-gray-800 font-semibold py-4 px-6 rounded-lg shadow-lg hover:bg-gray-300 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-300"
