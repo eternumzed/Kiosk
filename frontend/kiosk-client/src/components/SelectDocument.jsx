@@ -6,42 +6,36 @@ const SelectDocument = ({ filteredDocuments, selectedCategory, setSelectedCatego
                     <h3 className="text-lg font-bold text-gray-800 hidden sm:block">Categories</h3>
                     <button
                         onClick={() => setSelectedCategory('All')}
-                        className={`w-full font-semibold py-4 px-6 rounded-lg shadow-md focus:outline-none focus:ring-4 transition-colors duration-200 ${selectedCategory === 'All' ? 'bg-green-600 text-white focus:ring-green-300' : 'bg-gray-200 text-gray-800 focus:ring-gray-300'}`}
+                        className={`w-full font-semibold py-6 px-6 my-2 rounded-lg shadow-md focus:outline-none focus:ring-4 transition-colors duration-200 ${selectedCategory === 'All' ? 'bg-green-600 text-white focus:ring-green-300' : 'bg-gray-200 text-gray-800 focus:ring-gray-300'}`}
                     >
                         All Documents</button>
                     <button
-                        onClick={() => setSelectedCategory('Civil Registry')}
-                        className={`w-full font-semibold py-4 px-6 rounded-lg shadow-md focus:outline-none focus:ring-4 transition-colors duration-200 ${selectedCategory === 'Civil Registry' ? 'bg-green-600 text-white focus:ring-green-300' : 'bg-gray-200 text-gray-800 focus:ring-gray-300'}`}
+                        onClick={() => setSelectedCategory('Clearance')}
+                        className={`w-full font-semibold py-6 px-6 my-2 rounded-lg shadow-md focus:outline-none focus:ring-4 transition-colors duration-200 ${selectedCategory === 'Clearance' ? 'bg-green-600 text-white focus:ring-green-300' : 'bg-gray-200 text-gray-800 focus:ring-gray-300'}`}
                     >
-                        Civil Registry
+                        Clearance
                     </button>
                     <button
-                        onClick={() => setSelectedCategory('Taxation & Fees')}
-                        className={`w-full font-semibold py-4 px-6 rounded-lg shadow-md focus:outline-none focus:ring-4 transition-colors duration-200 ${selectedCategory === 'Taxation & Fees' ? 'bg-green-600 text-white focus:ring-green-300' : 'bg-gray-200 text-gray-800 focus:ring-gray-300'}`}
+                        onClick={() => setSelectedCategory('Certification')}
+                        className={`w-full font-semibold py-6 px-6 my-2 rounded-lg shadow-md focus:outline-none focus:ring-4 transition-colors duration-200 ${selectedCategory === 'Certification' ? 'bg-green-600 text-white focus:ring-green-300' : 'bg-gray-200 text-gray-800 focus:ring-gray-300'}`}
                     >
-                        Taxation & Fees
+                        Certification
                     </button>
                     <button
-                        onClick={() => setSelectedCategory('Licensing')}
-                        className={`w-full font-semibold py-4 px-6 rounded-lg shadow-md focus:outline-none focus:ring-4 transition-colors duration-200 ${selectedCategory === 'Licensing' ? 'bg-green-600 text-white focus:ring-green-300' : 'bg-gray-200 text-gray-800 focus:ring-gray-300'}`}
+                        onClick={() => setSelectedCategory('Permit')}
+                        className={`w-full font-semibold py-6 px-6 my-2 rounded-lg shadow-md focus:outline-none focus:ring-4 transition-colors duration-200 ${selectedCategory === 'Permit' ? 'bg-green-600 text-white focus:ring-green-300' : 'bg-gray-200 text-gray-800 focus:ring-gray-300'}`}
                     >
-                        Licensing
-                    </button>
-                    <button
-                        onClick={() => setSelectedCategory('Business & Permits')}
-                        className={`w-full font-semibold py-4 px-6 rounded-lg shadow-md focus:outline-none focus:ring-4 transition-colors duration-200 ${selectedCategory === 'Business & Permits' ? 'bg-green-600 text-white focus:ring-green-300' : 'bg-gray-200 text-gray-800 focus:ring-gray-300'}`}
-                    >
-                        Business & Permits
+                        Permit
                     </button>
                 </div>
 
 
                 <div className="w-full sm:w-3/4 flex flex-col items-center text-center">
                     <h2 className="text-2xl font-bold mb-6 text-gray-800">Select Document to Pay</h2>
-                     
+
                     <div className="flex flex-col items-center justify-center mb-6">
-                        <div className="w-40 h-40 rounded-full mb-2 flex items-center justify-center overflow-hidden">
-                            <img src="../src/assets/images/TM_SEAL.png" alt="City of Trece Martires Seal" className="w-full h-full object-contain p-2" />
+                        <div className="w-30 h-30 rounded-full mb-2 flex items-center justify-center overflow-hidden">
+                            <img src="../src/assets/images/BRGY_BILUSO_SEAL.jpg" alt="Brgy. Biluso Seal" className="w-full h-full object-contain p-2" />
                         </div>
 
                     </div>

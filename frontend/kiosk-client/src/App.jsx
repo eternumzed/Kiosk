@@ -5,13 +5,14 @@ import axios from "axios";
 import AnimatedRoutes from "./AnimatedRoutes";
 
 const documents = [
-  { name: "Cedula", fee: 50, category: "Civil Registry" },
-  { name: "Birth Certificate", fee: 150, category: "Civil Registry" },
-  { name: "Marriage Certificate", fee: 200, category: "Civil Registry" },
-  { name: "Death Certificate", fee: 200, category: "Civil Registry" },
-  { name: "Barangay Clearance", fee: 100, category: "Taxation & Fees" },
-  { name: "Building Permit", fee: 500, category: "Business & Permits" },
-  { name: "Health Certificate", fee: 100, category: "Licensing" },
+  { name: "Barangay Clearance", fee: 50, category: "Clearance" },
+  { name: "Barangay Indigency Certificate", fee: 150, category: "Certification" },
+  { name: "First Time Job Seeker Certificate", fee: 200, category: "Certification" },
+  { name: "Barangay Work Permit", fee: 200, category: "Permit" },
+  { name: "Barangay Residency Certificate", fee: 100, category: "Certification" },
+  { name: "Certificate of Good Moral Character", fee: 500, category: "Certification" },
+  { name: "Barangay Business Permit", fee: 100, category: "Permit" },
+  { name: "Barangay Building Clearance", fee: 100, category: "Permit" },
 ];
 
 const App = () => {

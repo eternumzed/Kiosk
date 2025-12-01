@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import PersonalInfo from "./components/PersonalInfo";
 import SelectDocument from "./components/SelectDocument";
+import DocumentForm from "./components/DocumentForm";
 import Payment from "./components/Payment";
 import Confirmation from "./components/Confirmation";
 import Home from "./components/Home";
@@ -70,6 +71,7 @@ const AnimatedRoutes = ({
             </PageTransition>
           }
         />
+        {/* SELECT DOCUMENT */}
         <Route
           path="/select-document"
           element={
@@ -88,12 +90,30 @@ const AnimatedRoutes = ({
                     amount: doc.fee,
                   })
                 }
-                handleNext={() => navigate("/payment")}
+                handleNext={() => navigate("/document-form")}
                 handleBack={() => navigate("/personal-info")}
               />
             </PageTransition>
           }
         />
+        {/* FORM */}
+
+        <Route
+          path="/document-form"
+          element={
+            <PageTransition>
+              <DocumentForm
+                type={formData.document}
+                formData={formData}
+                setFormData={setFormData}
+                handleNext={() => navigate("/payment")}
+                handleBack={() => navigate("/select-document")}
+              />
+            </PageTransition>
+          }
+        />
+
+
         {/* PAYMENT */}
         <Route
           path="/payment"
@@ -106,7 +126,7 @@ const AnimatedRoutes = ({
                 setPaymentStatus={setPaymentStatus}
                 setRequestRef={setRequestRef}
                 handlePayment={handlePayment}
-                handleBack={() => navigate("/select-document")}
+                handleBack={() => navigate("/document-form")}
               />
             </PageTransition>
           }
