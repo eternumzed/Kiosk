@@ -54,7 +54,11 @@ const AnimatedRoutes = ({
         {/* HELP */}
         <Route
           path="/help"
-          element={<PageTransition><Help /></PageTransition>}></Route>
+          element={<PageTransition>
+            <Help
+              handleBack={() => navigate("/")}
+            />
+          </PageTransition>}></Route>
         {/* PERSONAL INFO */}
         <Route
           path="/personal-info"

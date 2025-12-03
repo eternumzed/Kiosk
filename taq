@@ -1,0 +1,119 @@
+[33mcommit a31dc6393b9ba1836f9aeaea6cf00424a51bef65[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mtest/print[m[33m, [m[1;31morigin/test/print[m[33m)[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Sat Nov 1 12:46:21 2025 +0800
+
+    add webhook
+
+[33mcommit 6d6406c0b1a3a7c9e914b0670c3a71c37badf818[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Sat Nov 1 02:03:14 2025 +0800
+
+    use winspool"
+
+[33mcommit 6855861eda3026236e127998834f8d60d51a7fe6[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Sat Nov 1 00:40:31 2025 +0800
+
+    use print"
+
+[33mcommit 50215963581487560f743e1d29e5564866dd02fc[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Sat Nov 1 00:28:09 2025 +0800
+
+    use spawn"
+
+[33mcommit 205126439c62effe0a63e1d9642c8364d9cd8828[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Sat Nov 1 00:04:31 2025 +0800
+
+    add printer name"
+
+[33mcommit fccd69a731f607839b8912d2d1e2a1debb469d6c[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Fri Oct 31 23:44:06 2025 +0800
+
+    add powershell debug log"
+
+[33mcommit bb4ca5a34511aa78ea02a6b0dadb3c21b2b19537[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Fri Oct 31 23:25:45 2025 +0800
+
+    add printing functionality
+
+[33mcommit 3a2912875daf1098cf923bd3ea13ec79ef0926c4[m[33m ([m[1;31morigin/master[m[33m, [m[1;32mmaster[m[33m)[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Sun Sep 21 14:05:37 2025 +0800
+
+    fix track request loading and error handling and remove unused stuff
+
+[33mcommit 2a5e817832dffdec66c446ec0fc66d97ab2a2d37[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Fri Sep 19 14:25:10 2025 +0800
+
+    add track request
+
+[33mcommit 8cb00c9908795e62fce3fa8b92349a1dc81c45c6[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Thu Sep 18 07:39:37 2025 +0800
+
+    WIP: implement request tracking function
+
+[33mcommit ad3646dd9c1e256fba839923f78a4bc7767e7bef[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Wed Sep 17 07:40:39 2025 +0800
+
+    add track request for client
+
+[33mcommit 0de590a45fd1542f1634d1230bcbfa44e3381539[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Tue Sep 16 16:19:52 2025 +0800
+
+    separate AnimatedRoutes from App.jsx
+
+[33mcommit 86edd69fe8aa4898a2ad25914c3cf58bce409bbf[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Mon Sep 15 16:46:37 2025 +0800
+
+    re add filteredDocuments function
+
+[33mcommit ec68113784446c89b7a5a50aecd43da11f6986ba[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Mon Sep 15 16:39:23 2025 +0800
+
+    remove document search and add trece martires seal image
+
+[33mcommit 6de708ef6d2c00c81eacb2fe0ab4b25fcab75919[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Sun Sep 14 21:45:16 2025 +0800
+
+    finish confirmation logic
+
+[33mcommit 4cf822dfdea4582c477b5baf7ff94603e0e4208e[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Sun Sep 14 10:20:54 2025 +0800
+
+    added routes and controllers
+
+[33mcommit 068669dac528564bf1ef312c83b6aecad5742ac1[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Sat Sep 13 13:30:48 2025 +0800
+
+    created selectdocument.jsx and trackrequest.jsx components
+
+[33mcommit 674ceeae53bfa634b81153c38b7bc4112db24e52[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Fri Sep 12 18:25:21 2025 +0800
+
+    added paymongo checkout
+
+[33mcommit 16db9711f4768b1647ef6fbfa38a16b2c730560c[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Fri Sep 12 13:31:57 2025 +0800
+
+    created separate components
+
+[33mcommit edae4aaad4a931f3838607b712935d22929defc9[m
+Author: eternumzed <jcraft174@gmail.com>
+Date:   Fri Sep 12 09:02:48 2025 +0800
+
+    initial commit
