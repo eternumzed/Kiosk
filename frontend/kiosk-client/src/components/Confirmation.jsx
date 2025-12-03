@@ -44,6 +44,7 @@ const Confirmation = ({ handleNext, resetUI }) => {
           <p><span className="font-semibold">Amount:</span> ₱{request.amount}</p>
           <p><span className="font-semibold">Payment Method:</span> {request.paymentMethod}</p>
           <p><span className="font-semibold">Status:</span> {request.status}</p>
+          <p><span className="font-semibold">Payment Status:</span> {request.paymentStatus}</p>
           <p><span className="font-semibold">Date:</span> {new Date(request.paidAt).toLocaleString("en-US", {
             timeZone: "Asia/Manila"
           })}</p>
@@ -61,6 +62,7 @@ const Confirmation = ({ handleNext, resetUI }) => {
                   amount: request.amount,
                   paymentMethod: request.paymentMethod,
                   status: request.status,
+                  status: request.paymentStatus,
                   date: new Date(request.paidAt).toLocaleString("en-US", {
                     timeZone: "Asia/Manila"
                   }),

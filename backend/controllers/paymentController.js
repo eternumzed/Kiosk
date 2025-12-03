@@ -11,14 +11,16 @@ function getDocCode(documentName) {
     if (!documentName) return "DOC";
 
     const map = {
-        "cedula": "CED",
-        "birth certificate": "BC",
-        "marriage certificate": "MC",
-        "death certificate": "DC",
-        "barangay clearance": "BRGY",
-        "building permit": "BP",
-        "health certificate": "HC",
+        "barangay clearance": "BRGY-CLR",
+        "barangay indigency certificate": "BRGY-IND",
+        "first time job seeker certificate": "FTJSC",
+        "barangay work permit": "BRGY-WP",
+        "barangay residency certificate": "BRGY-RES",
+        "certificate of good moral character": "GMC",
+        "barangay business permit": "BRGY-BP",
+        "barangay building clearance": "BRGY-BLD",
     };
+
 
     return map[documentName.toLowerCase()] || "DOC";
 }
@@ -26,13 +28,13 @@ function getDocCode(documentName) {
 
 exports.createCheckout = async (req, res) => {
     try {
-        const { fullName, email, contactNumber, address, barangay, document, amount } = req.body;
+        const { fullName, email, contactNumber, address, document, amount } = req.body;
 
         const year = new Date().getFullYear();
         const counter = await Counter.findOneAndUpdate(
-            { name: 'requestCounter', year },
-            { $inc: { seq: 1 } },
-            { new: true, upsert: true, setDefaultsOnInsert: true }
+            { name: 'requestCounter', year: new Date().getFullYear() },
+            { seq: 0 },
+            { upsert: true }
         );
 
         const docCode = getDocCode(document);
@@ -45,7 +47,6 @@ exports.createCheckout = async (req, res) => {
             contactNumber,
             email,
             address,
-            barangay,
             amount,
             status: "Pending",
             referenceNumber
@@ -108,6 +109,7 @@ exports.handleWebhook = async (req, res) => {
         const eventType = event?.attributes?.type;
 
         if (eventType === 'checkout_session.payment.paid') {
+
             const checkoutData = event.attributes.data.attributes;
             const refNum = checkoutData.reference_number;
             const paymentMethod = checkoutData.payment_method_used;
@@ -115,52 +117,33 @@ exports.handleWebhook = async (req, res) => {
             let paymentLabel = '';
 
             switch (paymentMethod) {
-                case 'gcash':
-                    paymentLabel = 'GCash';
-                    break;
-                case 'card':
-                    paymentLabel = 'Credit/Debit Card';
-                    break;
-                case 'paymaya':
-                    paymentLabel = 'PayMaya';
-                    break;
-                case 'grab_pay':
-                    paymentLabel = 'GrabPay';
-                    break;
-                case 'shopee_pay':
-                    paymentLabel = 'ShopeePay';
-                    break;
-                case 'billease':
-                    paymentLabel = 'BillEase';
-                    break;
-                case 'qrph':
-                    paymentLabel = 'QR Ph';
-                    break;
-                case 'brankas_bdo':
-                    paymentLabel = 'Brankas (BDO)';
-                    break;
-                case 'brankas_landbank':
-                    paymentLabel = 'Brankas (Landbank)';
-                    break;
-                case 'brankas_metrobank':
-                    paymentLabel = 'Brankas (Metrobank)';
-                    break;
+                case 'gcash': paymentLabel = 'GCash'; break;
+                case 'card': paymentLabel = 'Credit/Debit Card'; break;
+                case 'paymaya': paymentLabel = 'PayMaya'; break;
+                case 'grab_pay': paymentLabel = 'GrabPay'; break;
+                case 'shopee_pay': paymentLabel = 'ShopeePay'; break;
+                case 'billease': paymentLabel = 'BillEase'; break;
+                case 'qrph': paymentLabel = 'QR Ph'; break;
+                case 'brankas_bdo': paymentLabel = 'Brankas (BDO)'; break;
+                case 'brankas_landbank': paymentLabel = 'Brankas (Landbank)'; break;
+                case 'brankas_metrobank': paymentLabel = 'Brankas (Metrobank)'; break;
                 default:
                     paymentLabel = paymentMethod || 'Unknown';
                     break;
             }
 
-            const paidAt = new Date().toLocaleString("en-US", {
-                timeZone: "Asia/Manila"
-            })
+            const paidAt = new Date(
+                new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" })
+            );
 
             const updatedRequest = await Request.findOneAndUpdate(
                 { referenceNumber: refNum },
                 {
                     $set: {
-                        status: 'Pending',
+                        status: "Processing",
+                        paymentStatus: "Paid",
                         paymentMethod: paymentLabel,
-                        paidAt,
+                        paidAt: paidAt,
                     },
                 },
                 { new: true }
@@ -174,6 +157,7 @@ exports.handleWebhook = async (req, res) => {
         }
 
         res.sendStatus(200);
+
     } catch (err) {
         console.error('Webhook processing error:', err);
         res.sendStatus(500);

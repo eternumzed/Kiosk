@@ -3,11 +3,11 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const RequestSchema = new Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     fullName: { type: String, trim: true },
     contactNumber: { type: String, trim: true },
     email: { type: String, trim: true, lowercase: true },
     address: { type: String, trim: true },
-    barangay: { type: String },
     document: { type: String },
     amount: { type: Number },
     category: { type: String },
@@ -22,7 +22,7 @@ const RequestSchema = new Schema({
 
     status: {
         type: String,
-        enum: ["Pending", "Processing", "Completed", "Cancelled"],
+        enum: ["Pending", "Processing", "For Pick-up", "Completed", "Cancelled"],
         default: "Pending"
     },
     paymentStatus: {

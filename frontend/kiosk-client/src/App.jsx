@@ -23,7 +23,6 @@ const App = () => {
       contactNumber: '',
       email: '',
       address: '',
-      barangay: '',
       document: '',
       amount: '',
     };
@@ -35,7 +34,6 @@ const App = () => {
       contactNumber: '',
       email: '',
       address: '',
-      barangay: '',
       document: '',
       amount: '',
     });
@@ -71,7 +69,6 @@ const App = () => {
         contactNumber: formData.contactNumber,
         email: formData.email,
         address: formData.address,
-        barangay: formData.barangay,
         document: formData.document,
         amount: getFee(),
       });

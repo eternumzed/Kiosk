@@ -7,55 +7,56 @@ const { promisify } = require("util");
 const execFileAsync = promisify(execFile);
 
 async function listPrinters() {
-    try {
-        const ps = 'Get-Printer | Select-Object -Property Name,Default | ConvertTo-Json';
-        const { stdout } = await execFileAsync("powershell.exe", ["-NoProfile", "-Command", ps], { windowsHide: true });
-        const data = JSON.parse(stdout);
-        const printers = Array.isArray(data) ? data : [data];
-        return printers.map(p => ({ name: p.Name, isDefault: !!p.Default }));
-    } catch (err) {
-        console.error("Failed to list printers:", err.message || err);
-        return [];
-    }
+  try {
+    const ps = 'Get-Printer | Select-Object -Property Name,Default | ConvertTo-Json';
+    const { stdout } = await execFileAsync("powershell.exe", ["-NoProfile", "-Command", ps], { windowsHide: true });
+    const data = JSON.parse(stdout);
+    const printers = Array.isArray(data) ? data : [data];
+    return printers.map(p => ({ name: p.Name, isDefault: !!p.Default }));
+  } catch (err) {
+    console.error("Failed to list printers:", err.message || err);
+    return [];
+  }
 }
 
 async function choosePrinter() {
-    const printers = await listPrinters();
-    if (!printers.length) return null;
-    const preferred = printers.find(p => /thermal/i.test(p.name)) || printers.find(p => p.isDefault) || printers[0];
-    return preferred.name;
+  const printers = await listPrinters();
+  if (!printers.length) return null;
+  const preferred = printers.find(p => /thermal/i.test(p.name)) || printers.find(p => p.isDefault) || printers[0];
+  return preferred.name;
 }
 
 function buildPayload(data) {
-    const ESC = "\x1B";
-    const GS = "\x1D";
-    const init = ESC + "@";
-    const alignCenter = ESC + "a" + "\x01";
-    const alignLeft = ESC + "a" + "\x00";
-    const boldOn = ESC + "E" + "\x01";
-    const boldOff = ESC + "E" + "\x00";
-    const cut = GS + "V" + "\x00";
+  const ESC = "\x1B";
+  const GS = "\x1D";
+  const init = ESC + "@";
+  const alignCenter = ESC + "a" + "\x01";
+  const alignLeft = ESC + "a" + "\x00";
+  const boldOn = ESC + "E" + "\x01";
+  const boldOff = ESC + "E" + "\x00";
+  const cut = GS + "V" + "\x00";
 
-    const header = `${init}${alignCenter}${boldOn}City of Trece Martires${boldOff}\n`;
-    const body =
-        `${alignLeft}------------------------------\n` +
-        `Name: ${data.fullName}\n` +
-        `Document: ${data.document}\n` +
-        `Reference No: ${data.referenceNumber}\n` +
-        `Amount: PHP${data.amount}\n` +
-        `Status: ${data.status}\n` +
-        `Date: ${data.date}\n\n` +
-        `Thank you for using our kiosk!\n`;
-    const footer = "\n\n\n" + cut;
+  const header = `${init}${alignCenter}${boldOn}City of Trece Martires${boldOff}\n`;
+  const body =
+    `${alignLeft}------------------------------\n` +
+    `Name: ${data.fullName}\n` +
+    `Document: ${data.document}\n` +
+    `Reference No: ${data.referenceNumber}\n` +
+    `Amount: PHP${data.amount}\n` +
+    `Status: ${data.status}\n` +
+    `Payment Status: ${data.paymentStatus}\n` +
+    `Date: ${data.date}\n\n` +
+    `Thank you for using our kiosk!\n`;
+  const footer = "\n\n\n" + cut;
 
-    return Buffer.from(header + body + footer, "ascii");
+  return Buffer.from(header + body + footer, "ascii");
 }
 
 async function sendToPrinter(printerName, buffer) {
-    const base64 = buffer.toString("base64");
-    const tempPath = join(tmpdir(), `send_raw_print_${Date.now()}.ps1`);
+  const base64 = buffer.toString("base64");
+  const tempPath = join(tmpdir(), `send_raw_print_${Date.now()}.ps1`);
 
-    const psScript = `
+  const psScript = `
 param([string]$printerName, [string]$base64)
 
 $bytes = [System.Convert]::FromBase64String($base64)
@@ -105,53 +106,53 @@ try {
 }
 `;
 
-    writeFileSync(tempPath, psScript, { encoding: "utf8" });
+  writeFileSync(tempPath, psScript, { encoding: "utf8" });
 
-    try {
-        const { stdout, stderr } = await execFileAsync("powershell.exe", [
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-File",
-            tempPath,
-            printerName,
-            base64
-        ], { windowsHide: true, maxBuffer: 10 * 1024 * 1024 });
+  try {
+    const { stdout, stderr } = await execFileAsync("powershell.exe", [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      tempPath,
+      printerName,
+      base64
+    ], { windowsHide: true, maxBuffer: 10 * 1024 * 1024 });
 
-        return { ok: stdout.includes("OK"), stdout, stderr };
-    } finally {
-        try { unlinkSync(tempPath); } catch (_) { }
-    }
+    return { ok: stdout.includes("OK"), stdout, stderr };
+  } finally {
+    try { unlinkSync(tempPath); } catch (_) { }
+  }
 }
 
 
 exports.print = async (req, res) => {
-    const printer = await choosePrinter();
-    if (!printer) {
-        return res.status(500).send("No printer found. Add a thermal printer in Windows 'Printers & Scanners'.");
-    }
+  const printer = await choosePrinter();
+  if (!printer) {
+    return res.status(500).send("No printer found. Add a thermal printer in Windows 'Printers & Scanners'.");
+  }
 
-    const payload = buildPayload(req.body);
+  const payload = buildPayload(req.body);
 
-    try {
-        const result = await sendToPrinter(printer, payload);
-        if (result.ok) res.send("Receipt sent to printer");
-        else res.status(500).send(`Printing failed: ${result.stderr || result.stdout}`);
-    } catch (err) {
-        res.status(500).send(`Error printing receipt: ${err.message || err}`);
-    }
+  try {
+    const result = await sendToPrinter(printer, payload);
+    if (result.ok) res.send("Receipt sent to printer");
+    else res.status(500).send(`Printing failed: ${result.stderr || result.stdout}`);
+  } catch (err) {
+    res.status(500).send(`Error printing receipt: ${err.message || err}`);
+  }
 }
 
 (async () => {
   const printer = await choosePrinter();
   if (printer) {
-    console.log(`[INIT] Warming up printer: ${printer}`);
-    const buffer = Buffer.from(" ", "ascii"); 
+    console.log(`>> Warming up printer: ${printer}`);
+    const buffer = Buffer.from(" ", "ascii");
     try {
       await sendToPrinter(printer, buffer);
-      console.log("[INIT] Printer ready.");
+      console.log(">> Printer ready.");
     } catch (err) {
-      console.warn("[INIT] Warm-up failed:", err.message);
+      console.warn(">> Warm-up failed:", err.message);
     }
   }
 })();
