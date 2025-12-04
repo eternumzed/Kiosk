@@ -32,9 +32,9 @@ exports.createCheckout = async (req, res) => {
 
         const year = new Date().getFullYear();
         const counter = await Counter.findOneAndUpdate(
-            { name: 'requestCounter', year: new Date().getFullYear() },
-            { seq: 0 },
-            { upsert: true }
+            { name: 'requestCounter', year },
+            { $inc: { seq: 1 } },
+            { new: true, upsert: true, setDefaultsOnInsert: true }
         );
 
         const docCode = getDocCode(document);
