@@ -7,18 +7,23 @@ const Confirmation = ({ handleNext, resetUI }) => {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const requestId = params.get("requestId");
+    const referenceNumber = params.get("referenceNumber");
 
-    if (requestId) {
-      axios
-        .get(`http://localhost:5000/api/request/${requestId}`)
+
+    //
+    if (referenceNumber) {
+
+      axios.get(`http://localhost:5000/api/request/track-request/${referenceNumber}`)
         .then((res) => {
-          console.log('THE REQUEST ID IS' + requestId)
-          setRequest(res.data)
+        console.log('THE REQUEST ID IS' + referenceNumber)
+        setRequest(res.data[0])
 
-        })
+      })
         .catch((err) => console.error("Error fetching request:", err));
     }
+
+
+
   }, [location]);
 
   if (!request) {

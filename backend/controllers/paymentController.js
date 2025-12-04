@@ -68,7 +68,7 @@ exports.createCheckout = async (req, res) => {
                         ],
                         description: `Request for ${document} by ${fullName}`,
                         payment_method_types: paymentMethodTypes,
-                        success_url: `${kioskUrl}/confirmation?requestId=${newRequest._id}`,
+                        success_url: `${kioskUrl}/confirmation?referenceNumber=${newRequest.referenceNumber}`,
                         cancel_url: `${kioskUrl}/payment`,
                         billing: {
                             name: fullName,
