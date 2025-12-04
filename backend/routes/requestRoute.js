@@ -7,9 +7,9 @@ const requestController = require('../controllers/requestController');
 router.get("/track-request/:referenceNumber", requestController.trackRequest);
 
 // Authenticated mobile user
-router.get("/", authMiddleware, requestController.getUserRequests); // all requests for logged-in user
-router.get("/:id", authMiddleware, requestController.getRequestById); // single request for logged-in user
-router.post("/", authMiddleware, requestController.createRequest); // create request via mobile app
+// router.get("/", authMiddleware, requestController.getUserRequests); // all requests for logged-in user
+// router.get("/:id", authMiddleware, requestController.getRequestById); // single request for logged-in user
+// router.post("/", authMiddleware, requestController.createRequest); // create request via mobile app
 
 module.exports = router;
 

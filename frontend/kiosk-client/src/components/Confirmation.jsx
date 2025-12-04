@@ -62,7 +62,7 @@ const Confirmation = ({ handleNext, resetUI }) => {
                   amount: request.amount,
                   paymentMethod: request.paymentMethod,
                   status: request.status,
-                  status: request.paymentStatus,
+                  paymentStatus: request.paymentStatus,
                   date: new Date(request.paidAt).toLocaleString("en-US", {
                     timeZone: "Asia/Manila"
                   }),
