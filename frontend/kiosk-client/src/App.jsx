@@ -64,7 +64,7 @@ const App = () => {
     try {
       setPaymentStatus("Processing");
 
-      const res = await axios.post("http://localhost:5000/api/payment/create-checkout", {
+      const res = await axios.post("http://localhost:5000/api/request/create-request", {
         fullName: formData.fullName,
         contactNumber: formData.contactNumber,
         email: formData.email,
@@ -73,17 +73,16 @@ const App = () => {
         amount: getFee(),
       });
 
-      console.log("PayMongo response:", res.data);
 
-      if (res.data.checkoutUrl) {
+      if (res.data.checkout_url) {
         setRequestRef({
-          reference: res.data.reference,
-          description: res.data.description,
-          amount: res.data.amount,
-          currency: res.data.currency,
+          reference: res.data.reference_number,
+          description: res.data.payment_intent.attributes.description,
+          amount: res.data.payment_intent.attributes.amount,
+          currency: res.data.payment_intent.attributes.currency,
         });
-
-        window.location.href = res.data.checkoutUrl;
+        console.log(requestRef);
+        window.location.href = res.data.checkout_url;
       } else {
         throw new Error("Checkout URL missing");
       }

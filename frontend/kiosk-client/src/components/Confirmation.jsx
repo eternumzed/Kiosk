@@ -15,7 +15,7 @@ const Confirmation = ({ handleNext, resetUI }) => {
 
       axios.get(`http://localhost:5000/api/request/track-request/${referenceNumber}`)
         .then((res) => {
-        console.log('THE REQUEST ID IS' + referenceNumber)
+        console.log('>> Confirmation.jsx: Reference ID: ' + referenceNumber)
         setRequest(res.data[0])
 
       })

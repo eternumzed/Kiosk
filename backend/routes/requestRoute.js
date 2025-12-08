@@ -17,9 +17,9 @@ const requestController = require('../controllers/requestController');
 // 
 
 
+router.post("/create-request/", requestController.createRequest)
 
-
-router.get("/:id", requestController.request); // for confirmation screen
-router.get("/track-request/:id", requestController.trackRequest); // for searching request on track request screen
+router.get("/:id", requestController.request); // for confirmation screen // UNUSED
+router.get("/track-request/:referenceNumber", requestController.trackRequest); // Confirmation.jsx TrackRequest.jsx
 
 module.exports = router;

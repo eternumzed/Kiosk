@@ -1,57 +1,15 @@
 // paymentController.js
 const axios = require('axios')
 const Request = require('../models/requestSchema.js');
-const Counter = require('../models/counter.js');
 
 const kioskUrl = "http://localhost:4000" || process.env.VITE_KIOSK_URL;
 
 const paymentMethodTypes = ["gcash", "card", "paymaya", "qrph", "grab_pay", "shopee_pay", "billease", "brankas_bdo", "brankas_landbank", "brankas_metrobank"];
 
-function getDocCode(documentName) {
-    if (!documentName) return "DOC";
-
-    const map = {
-        "barangay clearance": "BRGY-CLR",
-        "barangay indigency certificate": "BRGY-IND",
-        "first time job seeker certificate": "FTJSC",
-        "barangay work permit": "BRGY-WP",
-        "barangay residency certificate": "BRGY-RES",
-        "certificate of good moral character": "GMC",
-        "barangay business permit": "BRGY-BP",
-        "barangay building clearance": "BRGY-BLD",
-    };
-
-
-    return map[documentName.toLowerCase()] || "DOC";
-}
-
 
 exports.createCheckout = async (req, res) => {
     try {
-        const { fullName, email, contactNumber, address, document, amount } = req.body;
-
-        const year = new Date().getFullYear();
-        const counter = await Counter.findOneAndUpdate(
-            { name: 'requestCounter', year },
-            { $inc: { seq: 1 } },
-            { new: true, upsert: true, setDefaultsOnInsert: true }
-        );
-
-        const docCode = getDocCode(document);
-        const seqNum = String(counter.seq).padStart(4, '0');
-        const referenceNumber = `${docCode}-${year}-${seqNum}`;
-
-        const newRequest = await Request.create({
-            fullName,
-            document,
-            contactNumber,
-            email,
-            address,
-            amount,
-            status: "Pending",
-            referenceNumber
-
-        });
+        const newRequest = req.body
 
         const checkoutRes = await axios.post(
             "https://api.paymongo.com/v1/checkout_sessions",
@@ -60,22 +18,22 @@ exports.createCheckout = async (req, res) => {
                     attributes: {
                         line_items: [
                             {
-                                name: document,
-                                amount: amount * 100,
+                                name: newRequest.document,
+                                amount: newRequest.amount * 100,
                                 currency: "PHP",
                                 quantity: 1,
                             },
                         ],
-                        description: `Request for ${document} by ${fullName}`,
+                        description: `Request for ${newRequest.document} by ${newRequest.fullName}`,
                         payment_method_types: paymentMethodTypes,
                         success_url: `${kioskUrl}/confirmation?referenceNumber=${newRequest.referenceNumber}`,
                         cancel_url: `${kioskUrl}/payment`,
                         billing: {
-                            name: fullName,
-                            email: email,
-                            phone: contactNumber || ""
+                            name: newRequest.fullName,
+                            email: newRequest.email,
+                            phone: newRequest.contactNumber || ""
                         },
-                        reference_number: referenceNumber,
+                        reference_number: newRequest.referenceNumber,
                         send_email_receipt: true
                     },
                 },
@@ -88,14 +46,10 @@ exports.createCheckout = async (req, res) => {
             }
         );
 
-        newRequest.paymongoId = checkoutRes.data.data.id;
-        newRequest.checkoutUrl = checkoutRes.data.data.attributes.checkout_url;
-        await newRequest.save();
+        console.log(checkoutRes.data.data.attributes);
 
-        res.json({
-            checkoutUrl: checkoutRes.data.data.attributes.checkout_url,
-            reference: newRequest.referenceNumber,
-        });
+        res.json(checkoutRes.data.data.attributes);
+
     } catch (err) {
         console.error(err.response?.data || err.message);
         res.status(500).json({ error: err.message });
