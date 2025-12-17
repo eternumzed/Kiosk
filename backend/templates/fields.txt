@@ -12,6 +12,7 @@ FTJSC:
 {d.day}
 {d.month}
 {d.year}
+{d.date}
 
 BRGY-WP:
 {d.full_name}
