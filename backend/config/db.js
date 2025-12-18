@@ -11,7 +11,7 @@ async function dbMain() {
         }
         const user = encodeURIComponent(DB_USERNAME);
         const pass = encodeURIComponent(DB_PASSWORD);
-        return `mongodb+srv://admin:Ncst12345@municipal-kiosk-cluster.uievwba.mongodb.net/?appName=municipal-kiosk-cluster`;
+        return `mongodb+srv://admin:${DB_PASSWORD}@municipal-kiosk-cluster.uievwba.mongodb.net/?appName=municipal-kiosk-cluster`;
     })();
 
     console.log('>> About to connect to MongoDB...');
