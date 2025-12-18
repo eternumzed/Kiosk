@@ -9,9 +9,7 @@ async function dbMain() {
         if (!DB_USERNAME || !DB_PASSWORD) {
             throw new Error('Missing DB_USERNAME or DB_PASSWORD environment variables (or MONGO_URI).');
         }
-        const user = encodeURIComponent(DB_USERNAME);
-        const pass = encodeURIComponent(DB_PASSWORD);
-        return `mongodb+srv://admin:${DB_PASSWORD}@municipal-kiosk-cluster.uievwba.mongodb.net/?appName=municipal-kiosk-cluster`;
+        return `mongodb+srv://${DB_USERNAME}:${DB_PASSWORD}@municipal-kiosk-cluster.uievwba.mongodb.net/municipal_kiosk_db?appName=municipal-kiosk-cluster`;
     })();
 
     console.log('>> About to connect to MongoDB...');
