@@ -1,18 +1,22 @@
 const mongoose = require('mongoose');
 
-const DB_USERNAME = process.env.DB_USERNAME;
-const DB_PASSWORD = process.env.DB_PASSWORD;
-
-const mongoDB = `mongodb+srv://${DB_USERNAME}:${DB_PASSWORD}@municipal-kiosk-cluster.uievwba.mongodb.net/municipal_kiosk_db?retryWrites=true&w=majority&appName=municipal-kiosk-cluster`;
-
 mongoose.set('strictQuery', false);
 
 async function dbMain() {
-    console.log(">> About to connect to MongoDB...");
-    await mongoose.connect(mongoDB);
-    console.log(">> Connected to MongoDB.");
+    const mongoUri = process.env.MONGO_URI || (() => {
+        const DB_USERNAME = process.env.DB_USERNAME;
+        const DB_PASSWORD = process.env.DB_PASSWORD;
+        if (!DB_USERNAME || !DB_PASSWORD) {
+            throw new Error('Missing DB_USERNAME or DB_PASSWORD environment variables (or MONGO_URI).');
+        }
+        const user = encodeURIComponent(DB_USERNAME);
+        const pass = encodeURIComponent(DB_PASSWORD);
+        return `mongodb+srv://admin:Ncst12345@municipal-kiosk-cluster.uievwba.mongodb.net/?appName=municipal-kiosk-cluster`;
+    })();
+
+    console.log('>> About to connect to MongoDB...');
+    await mongoose.connect(mongoUri, {});
+    console.log('>> Connected to MongoDB.');
 }
 
-dbMain().catch(err => console.error(err));
-
-module.exports = dbMain;
+module.exports = { dbMain };

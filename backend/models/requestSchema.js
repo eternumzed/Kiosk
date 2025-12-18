@@ -9,8 +9,23 @@ const RequestSchema = new Schema({
     email: { type: String, trim: true, lowercase: true },
     address: { type: String, trim: true },
     document: { type: String },
+    documentCode: { type: String },
     amount: { type: Number },
     category: { type: String },
+    
+    // Store all template-specific fields (age, purpose, citizenship, zone, etc.)
+    // MongoDB allows storing any fields - they'll be preserved as-is
+    // Common fields used in templates:
+    citizenship: { type: String },
+    civilStatus: { type: String },
+    age: { type: String },
+    purpose: { type: String },
+    zone: { type: String },
+    lengthOfResidency: { type: String },
+    businessName: { type: String },
+    businessKind: { type: String },
+    sex: { type: String },
+    projectType: { type: String },
 
     checkoutUrl: { type: String },
     paymongoSessionId: { type: String },

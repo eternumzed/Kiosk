@@ -1,47 +1,71 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
-const app = express();
 const bodyParser = require('body-parser');
-require('dotenv').config({
-    path: '../.env'
-});
-const config = require('./config/db.js');
+const path = require('path');
 
-const PORT = '5000';
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+const config = require('./config/db');
+const apiRoutes = require('./routes');
+const { errorHandler } = require('./middleware/errorHandler');
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:4000',
+    process.env.VITE_KIOSK_URL,
+];
+
 const corsOptions = {
-    origin: 'http://localhost:4000', // Specify the allowed origin
-    methods: ['GET', 'POST'], // Specify allowed HTTP methods
-    allowedHeaders: ['Content-Type'], // Specify allowed headers
-    credentials: true, // Allow credentials (cookies, authentication)
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1) return callback(null, true);
+        return callback(new Error('CORS policy: This origin is not allowed.'));
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
 };
 
 app.use(cors(corsOptions));
 app.use(express.json({ type: '*/*' }));
 app.use(bodyParser.urlencoded({ extended: false }));
 
-config.dbMain;
-const paymentRoutes = require('./routes/paymentRoute.js');
-const requestRoutes = require('./routes/requestRoute.js');
-const printRoutes = require('./routes/printRoute.js');
+const pdfRoutes = require('./routes/pdfRoute.js');
+const pdfController = require('./controllers/pdfController');
 
-// app.use((req, res, next) => {
-//     console.log(`Incoming ${req.method} ${req.originalUrl}`);
-//     next();
-// });
+// mount API routes (v1) and keep legacy /api for backward compatibility
+app.use('/api/v1', apiRoutes);
+app.use('/api', apiRoutes);
+app.use('/api/pdf', pdfRoutes);
 
-app.use('/api/payment', paymentRoutes);
-app.use('/api/request', requestRoutes);
-app.use('/api/print', printRoutes);
+app.get('/', (req, res) => res.send('Hello world!'));
 
+// legacy Google OAuth redirect (some credentials use /oauth2callback)
+app.get('/oauth2callback', (req, res, next) => pdfController.oauthCallback(req, res, next));
 
-app.get('/', (req, res) => {
-    res.send('Hello world!');
+// centralized error handler
+app.use(errorHandler);
 
-})
+// Connect to DB first, load saved Google tokens, then start server
+const googleAuth = require('./googleAuth');
 
-app.listen(PORT, () => {
-    console.log(`>> Listening at PORT: ${PORT}`)
-})
+config.dbMain()
+    .then(() => {
+        try {
+            googleAuth.loadSavedToken();
+        } catch (err) {
+            console.warn('Could not load saved Google token:', err.message || err);
+        }
+
+        app.listen(PORT, () => {
+            console.log(`>> Listening at PORT: ${PORT}`);
+        });
+    })
+    .catch((err) => {
+        console.error('Failed to connect to DB, exiting.', err.message || err);
+        process.exit(1);
+    });
 
 

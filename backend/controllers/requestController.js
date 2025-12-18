@@ -22,7 +22,11 @@ function getDocCode(documentName) {
 
 exports.createRequest = async (req, res) => {
     try {
-        const { fullName, email, contactNumber, address, document, amount } = req.body;
+        console.log('createRequest received body:', req.body);
+        
+        const { fullName, email, contactNumber, address, document, amount, ...templateFields } = req.body;
+        
+        console.log('Extracted template fields:', templateFields);
 
         const year = new Date().getFullYear();
         const counter = await Counter.findOneAndUpdate(
@@ -43,12 +47,13 @@ exports.createRequest = async (req, res) => {
             address,
             amount,
             status: "Pending",
-            referenceNumber
+            referenceNumber,
+            ...templateFields  // Store all template-specific fields (age, zone, purpose, etc.)
         });
 
         await newRequest.save();
         const paymongoRes = await axios.post('http://localhost:5000/api/payment/create-checkout', newRequest);
-        console.log(paymongoRes.data)
+
         res.json(paymongoRes.data);
 
 

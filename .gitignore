@@ -28,3 +28,5 @@ dist-ssr
 taq
 tatusqq
 
+oauth_credentials.json
+token.json

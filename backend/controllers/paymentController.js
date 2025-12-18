@@ -1,6 +1,10 @@
 // paymentController.js
 const axios = require('axios')
+const fs = require('fs');
 const Request = require('../models/requestSchema.js');
+const pdfService = require('../services/pdf/generatePdf.js');
+const drive = require('../services/google/Drive.js');
+const requestService = require('../services/requestService.js');
 
 const kioskUrl = "http://localhost:4000" || process.env.VITE_KIOSK_URL;
 
@@ -105,6 +109,37 @@ exports.handleWebhook = async (req, res) => {
 
             if (updatedRequest) {
                 console.log(`Updated record for ${refNum}:`, updatedRequest);
+
+                // Generate PDF and upload to Drive only after successful payment
+                try {
+                    const templateKey = requestService.getDocCode(updatedRequest.document);
+                    console.log(`Generating PDF with template: ${templateKey}`);
+                    
+                    const rawData = updatedRequest.toObject();
+                    console.log(`Data being passed to template:`, rawData);
+                    
+                    const pdfPath = await pdfService({ templateKey, rawData });
+                    console.log(`PDF generated at: ${pdfPath}`);
+                    
+                    try {
+                        // Upload to Drive using reference number as filename
+                        const uploaded = await drive.uploadPdf(pdfPath, updatedRequest.referenceNumber);
+                        console.log('PDF uploaded to Drive:', uploaded);
+                    } finally {
+                        // Always clean up temp file
+                        try {
+                            if (fs.existsSync(pdfPath)) {
+                                fs.unlinkSync(pdfPath);
+                                console.log(`Temp PDF deleted: ${pdfPath}`);
+                            }
+                        } catch (e) {
+                            console.warn(`Could not delete temp file ${pdfPath}:`, e.message);
+                        }
+                    }
+                } catch (err) {
+                    console.error('PDF generation/upload after payment failed:', err.message || err);
+                    // Don't block webhook response if PDF generation fails
+                }
             } else {
                 console.warn(`No request found for reference: ${refNum}`);
             }
