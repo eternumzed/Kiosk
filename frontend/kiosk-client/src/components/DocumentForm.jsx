@@ -51,25 +51,12 @@ const toCamelCase = (str) => {
     return str.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (match, chr) => chr.toUpperCase());
 };
 
-export default function DocumentForm({ type, handleNext, handleBack }) {
+export default function DocumentForm({ type, formData, setFormData, handleNext, handleBack }) {
     const fields = documents[type] || [];
-
-    const [formData, setFormData] = useState(() => {
-        const savedData = localStorage.getItem('documentRequestFormData');
-        const initialData = savedData ? JSON.parse(savedData) : {};
-
-        const state = {};
-        fields.forEach(f => {
-            state[f.key] = initialData[f.key] || '';
-        });
-
-        return { ...initialData, ...state };
-    });
 
     const handleChange = (key, value) => {
         const newFormData = { ...formData, [key]: value };
         setFormData(newFormData);
-        localStorage.setItem('documentRequestFormData', JSON.stringify(newFormData));
     };
 
     return (

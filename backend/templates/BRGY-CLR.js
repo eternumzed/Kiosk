@@ -21,8 +21,8 @@ module.exports = {
     {
       path: 'waldo.jpg',
       page: 0,
-      x: 158,
-      y: 158.5,
+      x: 435,
+      y: 527,
       width: 56,
       height: 56,
     },
