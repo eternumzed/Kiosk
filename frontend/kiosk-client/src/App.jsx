@@ -64,14 +64,13 @@ const App = () => {
     try {
       setPaymentStatus("Processing");
 
-      const res = await axios.post("http://localhost:5000/api/request/create-request", {
-        fullName: formData.fullName,
-        contactNumber: formData.contactNumber,
-        email: formData.email,
-        address: formData.address,
-        document: formData.document,
+      const paymentData = {
+        ...formData,
         amount: getFee(),
-      });
+      };
+      console.log('Sending payment data to backend:', paymentData);
+
+      const res = await axios.post("http://localhost:5000/api/request/create-request", paymentData);
 
 
       if (res.data.checkout_url) {
@@ -81,7 +80,7 @@ const App = () => {
           amount: res.data.payment_intent.attributes.amount,
           currency: res.data.payment_intent.attributes.currency,
         });
-        console.log(requestRef);
+      
         window.location.href = res.data.checkout_url;
       } else {
         throw new Error("Checkout URL missing");

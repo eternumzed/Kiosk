@@ -87,6 +87,7 @@ const AnimatedRoutes = ({
                 )}
                 selectedCategory={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
+                formData={formData}
                 handleDocumentSelect={(doc) =>
                   setFormData({
                     ...formData,

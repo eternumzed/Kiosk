@@ -1,14 +1,49 @@
 import { useState } from "react";
  
+// Fields are defined with `label` shown to users and `key` expected by backend templates
 const documents = {
-    "Barangay Clearance": ["Full Name", "Address", "Purpose"],
-    "Barangay Indigency Certificate": ["Full Name", "Address", "Reason for Request"],
-    "First Time Job Seeker Certificate": ["Full Name", "Address", "Barangay ID / Valid ID"],
-    "Barangay Work Permit": ["Full Name", "Employer", "Job Title"],
-    "Barangay Residency Certificate": ["Full Name", "Years of Residency"],
-    "Certificate of Good Moral Character": ["Full Name", "School / Company", "Purpose"],
-    "Barangay Business Permit": ["Business Name", "Owner", "Business Address"],
-    "Barangay Building Clearance": ["Full Name", "Project Type", "Project Location"]
+    "Barangay Clearance": [
+        { label: 'Full Name', key: 'fullName' },
+        { label: 'Citizenship', key: 'citizenship' },
+        { label: 'Civil Status', key: 'civilStatus' },
+        { label: 'Age', key: 'age' },
+        { label: 'Purpose', key: 'purpose' },
+    ],
+    "Barangay Indigency Certificate": [
+        { label: 'Full Name', key: 'fullName' },
+        { label: 'Age', key: 'age' },
+        { label: 'Purpose', key: 'purpose' },
+    ],
+    "First Time Job Seeker Certificate": [
+        { label: 'Full Name', key: 'fullName' },
+        { label: 'Zone', key: 'zone' },
+        { label: 'Length of Residency', key: 'lengthOfResidency' },
+    ],
+    "Barangay Work Permit": [
+        { label: 'Full Name', key: 'fullName' },
+    ],
+    "Barangay Residency Certificate": [
+        { label: 'Full Name', key: 'fullName' },
+        { label: 'Zone', key: 'zone' },
+        { label: 'Purpose', key: 'purpose' },
+    ],
+    "Certificate of Good Moral Character": [
+        { label: 'Full Name', key: 'fullName' },
+        { label: 'Civil Status', key: 'civilStatus' },
+    ],
+    "Barangay Business Permit": [
+        { label: 'Business Name', key: 'businessName' },
+        { label: 'Business Kind', key: 'businessKind' },
+        { label: 'Business Address', key: 'address' },
+        { label: 'Owner / Full Name', key: 'fullName' },
+    ],
+    "Barangay Building Clearance": [
+        { label: 'Full Name', key: 'fullName' },
+        { label: 'Age', key: 'age' },
+        { label: 'Sex', key: 'sex' },
+        { label: 'Address', key: 'address' },
+        { label: 'Project Type', key: 'projectType' },
+    ],
 };
 
  
@@ -19,30 +54,21 @@ const toCamelCase = (str) => {
 export default function DocumentForm({ type, handleNext, handleBack }) {
     const fields = documents[type] || [];
 
- 
     const [formData, setFormData] = useState(() => {
         const savedData = localStorage.getItem('documentRequestFormData');
         const initialData = savedData ? JSON.parse(savedData) : {};
 
-       
         const state = {};
-        fields.forEach(fieldTitle => {
-            const fieldKey = toCamelCase(fieldTitle);
-        
-            state[fieldKey] = initialData[fieldKey] || '';
+        fields.forEach(f => {
+            state[f.key] = initialData[f.key] || '';
         });
- 
+
         return { ...initialData, ...state };
     });
 
-    const handleChange = (fieldTitle, value) => {
- 
-        const fieldKey = toCamelCase(fieldTitle);
-
-        const newFormData = { ...formData, [fieldKey]: value };
+    const handleChange = (key, value) => {
+        const newFormData = { ...formData, [key]: value };
         setFormData(newFormData);
-
-   
         localStorage.setItem('documentRequestFormData', JSON.stringify(newFormData));
     };
 
@@ -53,26 +79,24 @@ export default function DocumentForm({ type, handleNext, handleBack }) {
                 <h1 className="text-3xl font-extrabold text-gray-800 mb-6 text-center border-b pb-3">   {type} Form</h1>
 
                 <form className="space-y-6">
-                    {fields.map((fieldTitle) => {
-                        const fieldKey = toCamelCase(fieldTitle); 
-                        const inputId = fieldTitle.replace(/\s+/g, '-').toLowerCase();
+                    {fields.map((f) => {
+                        const inputId = f.key.replace(/\s+/g, '-').toLowerCase();
 
                         return (
-                            <div key={fieldTitle} className="relative">
+                            <div key={f.key} className="relative">
                                 <label
                                     className="block text-sm font-semibold text-gray-700 mb-1"
                                     htmlFor={inputId}
                                 >
-                                    {fieldTitle}
+                                    {f.label}
                                 </label>
                                 <input
                                     id={inputId}
                                     type="text"
-                                    placeholder={`Enter ${fieldTitle}`}
+                                    placeholder={`Enter ${f.label}`}
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-150 ease-in-out placeholder-gray-400"
-                                
-                                    value={formData[fieldKey] || ''}
-                                    onChange={(e) => handleChange(fieldTitle, e.target.value)}
+                                    value={formData[f.key] || ''}
+                                    onChange={(e) => handleChange(f.key, e.target.value)}
                                     required
                                 />
                             </div>
@@ -87,16 +111,15 @@ export default function DocumentForm({ type, handleNext, handleBack }) {
                         >
                             Back
                         </button>
-                        <button
-                            type="button"
-                            className="w-full sm:w-1/2 bg-green-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-green-700 transition-all duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-green-300"
-                            onClick={() => {
-                                console.log(formData)
-                                handleNext(formData); 
-                            }}
-                        >
-                            Next
-                        </button>
+                        <div className="w-full sm:w-1/2">
+                            <button
+                                type="button"
+                                className="w-full bg-green-600 text-white font-bold py-3 rounded-lg shadow-md transition-all duration-300 transform hover:bg-green-700 hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-green-300"
+                                onClick={() => handleNext(formData)}
+                            >
+                                Next
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>

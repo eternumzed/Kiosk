@@ -46,9 +46,10 @@ const SelectDocument = ({ filteredDocuments, selectedCategory, setSelectedCatego
                             filteredDocuments.map(doc => (
                                 <button
                                     key={doc.name}
-
-                                    onClick={() => { handleDocumentSelect(doc); handleNext(); }}
-
+                                    onClick={() => {
+                                        handleDocumentSelect(doc);
+                                        handleNext();
+                                    }}
                                     className="bg-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-green-700 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 min-w-[150px]"
                                 >
                                     {doc.name}
