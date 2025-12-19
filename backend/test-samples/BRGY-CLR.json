@@ -1,0 +1,10 @@
+{
+  "type": "BRGY-CLR",
+  "data": {
+    "fullName": "Juan Dela Cruz",
+    "citizenship": "Filipino",
+    "civilStatus": "Single",
+    "age": "25",
+    "purpose": "Employment Requirements"
+  }
+}

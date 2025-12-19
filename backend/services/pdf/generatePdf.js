@@ -1,4 +1,4 @@
-const templates = require('../../templates');
+const templates = require('../../../templates');
 const renderCarbone = require('./renderCarbone');
 const addImages = require('./addImages');
 const uploadDrive = require('./uploadDrive');

@@ -1,0 +1,10 @@
+{
+  "type": "BRGY-BLD",
+  "data": {
+    "fullName": "Jann Venice L. Balcita",
+    "age": "30",
+    "sex": "Male",
+    "address": "456 Construction Ave, Zone 2",
+    "projectType": "Residential Building"
+  }
+}

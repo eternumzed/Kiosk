@@ -1,0 +1,147 @@
+{
+  "info": {
+    "name": "Barangay Kiosk - PDF Templates",
+    "description": "Sample requests for testing all barangay document templates",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "BRGY-CLR - Barangay Clearance",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"BRGY-CLR\",\n  \"data\": {\n    \"fullName\": \"Juan Dela Cruz\",\n    \"citizenship\": \"Filipino\",\n    \"civilStatus\": \"Single\",\n    \"age\": \"25\",\n    \"purpose\": \"Employment Requirements\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/pdf/generate",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "pdf", "generate"]
+        }
+      }
+    },
+    {
+      "name": "BRGY-IND - Barangay Indigency",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"BRGY-IND\",\n  \"data\": {\n    \"fullName\": \"Maria Santos\",\n    \"age\": \"32\",\n    \"purpose\": \"Medical Assistance\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/pdf/generate",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "pdf", "generate"]
+        }
+      }
+    },
+    {
+      "name": "BRGY-RES - Barangay Residency",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"BRGY-RES\",\n  \"data\": {\n    \"fullName\": \"Pedro Reyes\",\n    \"zone\": \"Zone 3\",\n    \"purpose\": \"School Requirements\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/pdf/generate",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "pdf", "generate"]
+        }
+      }
+    },
+    {
+      "name": "BRGY-BP - Barangay Business Permit",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"BRGY-BP\",\n  \"data\": {\n    \"businessName\": \"Sari-Sari Store\",\n    \"businessKind\": \"Retail\",\n    \"address\": \"123 Main Street, Zone 5\",\n    \"fullName\": \"Rosa Garcia\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/pdf/generate",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "pdf", "generate"]
+        }
+      }
+    },
+    {
+      "name": "BRGY-BLD - Barangay Building Clearance",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"BRGY-BLD\",\n  \"data\": {\n    \"fullName\": \"Jann Venice L. Balcita\",\n    \"age\": \"30\",\n    \"sex\": \"Male\",\n    \"address\": \"456 Construction Ave, Zone 2\",\n    \"projectType\": \"Residential Building\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/pdf/generate",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "pdf", "generate"]
+        }
+      }
+    },
+    {
+      "name": "BRGY-WP - Barangay Work Permit",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"BRGY-WP\",\n  \"data\": {\n    \"fullName\": \"Carlos Mendoza\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/pdf/generate",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "pdf", "generate"]
+        }
+      }
+    }
+  ]
+}

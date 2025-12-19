@@ -1,5 +1,5 @@
 module.exports = {
-  docx: 'BRGY-CLR.docx',
+  docx: 'BRGY-WP.docx',
 
   dataMapper(raw) {
     const now = new Date();
@@ -12,25 +12,9 @@ module.exports = {
 
     return {
       full_name: raw.fullName?.toUpperCase() || '',
-      citizenship: raw.citizenship?.toUpperCase() || '',
-      civil_status: raw.civilStatus?.toUpperCase() || '',
-      age: raw.age,
-      purpose: raw.purpose?.toUpperCase() || '',
-      date: now.toLocaleDateString(),
       day: getOrdinal(dayNum),
       month: now.toLocaleString('en-US', { month: 'long' }).toUpperCase(),
       year: now.getFullYear(),
     };
   },
-
-  images: [
-    {
-      path: 'waldo.jpg',
-      page: 0,
-      x: 435,
-      y: 527,
-      width: 56,
-      height: 56,
-    },
-  ],
 };

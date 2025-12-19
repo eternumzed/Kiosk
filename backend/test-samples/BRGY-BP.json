@@ -1,0 +1,9 @@
+{
+  "type": "BRGY-BP",
+  "data": {
+    "businessName": "Sari-Sari Store",
+    "businessKind": "Retail",
+    "address": "123 Main Street, Zone 5",
+    "fullName": "Rosa Garcia"
+  }
+}
