@@ -3,6 +3,19 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 
+// Ensure LibreOffice binaries are discoverable on Windows before any imports
+if (process.platform === 'win32') {
+    const loDirs = [
+        'C:\\Program Files\\LibreOffice\\program',
+        'C:\\Program Files (x86)\\LibreOffice\\program',
+    ];
+    const currentPath = process.env.PATH || '';
+    const extra = loDirs.join(';');
+    if (!currentPath.includes('LibreOffice\\program')) {
+        process.env.PATH = `${extra};${currentPath}`;
+    }
+}
+
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const config = require('./config/db');
 const apiRoutes = require('./routes');
