@@ -26,10 +26,10 @@ module.exports = {
     {
       path: 'waldo.jpg',
       page: 0,
-      x: 250,
-      y: 250,
-      width: 100,
-      height: 100,
+      x: 456,
+      y: 498,
+      width: 85,
+      height: 85,
     },
   ],
 
