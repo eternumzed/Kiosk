@@ -142,6 +142,98 @@
           "path": ["api", "pdf", "generate"]
         }
       }
+    },
+    {
+      "name": "BRGY-WP - Barangay Work Permit",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"BRGY-WP\",\n  \"data\": {\n    \"fullName\": \"Carlos Mendoza\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/pdf/generate",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "pdf", "generate"]
+        }
+      }
+    },
+    {
+      "name": "BRGY-WP - Barangay Work Permit",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"BRGY-WP\",\n  \"data\": {\n    \"fullName\": \"Carlos Mendoza\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/pdf/generate",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "pdf", "generate"]
+        }
+      }
+    },
+     {
+      "name": "FTJSC - First Time Job Seeker's Certificate",
+      "request": {    
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"FTJSC\",\n  \"data\": {\n    \"fullName\": \"Ana Lopez\",\n    \"zone\": \"Zone 4\",\n    \"lengthOfResidency\": \"2 years\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/pdf/generate",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "pdf", "generate"]
+        }
+      }
+    },
+    {
+      "name": "GMC - Good Moral Certificate",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"GMC\",\n  \"data\": {\n    \"fullName\": \"Luis Fernando\",\n    \"purpose\": \"Scholarship Application\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/pdf/generate",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "pdf", "generate"]
+        }
+      }
     }
   ]
 }

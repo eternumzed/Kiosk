@@ -3,14 +3,20 @@ module.exports = {
 
   dataMapper(raw) {
     const now = new Date();
+    const dayNum = now.getDate();
+    const getOrdinal = (n) => {
+      const s = ['TH', 'ST', 'ND', 'RD'];
+      const v = n % 100;
+      return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    };
 
     return {
-      full_name: raw.fullName,
-      zone: raw.zone,
+      full_name: raw.fullName.toUpperCase() || '',
+      zone: raw.zone.toUpperCase() || '',
       length_of_residency: raw.lengthOfResidency,
       date: now.toLocaleDateString(),
-      day: now.getDate(),
-      month: now.toLocaleString('en-US', { month: 'long' }),
+      day: getOrdinal(dayNum),
+      month: now.toLocaleString('en-US', { month: 'long' }).toUpperCase(),
       year: now.getFullYear(),
     };
   },
