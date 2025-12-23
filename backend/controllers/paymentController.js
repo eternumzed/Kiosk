@@ -110,7 +110,6 @@ exports.handleWebhook = async (req, res) => {
             if (updatedRequest) {
                 console.log(`Updated record for ${refNum}:`, updatedRequest);
 
-                // Generate PDF and upload to Drive only after successful payment
                 try {
                     const templateKey = requestService.getDocCode(updatedRequest.document);
                     console.log(`Generating PDF with template: ${templateKey}`);
@@ -122,12 +121,14 @@ exports.handleWebhook = async (req, res) => {
                     console.log(`PDF generated at: ${pdfPath}`);
                     
                     try {
-                        // Upload to Drive using reference number as filename
-                        const uploaded = await drive.uploadPdf(pdfPath, updatedRequest.referenceNumber);
+                         const uploaded = await drive.uploadPdf(pdfPath, updatedRequest.referenceNumber, {
+                            type: templateKey,
+                            referenceNumber: updatedRequest.referenceNumber,
+                            requestId: updatedRequest._id
+                        });
                         console.log('PDF uploaded to Drive:', uploaded);
                     } finally {
-                        // Always clean up temp file
-                        try {
+                         try {
                             if (fs.existsSync(pdfPath)) {
                                 fs.unlinkSync(pdfPath);
                                 console.log(`Temp PDF deleted: ${pdfPath}`);
@@ -138,8 +139,7 @@ exports.handleWebhook = async (req, res) => {
                     }
                 } catch (err) {
                     console.error('PDF generation/upload after payment failed:', err.message || err);
-                    // Don't block webhook response if PDF generation fails
-                }
+                 }
             } else {
                 console.warn(`No request found for reference: ${refNum}`);
             }

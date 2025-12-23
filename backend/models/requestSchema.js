@@ -47,6 +47,21 @@ const RequestSchema = new Schema({
     },
     remarks: { type: String },
 
+    // PDF/Document Fields (Added for consolidated tracking)
+    type: { type: String },                           // Document type code (e.g., "BRGY-CLR")
+    fileId: { type: String },                         // Google Drive file ID (unique identifier)
+    pdfFileName: { type: String },                    // Original PDF filename
+    pdfUploadedAt: { type: Date },                    // When PDF was uploaded to Drive
+    pdfSize: { type: Number },                        // File size in bytes
+    pdfUrl: { type: String },                         // Google Drive view link
+    pdfDownloadUrl: { type: String },                 // Google Drive download link
+
+    // Soft Delete Fields (For audit trail and recovery)
+    deleted: { type: Boolean, default: false },       // Mark as deleted without removing
+    deletedAt: { type: Date },                        // When was it deleted
+    deletedReason: { type: String },                  // Why was it deleted
+    deletedBy: { type: String },                      // Who deleted it (admin email/id)
+
 }, { timestamps: true });
 
 

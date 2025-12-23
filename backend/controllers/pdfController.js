@@ -7,34 +7,48 @@ const fs = require('fs');
 const path = require('path');
 const requestService = require('../services/requestService');
 
+exports.initAuth = asyncHandler(async (req, res) => {
+  const authUrl = auth.generateAuthUrl();
+  res.json({ authUrl });
+});
+
 exports.generatePdf = asyncHandler(async (req, res) => {
-  const { type, data } = req.body;
+  let { type, data } = req.body;
+  const Request = require('../models/requestSchema');
 
   // 1) Generate the PDF locally
   const pdfPath = await pdfService({ templateKey: type, rawData: data });
 
-  // If no referenceNumber provided, create a Request server-side so we have a reference
-  let namePrefix = type;
-  if (!data.referenceNumber) {
-    try {
-      const created = await requestService.createRequestIfMissing(data);
-      namePrefix = created.referenceNumber;
-      // attach reference to data for downstream usage
-      data.referenceNumber = created.referenceNumber;
-    } catch (err) {
-      console.error('Failed to create request for PDF reference:', err.message || err);
+   let namePrefix = type;
+  let requestId = null;
+  let referenceNumber = data.referenceNumber;
+
+  try {
+     const request = await requestService.createRequestIfMissing(data);
+    namePrefix = request.referenceNumber;
+    requestId = request._id;
+    referenceNumber = request.referenceNumber;
+    
+     if (!type && request.documentCode) {
+      type = request.documentCode;
+      console.log(`[generatePdf] Type not in request body, using documentCode: ${type}`);
     }
-  } else {
-    namePrefix = data.referenceNumber;
+    
+    console.log(`[generatePdf] PDF generation for request: ${referenceNumber} (ID: ${requestId}), type: ${type}`);
+  } catch (err) {
+    console.error('Failed to create/find request:', err.message || err);
+    return res.status(500).json({ error: 'Failed to create request record', details: err.message });
   }
 
-  // 2) If authenticated with Drive, upload and return Drive metadata
-  if (auth.isAuthenticated()) {
+   if (auth.isAuthenticated()) {
     try {
-      const uploaded = await drive.uploadPdf(pdfPath, namePrefix);
+      const uploaded = await drive.uploadPdf(pdfPath, namePrefix, { 
+        type,
+        referenceNumber,
+        requestId  // MongoDB _id
+      });
 
-      // remove local temp files when upload succeeds (best-effort)
-      try {
+       try {
         if (fs.existsSync(pdfPath)) fs.unlinkSync(pdfPath);
       } catch (err) {
         console.warn('Failed to delete temp PDF:', err.message || err);
@@ -47,8 +61,7 @@ exports.generatePdf = asyncHandler(async (req, res) => {
     }
   }
 
-  // 3) Not authenticated: return authUrl plus local path info so client can request auth
-  return res.status(200).json({
+   return res.status(200).json({
     authenticated: false,
     authUrl: auth.generateAuthUrl(),
     pdfPath,
@@ -56,8 +69,20 @@ exports.generatePdf = asyncHandler(async (req, res) => {
 });
 
 exports.oauthCallback = asyncHandler(async (req, res) => {
-  await auth.handleOAuthCallback(req.query.code);
-  res.send('Authentication successful');
+  const code = req.query.code;
+  
+  if (!code) {
+    return res.status(400).json({ error: 'No authorization code provided' });
+  }
+
+  try {
+    await auth.handleOAuthCallback(code);
+     const adminUrl = process.env.VITE_ADMIN_URL || 'http://localhost:4000';
+    res.redirect(`${adminUrl}?auth=success`);
+  } catch (err) {
+    console.error('OAuth callback error:', err.message);
+    res.status(500).json({ error: 'Authentication failed', details: err.message });
+  }
 });
 
 exports.checkAuth = asyncHandler(async (req, res) => {
@@ -66,20 +91,81 @@ exports.checkAuth = asyncHandler(async (req, res) => {
 
 exports.logout = asyncHandler(async (req, res) => {
   auth.logout();
-  res.json({ message: 'Logged out' });
+  res.json({ message: 'Logged out successfully' });
 });
 
 exports.listPdfs = asyncHandler(async (req, res) => {
-  if (!auth.isAuthenticated()) return res.sendStatus(401);
-  res.json(await drive.listPdfs());
+  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  const pdfs = await drive.listPdfs();
+  res.json(pdfs);
 });
 
 exports.downloadPdf = asyncHandler(async (req, res) => {
-  const stream = await drive.downloadPdf(req.params.fileId);
-  stream.data.pipe(res);
+  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  
+  try {
+    const stream = await drive.downloadPdf(req.params.fileId);
+    res.setHeader('Content-Type', 'application/pdf');
+    stream.data.pipe(res);
+  } catch (err) {
+    res.status(500).json({ error: 'Download failed', details: err.message });
+  }
 });
 
 exports.deletePdf = asyncHandler(async (req, res) => {
-  await drive.deletePdf(req.params.fileId);
-  res.json({ success: true });
+  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  
+  try {
+    await drive.deletePdf(req.params.fileId, {
+      deletedBy: 'admin',
+      deletedReason: 'Deleted via admin dashboard'
+    });
+    res.json({ success: true, message: 'PDF deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Delete failed', details: err.message });
+  }
+});
+
+exports.updateStatus = asyncHandler(async (req, res) => {
+  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  
+   const { fileId, referenceNumber } = req.params;
+  const identifier = fileId || referenceNumber;
+  
+  if (!identifier) {
+    return res.status(400).json({ error: 'Missing fileId or referenceNumber parameter' });
+  }
+  
+  const { status } = req.body;
+  
+  if (!['Pending', 'Processing', 'For Pick-up', 'Completed', 'Cancelled'].includes(status)) {
+    return res.status(400).json({ error: 'Invalid status. Must be one of: Pending, Processing, For Pick-up, Completed, Cancelled' });
+  }
+  
+  try {
+    const updated = await drive.updateStatus(identifier, status);
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    res.status(500).json({ error: 'Update failed', details: err.message });
+  }
+});
+
+exports.deleteMultiple = asyncHandler(async (req, res) => {
+  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  
+  const { fileIds } = req.body;
+  
+  if (!Array.isArray(fileIds) || fileIds.length === 0) {
+    return res.status(400).json({ error: 'Invalid file IDs' });
+  }
+  
+  try {
+    const result = await drive.deleteMultiple(fileIds, {
+      deletedBy: 'admin',
+      deletedReason: 'Bulk deleted via admin dashboard'
+    });
+    res.json({ success: true, message: `${result.deleted} PDFs deleted successfully` });
+  } catch (err) {
+    res.status(500).json({ error: 'Deletion failed', details: err.message });
+  }
 });

@@ -41,6 +41,7 @@ async function createRequestIfMissing(data) {
   const req = await Request.create({
     fullName,
     document,
+    documentCode: docCode,  // ← Save the document code!
     contactNumber,
     email,
     address,
