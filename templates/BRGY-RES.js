@@ -24,7 +24,7 @@ module.exports = {
 
   images: [
     {
-      path: 'waldo.jpg',
+      path: 'photoId',
       page: 0,
       x: 456,
       y: 498,

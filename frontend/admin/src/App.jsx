@@ -32,6 +32,7 @@ function App() {
   const [sortBy, setSortBy] = useState('date'); // 'date' | 'name' | 'size'
   const [sortDir, setSortDir] = useState('desc'); // 'asc' | 'desc'
   const [typeFilter, setTypeFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all'); // status filter
   const [userFilter, setUserFilter] = useState('all'); // placeholder for future mobile users
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -108,12 +109,27 @@ function App() {
     return counts;
   }, [pdfs]);
 
+  // Count PDFs per status for badges
+  const statusCount = useMemo(() => {
+    const counts = {};
+    (pdfs || []).forEach(p => {
+      const status = p.appProperties?.status || 'Pending';
+      counts[status] = (counts[status] || 0) + 1;
+    });
+    return counts;
+  }, [pdfs]);
+
   const visiblePdfs = useMemo(() => {
     let items = Array.isArray(pdfs) ? [...pdfs] : [];
 
     // Filter by type
     if (typeFilter !== 'all') {
       items = items.filter(p => (p.appProperties?.type || '') === typeFilter);
+    }
+
+    // Filter by status
+    if (statusFilter !== 'all') {
+      items = items.filter(p => (p.appProperties?.status || 'Pending') === statusFilter);
     }
 
     // Future: Filter by user
@@ -157,12 +173,12 @@ function App() {
       });
     }
     return items;
-  }, [pdfs, typeFilter, userFilter, dateFrom, dateTo, sortBy, sortDir, query]);
+  }, [pdfs, typeFilter, statusFilter, userFilter, dateFrom, dateTo, sortBy, sortDir, query]);
 
   // Reset to first page on filter changes
   useEffect(() => {
     setPage(1);
-  }, [typeFilter, dateFrom, dateTo, sortBy, sortDir, query]);
+  }, [typeFilter, statusFilter, dateFrom, dateTo, sortBy, sortDir, query]);
 
   const totalItems = visiblePdfs.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -389,6 +405,21 @@ function App() {
                 />
               </div>
               <div className="filter-group">
+                <label className="filter-label">Status</label>
+                <select
+                  className="filter-select"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="all">All Statuses</option>
+                  {STATUS_OPTIONS.map(status => (
+                    <option key={status} value={status}>
+                      {status} ({statusCount[status] || 0})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="filter-group">
                 <label className="filter-label">From</label>
                 <input
                   type="date"
@@ -443,6 +474,7 @@ function App() {
                   setSortBy('date');
                   setSortDir('desc');
                   setTypeFilter('all');
+                  setStatusFilter('all');
                   setPage(1);
                 }}
                 className="btn btn-tertiary btn-small"

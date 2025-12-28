@@ -315,4 +315,46 @@ exports.deleteMultiple = async (fileIds, options = {}) => {
   }
 };
 
+/**
+ * Upload photo to Google Drive and return the file ID
+ * @param {Buffer} photoBuffer - Image file buffer
+ * @param {string} referenceNumber - Reference number for naming
+ * @param {string} mimeType - MIME type of the image (e.g., 'image/jpeg')
+ */
+exports.uploadPhoto = async (photoBuffer, referenceNumber, mimeType = 'image/jpeg') => {
+  try {
+    const fileName = `${referenceNumber}-photo.jpg`;
+    
+    const resource = {
+      name: fileName,
+      parents: [FOLDER_ID],
+    };
 
+    const res = await drive.files.create({
+      resource,
+      media: {
+        mimeType: mimeType,
+        body: photoBuffer,
+      },
+      fields: 'id, name, webViewLink, webContentLink, createdTime, size',
+    });
+
+    // Make file public on Google Drive
+    await drive.permissions.create({
+      fileId: res.data.id,
+      requestBody: { role: 'reader', type: 'anyone' },
+    });
+
+    console.log(`✅ Photo uploaded to Drive: ${fileName} (ID: ${res.data.id})`);
+
+    return {
+      photoFileId: res.data.id,
+      photoFileName: res.data.name,
+      photoUrl: res.data.webViewLink,
+      photoDownloadUrl: res.data.webContentLink,
+    };
+  } catch (err) {
+    console.error('Failed to upload photo to Google Drive:', err.message);
+    throw err;
+  }
+};

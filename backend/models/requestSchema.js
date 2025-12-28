@@ -56,6 +56,14 @@ const RequestSchema = new Schema({
     pdfUrl: { type: String },                         // Google Drive view link
     pdfDownloadUrl: { type: String },                 // Google Drive download link
 
+    // Photo Fields (for ID photos)
+    photoId: { type: String },                        // Base64 photo data (transient - not stored long-term)
+    photoFileId: { type: String },                    // Google Drive photo file ID
+    photoFileName: { type: String },                  // Photo filename on Drive
+    photoUrl: { type: String },                       // Google Drive photo view link
+    photoDownloadUrl: { type: String },               // Google Drive photo download link
+    photoUploadedAt: { type: Date },                  // When photo was uploaded to Drive
+
     // Soft Delete Fields (For audit trail and recovery)
     deleted: { type: Boolean, default: false },       // Mark as deleted without removing
     deletedAt: { type: Date },                        // When was it deleted
