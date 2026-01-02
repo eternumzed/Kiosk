@@ -169,3 +169,70 @@ exports.deleteMultiple = asyncHandler(async (req, res) => {
     res.status(500).json({ error: 'Deletion failed', details: err.message });
   }
 });
+
+exports.listTrash = asyncHandler(async (req, res) => {
+  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  const trash = await drive.listTrash();
+  res.json(trash);
+});
+
+exports.permanentlyDeleteFromTrash = asyncHandler(async (req, res) => {
+  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  
+  try {
+    await drive.permanentlyDeleteFromTrash(req.params.fileId, {
+      deletedBy: 'admin',
+      deletedReason: 'Permanently deleted from trash'
+    });
+    res.json({ success: true, message: 'PDF permanently deleted' });
+  } catch (err) {
+    res.status(500).json({ error: 'Permanent deletion failed', details: err.message });
+  }
+});
+
+exports.permanentlyDeleteMultipleFromTrash = asyncHandler(async (req, res) => {
+  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  
+  const { fileIds } = req.body;
+  
+  if (!Array.isArray(fileIds) || fileIds.length === 0) {
+    return res.status(400).json({ error: 'Invalid file IDs' });
+  }
+  
+  try {
+    const result = await drive.permanentlyDeleteMultipleFromTrash(fileIds, {
+      deletedBy: 'admin',
+      deletedReason: 'Bulk permanently deleted from trash'
+    });
+    res.json({ success: true, message: `${result.deleted} PDFs permanently deleted` });
+  } catch (err) {
+    res.status(500).json({ error: 'Permanent deletion failed', details: err.message });
+  }
+});
+exports.restoreFromTrash = asyncHandler(async (req, res) => {
+  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  
+  try {
+    const updated = await drive.restoreFromTrash(req.params.fileId);
+    res.json({ success: true, message: 'Document restored successfully', data: updated });
+  } catch (err) {
+    res.status(500).json({ error: 'Restore failed', details: err.message });
+  }
+});
+
+exports.restoreMultipleFromTrash = asyncHandler(async (req, res) => {
+  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  
+  const { fileIds } = req.body;
+  
+  if (!Array.isArray(fileIds) || fileIds.length === 0) {
+    return res.status(400).json({ error: 'Invalid file IDs' });
+  }
+  
+  try {
+    const result = await drive.restoreMultipleFromTrash(fileIds);
+    res.json({ success: true, message: `${result.restored} document(s) restored successfully` });
+  } catch (err) {
+    res.status(500).json({ error: 'Restore failed', details: err.message });
+  }
+});

@@ -22,6 +22,7 @@ function App() {
   const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pdfs, setPdfs] = useState([]);
+  const [trash, setTrash] = useState([]);
   const [loadingPdfs, setLoadingPdfs] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -38,7 +39,10 @@ function App() {
   const [pageSize, setPageSize] = useState(10);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
+  const [viewTrash, setViewTrash] = useState(false);
+  const [trashSelectedIds, setTrashSelectedIds] = useState(new Set());
   const selectAllCheckbox = useRef(null);
+  const trashSelectAllCheckbox = useRef(null);
 
    useEffect(() => {
     checkAuthStatus();
@@ -55,6 +59,7 @@ function App() {
   useEffect(() => {
     if (authenticated) {
       loadPdfs();
+      loadTrash();
     }
   }, [authenticated]);
 
@@ -87,6 +92,16 @@ function App() {
       setPdfs([]);
     } finally {
       setLoadingPdfs(false);
+    }
+  };
+
+  const loadTrash = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/trash`);
+      setTrash(response.data || []);
+    } catch (err) {
+      console.error('Failed to load trash:', err);
+      setTrash([]);
     }
   };
 
@@ -303,6 +318,94 @@ function App() {
     }
   };
 
+  const permanentlyDeleteFromTrash = async (fileId, fileName) => {
+    if (!window.confirm(`Are you sure you want to PERMANENTLY delete "${fileName}"? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setError('');
+      setDeletingId(fileId);
+      await axios.delete(`${API_URL}/trash/${fileId}`);
+      setTrash(trash.filter(item => item.id !== fileId));
+      setSuccessMessage('File permanently deleted');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setError('Failed to permanently delete file: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const permanentlyDeleteMultipleFromTrash = async () => {
+    if (trashSelectedIds.size === 0) {
+      setError('Please select at least one file to delete');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to PERMANENTLY delete ${trashSelectedIds.size} file(s)? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setError('');
+      setDeletingId('trash-multi');
+      const fileIds = Array.from(trashSelectedIds);
+      await axios.delete(`${API_URL}/trash-multiple`, { data: { fileIds } });
+      setTrash(trash.filter(item => !trashSelectedIds.has(item.id)));
+      setTrashSelectedIds(new Set());
+      setSuccessMessage(`${trashSelectedIds.size} file(s) permanently deleted`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setError('Failed to permanently delete files: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const restoreFromTrash = async (fileId, fileName) => {
+    if (!window.confirm(`Are you sure you want to restore "${fileName}"?`)) {
+      return;
+    }
+
+    try {
+      setError('');
+      setDeletingId(fileId);
+      await axios.post(`${API_URL}/restore/${fileId}`);
+      setTrash(trash.filter(item => item.id !== fileId));
+      setSuccessMessage('Document restored successfully');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      loadPdfs(); // Reload documents list to show restored item
+    } catch (err) {
+      setError('Failed to restore document: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const restoreMultipleFromTrash = async () => {
+    if (trashSelectedIds.size === 0) {
+      setError('Please select at least one file to restore');
+      return;
+    }
+
+    try {
+      setError('');
+      setDeletingId('trash-restore-multi');
+      const fileIds = Array.from(trashSelectedIds);
+      await axios.post(`${API_URL}/restore-multiple`, { fileIds });
+      setTrash(trash.filter(item => !trashSelectedIds.has(item.id)));
+      setTrashSelectedIds(new Set());
+      setSuccessMessage(`${trashSelectedIds.size} document(s) restored successfully`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+      loadPdfs(); // Reload documents list to show restored items
+    } catch (err) {
+      setError('Failed to restore documents: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const updateStatus = async (fileId, newStatus) => {
     try {
       setError('');
@@ -366,6 +469,24 @@ function App() {
 
       {authenticated ? (
         <main className="admin-main">
+          {/* Tabs for Documents and Trash */}
+          <div className="admin-tabs">
+            <button
+              className={`tab-btn ${!viewTrash ? 'active' : ''}`}
+              onClick={() => setViewTrash(false)}
+            >
+              Documents
+            </button>
+            <button
+              className={`tab-btn ${viewTrash ? 'active' : ''}`}
+              onClick={() => { setViewTrash(true); loadTrash(); }}
+            >
+              Trash ({trash.length})
+            </button>
+          </div>
+
+          {!viewTrash ? (
+            // DOCUMENTS VIEW
           <section className="pdfs-section">
             <div className="section-header">
               <h2>Generated Documents</h2>
@@ -609,6 +730,117 @@ function App() {
               </>
             )}
           </section>
+          ) : (
+            // TRASH VIEW
+            <section className="trash-section">
+              <div className="section-header">
+                <h2>Recycle Bin</h2>
+                <p className="text-muted">Soft-deleted documents can be permanently removed here</p>
+              </div>
+
+              {trash.length === 0 ? (
+                <div className="empty-state">
+                  <p>🗑️ Trash is empty</p>
+                </div>
+              ) : (
+                <>
+                  <div className="toolbar">
+                    <label className="checkbox-label">
+                      <input
+                        ref={trashSelectAllCheckbox}
+                        type="checkbox"
+                        checked={trashSelectedIds.size === trash.length && trash.length > 0}
+                        onChange={() => {
+                          if (trashSelectedIds.size === trash.length) {
+                            setTrashSelectedIds(new Set());
+                          } else {
+                            setTrashSelectedIds(new Set(trash.map(item => item.id)));
+                          }
+                        }}
+                      />
+                      <span>Select All</span>
+                    </label>
+                    {trashSelectedIds.size > 0 && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={restoreMultipleFromTrash}
+                          className="btn btn-success"
+                          disabled={deletingId === 'trash-restore-multi'}
+                        >
+                          {deletingId === 'trash-restore-multi' ? 'Restoring...' : `Restore (${trashSelectedIds.size})`}
+                        </button>
+                        <button
+                          onClick={permanentlyDeleteMultipleFromTrash}
+                          className="btn btn-danger"
+                          disabled={deletingId === 'trash-multi'}
+                        >
+                          {deletingId === 'trash-multi' ? 'Deleting...' : `Permanently Delete (${trashSelectedIds.size})`}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <table className="documents-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '40px' }}></th>
+                        <th>File Name</th>
+                        <th>Type</th>
+                        <th>Deleted Date</th>
+                        <th>Deleted By</th>
+                        <th style={{ width: '120px' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {trash.map(item => (
+                        <tr key={item.id}>
+                          <td>
+                            <label className="checkbox-label">
+                              <input
+                                type="checkbox"
+                                checked={trashSelectedIds.has(item.id)}
+                                onChange={() => {
+                                  const newSelected = new Set(trashSelectedIds);
+                                  if (newSelected.has(item.id)) {
+                                    newSelected.delete(item.id);
+                                  } else {
+                                    newSelected.add(item.id);
+                                  }
+                                  setTrashSelectedIds(newSelected);
+                                }}
+                              />
+                            </label>
+                          </td>
+                          <td className="file-name">{item.name}</td>
+                          <td>{TYPE_LABELS[item.appProperties?.type] || item.appProperties?.type || '-'}</td>
+                          <td>{new Date(item.deletedAt).toLocaleDateString()}</td>
+                          <td>{item.deletedBy || '-'}</td>
+                          <td style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                              onClick={() => restoreFromTrash(item.id, item.name)}
+                              className="btn btn-success btn-small"
+                              disabled={deletingId === item.id}
+                              title="Restore to documents"
+                            >
+                              {deletingId === item.id ? 'Restoring...' : 'Restore'}
+                            </button>
+                            <button
+                              onClick={() => permanentlyDeleteFromTrash(item.id, item.name)}
+                              className="btn btn-danger btn-small"
+                              disabled={deletingId === item.id}
+                              title="Permanently delete"
+                            >
+                              {deletingId === item.id ? 'Deleting...' : 'Delete'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              )}
+            </section>
+          )}
         </main>
       ) : (
         <main className="admin-main">

@@ -104,12 +104,13 @@ exports.listPdfs = async () => {
 
   console.log(`Found ${res.data.files?.length || 0} PDFs in Google Drive`);
 
-
   const requestByFileId = {};
   const requestByRefNumber = {};
+  const deletedFileIds = new Set(); // Track soft-deleted files
   const pdfsWithMetadata = [];
   
   try {
+    // Load only active (non-deleted) requests
     const allRequests = await Request.find({ deleted: { $ne: true } });
     console.log(`Found ${allRequests.length} active requests in MongoDB`);
     
@@ -121,12 +122,27 @@ exports.listPdfs = async () => {
         requestByRefNumber[req.referenceNumber] = req;
       }
     });
+
+    // Also load deleted requests to identify soft-deleted files
+    const deletedRequests = await Request.find({ deleted: true });
+    console.log(`Found ${deletedRequests.length} deleted requests in MongoDB`);
+    deletedRequests.forEach(req => {
+      if (req.fileId) {
+        deletedFileIds.add(req.fileId);
+      }
+    });
   } catch (err) {
     console.error('Failed to fetch requests:', err.message);
   }
 
-  // Merge Drive files with request data
+  // Merge Drive files with request data (skip soft-deleted files)
   (res.data.files || []).forEach(file => {
+    // Skip soft-deleted files
+    if (deletedFileIds.has(file.id)) {
+      console.log(`Skipping soft-deleted file: ${file.id}: ${file.name}`);
+      return;
+    }
+
     let request = requestByFileId[file.id];
     
     // Fallback: Try to match by reference number extracted from filename
@@ -160,6 +176,42 @@ exports.listPdfs = async () => {
   });
 
   return pdfsWithMetadata;
+};
+
+exports.listTrash = async () => {
+  try {
+    const Request = require('../../models/requestSchema');
+    
+    // Get all soft-deleted requests
+    const deletedRequests = await Request.find({ deleted: true })
+      .sort({ deletedAt: -1 });
+    
+    console.log(`Found ${deletedRequests.length} soft-deleted requests in MongoDB`);
+    
+    // Map to format similar to listPdfs
+    const trash = deletedRequests.map(req => ({
+      id: req.fileId,
+      name: req.pdfFileName,
+      createdTime: req.pdfUploadedAt,
+      size: req.pdfSize,
+      webViewLink: req.pdfUrl,
+      webContentLink: req.pdfDownloadUrl,
+      appProperties: {
+        type: req.type || '',
+        status: req.status || 'Pending',
+        referenceNumber: req.referenceNumber || '',
+      },
+      deletedAt: req.deletedAt,
+      deletedReason: req.deletedReason || '',
+      deletedBy: req.deletedBy || '',
+      _id: req._id,
+    }));
+    
+    return trash;
+  } catch (err) {
+    console.error('Failed to fetch trash:', err.message);
+    throw err;
+  }
 };
 
 exports.downloadPdf = async (fileId) => {
@@ -289,6 +341,115 @@ exports.deleteMultiple = async (fileIds, options = {}) => {
     throw err;
   }
 };
+
+/**
+ * Permanently delete a PDF from Google Drive (hard delete from trash)
+ * @param {string} fileId - Google Drive file ID
+ * @param {object} options - Optional { deletedBy, deletedReason }
+ */
+exports.permanentlyDeleteFromTrash = async (fileId, options = {}) => {
+  try {
+    console.log(`Permanently deleting file ${fileId} from Google Drive`);
+    await drive.files.delete({ fileId });
+    
+    // Also completely remove from MongoDB (hard delete)
+    const Request = require('../../models/requestSchema');
+    const deleted = await Request.findOneAndDelete({ fileId });
+    
+    if (deleted) {
+      console.log(`✅ File and request permanently deleted: ${fileId}`);
+    } else {
+      console.warn(`File deleted from Drive but no matching request found: ${fileId}`);
+    }
+  } catch (err) {
+    console.error('Failed to permanently delete PDF:', err.message);
+    throw err;
+  }
+};
+
+/**
+ * Permanently delete multiple PDFs from Google Drive (hard delete from trash)
+ */
+exports.permanentlyDeleteMultipleFromTrash = async (fileIds, options = {}) => {
+  try {
+    console.log(`Permanently deleting ${fileIds.length} files from Google Drive`);
+    await Promise.all(
+      fileIds.map(id => drive.files.delete({ fileId: id }).catch(err => {
+        console.warn(`Failed to delete ${id}:`, err.message);
+      }))
+    );
+    
+    // Also completely remove from MongoDB (hard delete)
+    const Request = require('../../models/requestSchema');
+    const result = await Request.deleteMany({ fileId: { $in: fileIds } });
+    
+    console.log(`✅ ${result.deletedCount} files and requests permanently deleted`);
+    return { deleted: result.deletedCount };
+  } catch (err) {
+    console.error('Failed to permanently delete multiple PDFs:', err.message);
+    throw err;
+  }
+};
+
+/**
+ * Restore a document from trash (soft undelete)
+ * @param {string} fileId - Google Drive file ID
+ */
+exports.restoreFromTrash = async (fileId) => {
+  try {
+    const Request = require('../../models/requestSchema');
+    
+    console.log(`Restoring document from trash: ${fileId}`);
+    const restored = await Request.findOneAndUpdate(
+      { fileId },
+      {
+        deleted: false,
+        deletedAt: null,
+        deletedReason: null,
+        deletedBy: null
+      },
+      { new: true }
+    );
+    
+    if (restored) {
+      console.log(`✅ Document restored: ${restored.referenceNumber}`);
+      return restored;
+    } else {
+      throw new Error(`No request found with fileId: ${fileId}`);
+    }
+  } catch (err) {
+    console.error('Failed to restore document:', err.message);
+    throw err;
+  }
+};
+
+/**
+ * Restore multiple documents from trash (soft undelete)
+ */
+exports.restoreMultipleFromTrash = async (fileIds) => {
+  try {
+    const Request = require('../../models/requestSchema');
+    
+    console.log(`Restoring ${fileIds.length} documents from trash`);
+    const result = await Request.updateMany(
+      { fileId: { $in: fileIds } },
+      {
+        deleted: false,
+        deletedAt: null,
+        deletedReason: null,
+        deletedBy: null
+      }
+    );
+    
+    console.log(`✅ ${result.modifiedCount} documents restored`);
+    return { restored: result.modifiedCount };
+  } catch (err) {
+    console.error('Failed to restore multiple documents:', err.message);
+    throw err;
+  }
+};
+  
+
 
 /**
  * Upload photo to Google Drive and return the file ID
