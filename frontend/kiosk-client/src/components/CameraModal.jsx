@@ -372,11 +372,26 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
     const captureImage = () => {
         if (!videoRef.current || !canvasRef.current) return;
 
+        // Create a square canvas (1:1 aspect ratio)
+        const videoWidth = videoRef.current.videoWidth;
+        const videoHeight = videoRef.current.videoHeight;
+        const squareSize = Math.min(videoWidth, videoHeight);
+        
+        // Calculate crop position to center the square
+        const offsetX = (videoWidth - squareSize) / 2;
+        const offsetY = (videoHeight - squareSize) / 2;
+
         const canvas = document.createElement('canvas');
-        canvas.width = videoRef.current.videoWidth;
-        canvas.height = videoRef.current.videoHeight;
+        canvas.width = squareSize;
+        canvas.height = squareSize;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(videoRef.current, 0, 0);
+        
+        // Draw the centered square crop from the video
+        ctx.drawImage(
+            videoRef.current,
+            offsetX, offsetY, squareSize, squareSize,  // Source rectangle
+            0, 0, squareSize, squareSize                // Destination rectangle
+        );
         
         const imageData = canvas.toDataURL('image/jpeg', 0.8);
         setPreviewImage(imageData);

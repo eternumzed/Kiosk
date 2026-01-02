@@ -1,6 +1,12 @@
 import { useState } from "react";
+import CameraModal from "./CameraModal";
+
+const TEMPLATES_REQUIRING_PHOTO = [
+    'Barangay Clearance',
+    'Barangay Indigency Certificate',
+    'Barangay Residency Certificate'
+];
  
-// Fields are defined with `label` shown to users and `key` expected by backend templates
 const documents = {
     "Barangay Clearance": [
         { label: 'Full Name', key: 'fullName' },
@@ -53,10 +59,31 @@ const toCamelCase = (str) => {
 
 export default function DocumentForm({ type, formData, setFormData, handleNext, handleBack }) {
     const fields = documents[type] || [];
+    const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
+    const requiresPhoto = TEMPLATES_REQUIRING_PHOTO.includes(type);
 
     const handleChange = (key, value) => {
         const newFormData = { ...formData, [key]: value };
         setFormData(newFormData);
+    };
+
+    const handleCameraCapture = (imageData) => {
+        if (imageData) {
+            handleChange('photoId', imageData);
+        }
+        setIsCameraModalOpen(false);
+    };
+
+    const handleFormSubmit = (e) => {
+        e.preventDefault();
+        
+        // Validate photo is captured if required
+        if (requiresPhoto && !formData.photoId) {
+            alert('Please capture your photo to proceed.');
+            return;
+        }
+        
+        handleNext();
     };
 
     return (
@@ -65,7 +92,44 @@ export default function DocumentForm({ type, formData, setFormData, handleNext, 
 
                 <h1 className="text-3xl font-extrabold text-gray-800 mb-6 text-center border-b pb-3">   {type} Form</h1>
 
-                <form className="space-y-6">
+                <form className="space-y-6" onSubmit={handleFormSubmit}>
+                    {/* Photo Capture Section - Only for templates that require it */}
+                    {requiresPhoto && (
+                        <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                            <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                Photo ID <span className="text-red-500">*</span>
+                            </label>
+                            {formData.photoId ? (
+                                <div className="space-y-3">
+                                    <img 
+                                        src={formData.photoId} 
+                                        alt="Captured ID" 
+                                        className="rounded-lg shadow-md w-32 h-32 object-cover"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsCameraModalOpen(true)}
+                                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 text-sm"
+                                    >
+                                        Retake Photo
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsCameraModalOpen(true)}
+                                    className="w-full px-4 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-all duration-200 flex items-center justify-center space-x-2"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <span>Capture Photo</span>
+                                </button>
+                            )}
+                        </div>
+                    )}
+
                     {fields.map((f) => {
                         const inputId = f.key.replace(/\s+/g, '-').toLowerCase();
 
@@ -100,9 +164,8 @@ export default function DocumentForm({ type, formData, setFormData, handleNext, 
                         </button>
                         <div className="w-full sm:w-1/2">
                             <button
-                                type="button"
+                                type="submit"
                                 className="w-full bg-green-600 text-white font-bold py-3 rounded-lg shadow-md transition-all duration-300 transform hover:bg-green-700 hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-green-300"
-                                onClick={() => handleNext(formData)}
                             >
                                 Next
                             </button>
@@ -110,6 +173,13 @@ export default function DocumentForm({ type, formData, setFormData, handleNext, 
                     </div>
                 </form>
             </div>
+
+            {/* Camera Modal */}
+            <CameraModal
+                isOpen={isCameraModalOpen}
+                onClose={() => setIsCameraModalOpen(false)}
+                onCapture={handleCameraCapture}
+            />
         </div>
     );
 }

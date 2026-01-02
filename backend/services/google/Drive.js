@@ -1,4 +1,5 @@
 const fs = require('fs');
+const { Readable } = require('stream');
 const { google } = require('googleapis');
 const { oAuth2Client } = require('../../googleAuth');
 const Request = require('../../models/requestSchema');
@@ -93,11 +94,7 @@ exports.uploadPdf = async (pdfPath, namePrefix, meta) => {
   return res.data;
 };
 
-/**
- * List all PDFs from Google Drive with their request metadata
- * Excludes soft-deleted requests
- * Matches by fileId first, then falls back to filename pattern matching
- */
+
 exports.listPdfs = async () => {
   const res = await drive.files.list({
     q: `'${FOLDER_ID}' in parents and mimeType='application/pdf'`,
@@ -107,7 +104,7 @@ exports.listPdfs = async () => {
 
   console.log(`Found ${res.data.files?.length || 0} PDFs in Google Drive`);
 
-  // Fetch all requests from MongoDB (excluding soft-deleted ones)
+
   const requestByFileId = {};
   const requestByRefNumber = {};
   const pdfsWithMetadata = [];
@@ -173,19 +170,12 @@ exports.downloadPdf = async (fileId) => {
 };
 
 /**
- * Soft delete a PDF - mark request as deleted in MongoDB, remove from Drive
+ * Soft delete a PDF - mark request as deleted in MongoDB (keeps file on Drive for recovery)
  * @param {string} fileId - Google Drive file ID
  * @param {object} options - Optional { deletedBy, deletedReason }
  */
 exports.deletePdf = async (fileId, options = {}) => {
   try {
-    // Delete from Google Drive immediately
-    console.log(`Deleting file ${fileId} from Google Drive`);
-    await drive.files.delete({ fileId }).catch(err => {
-      console.warn('Failed to delete from Drive:', err.message);
-    });
-    
-    // Soft delete in MongoDB - mark as deleted but keep record
     console.log(`Soft-deleting request for fileId ${fileId}`);
     const updated = await Request.findOneAndUpdate(
       { fileId },
@@ -199,31 +189,24 @@ exports.deletePdf = async (fileId, options = {}) => {
     );
     
     if (updated) {
-      console.log(`Request soft-deleted successfully:`, updated._id);
+      console.log(`✅ Request soft-deleted successfully:`, updated._id);
     } else {
-      console.warn(`No request found with fileId: ${fileId}`);
+      console.warn(`❌ No request found with fileId: ${fileId}`);
     }
   } catch (err) {
-    console.error('Failed to delete PDF:', err.message);
+    console.error('Failed to soft delete PDF:', err.message);
     throw err;
   }
 };
 
-/**
- * Update status of a document
- * Updates the request record directly
- */
-/**
- * Update status of a document
- * Smart lookup: tries fileId first, then referenceNumber from filename, then referenceNumber directly
- */
+
 exports.updateStatus = async (fileIdOrRef, status) => {
   try {
     console.log(`[updateStatus] Updating for: ${fileIdOrRef} to status: ${status}`);
     
     let updated;
     
-    // Strategy 1: Try to find by fileId (standard case)
+
     console.log(`  [1] Trying to find by fileId...`);
     updated = await Request.findOneAndUpdate(
       { fileId: fileIdOrRef },
@@ -236,7 +219,7 @@ exports.updateStatus = async (fileIdOrRef, status) => {
       return updated;
     }
     
-    // Strategy 2: Try to find by referenceNumber (might be passed directly)
+
     console.log(`  [2] Trying to find by referenceNumber...`);
     updated = await Request.findOneAndUpdate(
       { referenceNumber: fileIdOrRef },
@@ -249,8 +232,7 @@ exports.updateStatus = async (fileIdOrRef, status) => {
       return updated;
     }
     
-    // Strategy 3: The fileIdOrRef might be a Drive file ID with no matching request
-    // Try to find ANY request by extracting from recent PDFs that match this fileId
+
     console.log(`  [3] Searching by Drive API to find matching request...`);
     const file = await drive.files.get({
       fileId: fileIdOrRef,
@@ -285,17 +267,10 @@ exports.updateStatus = async (fileIdOrRef, status) => {
 };
 
 /**
- * Soft delete multiple PDFs
+ * Soft delete multiple PDFs - mark requests as deleted in MongoDB (keeps files on Drive for recovery)
  */
 exports.deleteMultiple = async (fileIds, options = {}) => {
   try {
-    // Delete from Google Drive
-    console.log(`Deleting ${fileIds.length} files from Google Drive`);
-    await Promise.all(
-      fileIds.map(id => drive.files.delete({ fileId: id }).catch(() => {}))
-    );
-    
-    // Soft delete in MongoDB
     console.log(`Soft-deleting ${fileIds.length} requests in MongoDB`);
     const result = await Request.updateMany(
       { fileId: { $in: fileIds } },
@@ -307,10 +282,10 @@ exports.deleteMultiple = async (fileIds, options = {}) => {
       }
     );
     
-    console.log(`${result.modifiedCount} requests soft-deleted`);
+    console.log(`✅ ${result.modifiedCount} requests soft-deleted`);
     return { deleted: result.modifiedCount };
   } catch (err) {
-    console.error('Failed to delete multiple PDFs:', err.message);
+    console.error('Failed to soft delete multiple PDFs:', err.message);
     throw err;
   }
 };
@@ -325,6 +300,9 @@ exports.uploadPhoto = async (photoBuffer, referenceNumber, mimeType = 'image/jpe
   try {
     const fileName = `${referenceNumber}-photo.jpg`;
     
+    // Convert Buffer to Readable stream
+    const bufferStream = Readable.from(photoBuffer);
+    
     const resource = {
       name: fileName,
       parents: [FOLDER_ID],
@@ -334,7 +312,7 @@ exports.uploadPhoto = async (photoBuffer, referenceNumber, mimeType = 'image/jpe
       resource,
       media: {
         mimeType: mimeType,
-        body: photoBuffer,
+        body: bufferStream,
       },
       fields: 'id, name, webViewLink, webContentLink, createdTime, size',
     });

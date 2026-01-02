@@ -117,31 +117,14 @@ exports.handleWebhook = async (req, res) => {
                     const rawData = updatedRequest.toObject();
                     console.log(`Data being passed to template:`, rawData);
                     
-                    const result = await pdfService({ templateKey, rawData });
-                    const pdfPath = result.pdfPath || result; // Handle both old and new format
+                    const pdfPath = await pdfService({ templateKey, rawData });
                     console.log(`PDF generated at: ${pdfPath}`);
-                    
-                    // Update request with photo metadata if available
-                    if (result.photoMetadata) {
-                        await Request.findByIdAndUpdate(
-                            updatedRequest._id,
-                            {
-                                photoFileId: result.photoMetadata.photoFileId,
-                                photoFileName: result.photoMetadata.photoFileName,
-                                photoUrl: result.photoMetadata.photoUrl,
-                                photoDownloadUrl: result.photoMetadata.photoDownloadUrl,
-                                photoUploadedAt: new Date(),
-                            }
-                        );
-                        console.log('Photo metadata saved to request');
-                    }
                     
                     try {
                          const uploaded = await drive.uploadPdf(pdfPath, updatedRequest.referenceNumber, {
                             type: templateKey,
                             referenceNumber: updatedRequest.referenceNumber,
                             requestId: updatedRequest._id,
-                            photoFileId: result.photoMetadata?.photoFileId, // Store photo ID reference
                         });
                         console.log('PDF uploaded to Drive:', uploaded);
                     } finally {
