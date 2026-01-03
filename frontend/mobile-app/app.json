@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Kiosk Mobile App",
+    "slug": "kiosk-mobile-app",
+    "version": "1.0.0",
+    "sdkVersion": "54.0.0",
+    "orientation": "portrait",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.barangay.kioskmobile"
+    },
+    "android": {
+      "package": "com.barangay.kioskmobile",
+      "versionCode": 1,
+      "permissions": []
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          },
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "34.0.0"
+          }
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "updates": {
+      "enabled": false
+    }
+  }
+}

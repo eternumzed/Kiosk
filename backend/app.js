@@ -46,12 +46,14 @@ app.use(express.json({ type: '*/*' }));
 app.use(bodyParser.urlencoded({ extended: false }));
 
 const pdfRoutes = require('./routes/pdfRoute.js');
+const authRoutes = require('./routes/authRoute.js');
 const pdfController = require('./controllers/pdfController');
 
 // mount API routes (v1) and keep legacy /api for backward compatibility
 app.use('/api/v1', apiRoutes);
 app.use('/api', apiRoutes);
 app.use('/api/pdf', pdfRoutes);
+app.use('/api/auth', authRoutes);
 
 app.get('/', (req, res) => res.send('Hello world!'));
 
