@@ -77,7 +77,7 @@ exports.oauthCallback = asyncHandler(async (req, res) => {
 
   try {
     await auth.handleOAuthCallback(code);
-     const adminUrl = process.env.VITE_ADMIN_URL || 'http://localhost:4000';
+     const adminUrl = process.env.VITE_ADMIN_URL || 'http://localhost:3000';
     res.redirect(`${adminUrl}?auth=success`);
   } catch (err) {
     console.error('OAuth callback error:', err.message);
