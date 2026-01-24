@@ -4,7 +4,7 @@ const { google } = require('googleapis');
 const { oAuth2Client } = require('../../googleAuth');
 const Request = require('../../models/requestSchema');
 
-const FOLDER_ID = '1W91EpKXT1__yVhHH_WPv2fZMkK6_SkOZ';
+const FOLDER_ID = '1KPii8KmyrfMflpCPGMEOtp89kzqj2AxI';
 
 const drive = google.drive({ version: 'v3', auth: oAuth2Client });
 

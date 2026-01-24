@@ -28,12 +28,21 @@ const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:4000',
     process.env.VITE_KIOSK_URL,
+    process.env.VITE_ADMIN_URL,
+    process.env.VITE_NGROK_URL, // Add Ngrok support
 ];
 
 const corsOptions = {
     origin: function (origin, callback) {
+        // allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) !== -1) return callback(null, true);
+        
+        // Relaxed CORS for development: allow any localhost or ngrok origin
+        if (allowedOrigins.indexOf(origin) !== -1 || 
+            origin.includes('localhost') || 
+            origin.includes('ngrok-free.app')) {
+            return callback(null, true);
+        }
         return callback(new Error('CORS policy: This origin is not allowed.'));
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -55,16 +64,16 @@ app.use('/api', apiRoutes);
 app.use('/api/pdf', pdfRoutes);
 app.use('/api/auth', authRoutes);
 
+
+
 app.get('/', (req, res) => res.send('Hello world!'));
 
-// legacy Google OAuth redirect (some credentials use /oauth2callback)
-app.get('/oauth2callback', (req, res, next) => pdfController.oauthCallback(req, res, next));
+ app.get('/oauth2callback', (req, res, next) => pdfController.oauthCallback(req, res, next));
 
 // centralized error handler
 app.use(errorHandler);
 
-// Connect to DB first, load saved Google tokens, then start server
-const googleAuth = require('./googleAuth');
+ const googleAuth = require('./googleAuth');
 
 config.dbMain()
     .then(() => {
@@ -83,5 +92,27 @@ config.dbMain()
         process.exit(1);
     });
 
+// Google Drive API integration for listing PDF files in a specific folder
+const { google } = require('googleapis');
+const drive = google.drive('v3');
 
-    
+async function listPDFFilesInFolder(auth, FOLDER_ID) {
+  const drive = google.drive({ version: 'v3', auth });
+  const res = await drive.files.list({
+    q: `'${FOLDER_ID}' in parents and mimeType='application/pdf'`,
+    fields: 'files(id,name,createdTime,size,webViewLink,webContentLink)',
+    orderBy: 'createdTime desc',
+  });
+
+  console.log(`[DEBUG] Google Drive Check:`);
+  console.log(`  - Target Folder: ${FOLDER_ID}`);
+  console.log(`  - Files Found: ${res.data.files?.length || 0}`);
+  
+  if (res.data.files?.length === 0) {
+    console.warn(`  - Check if the folder is empty or if account access is restricted.`);
+  }
+}
+
+module.exports = { listPDFFilesInFolder };
+
+

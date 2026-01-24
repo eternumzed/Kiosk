@@ -66,6 +66,8 @@ exports.handleWebhook = async (req, res) => {
         const event = req.body.data;
         const eventType = event?.attributes?.type;
 
+        console.log(`Webhook received - Event Type: ${eventType}`);
+
         if (eventType === 'checkout_session.payment.paid') {
 
             const checkoutData = event.attributes.data.attributes;
