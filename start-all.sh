@@ -9,6 +9,14 @@ KIOSK_CLIENT_PATH="Z:/Kiosk/frontend/kiosk-client"
 ADMIN_PATH="Z:/Kiosk/frontend/admin"
 MOBILE_APP_PATH="Z:/Kiosk/frontend/mobile-app"
 
+# Expo Go sometimes fails to fetch the JS bundle over LAN on Windows (firewall/VPN).
+# Default to tunnel mode for reliability; override by setting EXPO_START_ARGS (e.g. "--lan" or "--localhost").
+EXPO_START_ARGS="${EXPO_START_ARGS:---tunnel}"
+
+# Backend API base URL for the mobile app (can be an ngrok URL).
+# Example: export KIOSK_API_URL="https://xxxx.ngrok-free.app/api"
+KIOSK_API_URL="${KIOSK_API_URL:-http://192.168.0.106:5000/api}"
+
 # Verify paths exist
 echo "Verifying paths..."
 if [ ! -d "$BACKEND_PATH" ]; then
@@ -59,7 +67,7 @@ echo "[3/6] Starting Admin Panel..."
 start_service "Admin Panel" "Z:/Kiosk/frontend/admin" "npm run dev"
 
 echo "[4/6] Starting Mobile App..."
-start_service "Mobile App" "Z:/Kiosk/frontend/mobile-app" "npm start"
+start_service "Mobile App" "Z:/Kiosk/frontend/mobile-app" "EXPO_PUBLIC_API_URL='$KIOSK_API_URL' npm start -- $EXPO_START_ARGS"
 
 echo "[5/6] Starting Ngrok tunnel for Backend..."
 /usr/bin/mintty -t "Ngrok" -e /usr/bin/bash -lc "ngrok http 5000; echo ''; echo 'Ngrok closed. Press enter to exit.'; read" &

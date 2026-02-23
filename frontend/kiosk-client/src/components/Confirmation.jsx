@@ -57,6 +57,7 @@ const Confirmation = ({ handleNext, resetUI }) => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const referenceNumber = params.get("referenceNumber");
+    const isCashConfirmation = params.get("confirmation") === "true";
 
     if (referenceNumber) {
       console.log('Confirmation: Reference ID: ' + referenceNumber);
@@ -128,9 +129,16 @@ const Confirmation = ({ handleNext, resetUI }) => {
     <div className="w-full flex-grow flex flex-col items-center justify-center p-4">
       <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-xl transition-all duration-300 text-center">
         <h2 className="text-2xl font-bold mb-4 text-gray-800">Request Confirmed!</h2>
-        <p className="text-lg text-gray-600 mb-2">
-          Your payment was successfully created in PayMongo.
-        </p>
+        
+        {request.paymentMethod === "Cash" ? (
+          <p className="text-lg text-gray-600 mb-2">
+            Please present this receipt to the barangay cashier to complete your payment.
+          </p>
+        ) : (
+          <p className="text-lg text-gray-600 mb-2">
+            Your payment was successfully processed. Your document will be ready for pickup after validation.
+          </p>
+        )}
 
         <div className="p-4 bg-green-50 rounded-lg mb-6">
           <p className="text-sm font-bold text-green-700">Reference No:</p>

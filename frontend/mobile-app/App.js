@@ -19,39 +19,55 @@ export default function App() {
           return {
             ...prevState,
             userToken: action.token,
+            user: action.user || null,
             isLoading: false,
           };
+        case 'LOGIN':
         case 'SIGN_IN':
           return {
             ...prevState,
             isSignout: false,
-            userToken: action.token,
+            userToken: action.payload?.token ?? action.token,
+            user: action.payload?.user ?? action.user ?? prevState.user,
           };
+        case 'LOGOUT':
         case 'SIGN_OUT':
           return {
             ...prevState,
             isSignout: true,
             userToken: null,
+            user: null,
           };
+        case 'UPDATE_USER':
+          return {
+            ...prevState,
+            user: action.payload ?? prevState.user,
+          };
+        default:
+          return prevState;
       }
     },
     {
       isLoading: true,
       isSignout: false,
       userToken: null,
+      user: null,
     }
   );
 
   useEffect(() => {
     const bootstrapAsync = async () => {
       let userToken;
+      let user;
       try {
         userToken = await SecureStore.getItemAsync('userToken');
+        const storedUser = await AsyncStorage.getItem('user');
+        user = storedUser ? JSON.parse(storedUser) : null;
       } catch (e) {
         console.error('Failed to restore token:', e);
       }
 
-      dispatch({ type: 'RESTORE_TOKEN', token: userToken });
+      dispatch({ type: 'RESTORE_TOKEN', token: userToken, user });
     };
 
     bootstrapAsync();
@@ -65,21 +81,19 @@ export default function App() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {state.userToken == null ? (
-          <Stack.Screen
-            name="Auth"
-            component={AuthStackNavigator}
-            options={{
-              animationEnabled: false,
-            }}
-          />
+          <Stack.Screen name="Auth" options={{ animationEnabled: false }}>
+            {(props) => <AuthStackNavigator {...props} dispatch={dispatch} />}
+          </Stack.Screen>
         ) : (
-          <Stack.Screen
-            name="App"
-            component={AppTabNavigator}
-            options={{
-              animationEnabled: false,
-            }}
-          />
+          <Stack.Screen name="App" options={{ animationEnabled: false }}>
+            {(props) => (
+              <AppTabNavigator
+                {...props}
+                user={state.user}
+                dispatch={dispatch}
+              />
+            )}
+          </Stack.Screen>
         )}
       </Stack.Navigator>
     </NavigationContainer>

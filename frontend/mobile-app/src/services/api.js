@@ -1,11 +1,19 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const API_URL = 'http://192.168.0.106:5000/api';
+const resolveApiUrl = () => {
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (typeof envUrl === 'string' && envUrl.trim().length > 0) {
+    return envUrl.trim().replace(/\/$/, '');
+  }
+  return 'http://192.168.0.106:5000/api';
+};
+
+const API_URL = resolveApiUrl();
 
 const apiClient = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 30000, // 30 seconds for ngrok
 });
 
 // Add token to requests
@@ -26,20 +34,36 @@ apiClient.interceptors.request.use(
 
 // Handle token refresh on 401
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => response.data,
   async (error) => {
     const originalRequest = error.config;
+
+    // Normalize network errors (no HTTP response)
+    if (!error.response) {
+      return Promise.reject({
+        ...error,
+        error: `Network error: cannot reach API at ${API_URL}`,
+      });
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
         const refreshToken = await SecureStore.getItemAsync('refreshToken');
+        
+        // Only attempt refresh if we have a refresh token
+        if (!refreshToken) {
+          console.log('No refresh token available, skipping refresh');
+          await SecureStore.deleteItemAsync('userToken');
+          return Promise.reject(error);
+        }
+        
         const response = await axios.post(`${API_URL}/auth/refresh-token`, {
           refreshToken,
         });
-        const { token } = response.data;
-        await SecureStore.setItemAsync('userToken', token);
-        apiClient.defaults.headers.Authorization = `Bearer ${token}`;
+        const newToken = response.data.accessToken || response.data.token;
+        await SecureStore.setItemAsync('userToken', newToken);
+        apiClient.defaults.headers.Authorization = `Bearer ${newToken}`;
         return apiClient(originalRequest);
       } catch (err) {
         console.error('Token refresh failed:', err);
@@ -68,9 +92,26 @@ export const authAPI = {
     });
   },
 
-  // Login
-  login: async (phoneNumber, email, password) => {
-    return apiClient.post('/auth/login', { phoneNumber, email, password });
+  // Login with phone/email and password
+  login: async (contact, password) => {
+    // Check if contact is email or phone
+    const isEmail = contact.includes('@');
+    return apiClient.post('/auth/login', {
+      phoneNumber: isEmail ? null : contact,
+      email: isEmail ? contact : null,
+      password,
+    });
+  },
+
+  // Google OAuth login/signup
+  googleLogin: async (googleToken, userInfo) => {
+    return apiClient.post('/auth/google', {
+      googleToken,
+      email: userInfo?.email,
+      fullName: userInfo?.name,
+      googleId: userInfo?.id,
+      profilePicture: userInfo?.picture,
+    });
   },
 
   // Logout
@@ -103,14 +144,29 @@ export const userAPI = {
 };
 
 export const requestAPI = {
-  // Create new request
+  // Create new request (with PayMongo checkout)
   createRequest: async (data) => {
     return apiClient.post('/request/create-request', data);
   },
 
-  // Track request
+  // Create request with cash payment
+  createRequestCash: async (data) => {
+    return apiClient.post('/payment/create-cash-payment', data);
+  },
+
+  // Track request by reference number
   trackRequest: async (referenceNumber) => {
-    return apiClient.get(`/request/track/${referenceNumber}`);
+    return apiClient.get(`/request/track-request/${referenceNumber}`);
+  },
+
+  // Get request history for authenticated user
+  getRequestHistory: async () => {
+    return apiClient.get('/auth/request-history');
+  },
+
+  // Get single request details
+  getRequestDetails: async (requestId) => {
+    return apiClient.get(`/request/${requestId}`);
   },
 };
 

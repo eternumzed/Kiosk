@@ -1,20 +1,36 @@
 import React from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { colors } from '../theme/colors';
 
 export default function SplashScreen() {
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#2563eb',
-      }}
-    >
-      <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', marginBottom: 20 }}>
-        Barangay Kiosk
-      </Text>
-      <ActivityIndicator size="large" color="#fff" />
+    <View style={styles.container}>
+      <Text style={styles.title}>Barangay Kiosk</Text>
+      <Text style={styles.subtitle}>Your Digital Service Hub</Text>
+      <ActivityIndicator size="large" color="#fff" style={styles.loader} />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.primary[600],
+  },
+  title: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  subtitle: {
+    color: colors.primary[200],
+    fontSize: 14,
+    marginBottom: 30,
+  },
+  loader: {
+    marginTop: 10,
+  },
+});

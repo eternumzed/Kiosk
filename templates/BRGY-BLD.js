@@ -12,10 +12,10 @@ module.exports = {
 
     return {
       age: raw.age,
-      sex: raw.sex.toUpperCase() || '',
-      address: raw.address.toUpperCase() || '',
-      project_type: raw.projectType.toUpperCase() || '',
-      full_name: raw.fullName.toUpperCase() || '',
+      sex: raw.sex?.toUpperCase() || '',
+      address: raw.address?.toUpperCase() || '',
+      project_type: raw.projectType?.toUpperCase() || '',
+      full_name: raw.fullName?.toUpperCase() || '',
       date: now.toLocaleDateString(),
       day: getOrdinal(dayNum),
       month: now.toLocaleString('en-US', { month: 'long' }).toUpperCase(),

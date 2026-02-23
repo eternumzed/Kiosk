@@ -16,14 +16,9 @@ export default function AuthStackNavigator({ dispatch }) {
       <Stack.Screen name="Login">
         {(props) => <LoginScreen {...props} dispatch={dispatch} />}
       </Stack.Screen>
-      <Stack.Screen
-        name="Signup"
-        component={SignupScreen}
-        options={{
-          animationEnabled: true,
-          cardStyle: { backgroundColor: 'transparent' },
-        }}
-      />
+      <Stack.Screen name="Signup">
+        {(props) => <SignupScreen {...props} dispatch={dispatch} />}
+      </Stack.Screen>
     </Stack.Navigator>
   );
 }

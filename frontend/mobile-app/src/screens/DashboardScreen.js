@@ -1,4 +1,5 @@
-import React, { useState, useFocusEffect } from 'react';
+import React, { useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -10,6 +11,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { requestAPI } from '../services/api';
+import { colors } from '../theme/colors';
 
 export default function DashboardScreen({ navigation, user, dispatch }) {
   const [requests, setRequests] = useState([]);
@@ -20,8 +22,10 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
     setLoading(true);
     try {
       const data = await requestAPI.getRequestHistory();
-      setRequests(data);
+      // Backend returns { success, count, requests } - extract the requests array
+      setRequests(data?.requests || data || []);
     } catch (error) {
+      console.error('Load requests error:', error);
       Alert.alert('Error', 'Failed to load requests');
     } finally {
       setLoading(false);
@@ -43,27 +47,28 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
   const getStatusColor = (status) => {
     switch (status) {
       case 'approved':
-        return '#10b981';
+        return colors.status.success;
       case 'pending':
-        return '#f59e0b';
+        return colors.status.warning;
       case 'rejected':
-        return '#ef4444';
+        return colors.status.error;
       default:
-        return '#6b7280';
+        return colors.gray[500];
     }
   };
 
   const renderRequestItem = ({ item }) => (
     <TouchableOpacity
       style={styles.requestCard}
-      onPress={() => navigation.navigate('RequestDetail', { requestId: item._id })}
+      onPress={() => navigation.navigate('RequestDetail', { requestId: item._id, referenceNumber: item.referenceNumber })}
+      activeOpacity={0.7}
     >
       <View style={styles.cardHeader}>
-        <Text style={styles.documentType}>{item.documentType}</Text>
+        <Text style={styles.documentType} numberOfLines={1}>{item.document}</Text>
         <View
           style={[
             styles.statusBadge,
-            { backgroundColor: getStatusColor(item.status) },
+            { backgroundColor: getStatusColor(item.status?.toLowerCase()) },
           ]}
         >
           <Text style={styles.statusText}>{item.status?.toUpperCase()}</Text>
@@ -72,14 +77,14 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
       <Text style={styles.cardDate}>
         {new Date(item.createdAt).toLocaleDateString()}
       </Text>
-      <Text style={styles.cardRef}>Ref: {item._id?.slice(-8).toUpperCase()}</Text>
+      <Text style={styles.cardRef}>Ref: {item.referenceNumber || item._id?.slice(-8).toUpperCase()}</Text>
     </TouchableOpacity>
   );
 
   if (loading && requests.length === 0) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#2563eb" />
+        <ActivityIndicator size="large" color={colors.primary[600]} />
       </View>
     );
   }
@@ -101,13 +106,15 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
 
       <TouchableOpacity
         style={styles.newRequestButton}
-        onPress={() => navigation.navigate('NewRequest')}
+        onPress={() => navigation.navigate('NewRequest', { user })}
+        activeOpacity={0.8}
       >
         <Text style={styles.newRequestText}>+ New Request</Text>
       </TouchableOpacity>
 
       {requests.length === 0 ? (
         <View style={styles.emptyContainer}>
+          <Text style={styles.emptyIcon}>📋</Text>
           <Text style={styles.emptyText}>No requests yet</Text>
           <Text style={styles.emptySubtext}>Create your first request to get started</Text>
         </View>
@@ -118,7 +125,12 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={handleRefresh}
+              colors={[colors.primary[600]]}
+              tintColor={colors.primary[600]}
+            />
           }
         />
       )}
@@ -129,49 +141,58 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background.primary,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background.primary,
   },
   header: {
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary[600],
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingTop: 50,
+    paddingBottom: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   greeting: {
-    color: '#e0e7ff',
+    color: colors.primary[200],
     fontSize: 14,
   },
   userName: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     marginTop: 4,
   },
   profileButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 20,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },
   profileButtonText: {
-    fontSize: 20,
+    fontSize: 22,
   },
   newRequestButton: {
-    backgroundColor: '#10b981',
+    backgroundColor: colors.primary[700],
     marginHorizontal: 20,
-    marginVertical: 15,
-    paddingVertical: 12,
-    borderRadius: 8,
+    marginVertical: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: colors.primary[800],
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   newRequestText: {
     color: '#fff',
@@ -184,11 +205,16 @@ const styles = StyleSheet.create({
   },
   requestCard: {
     backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 15,
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 12,
     borderLeftWidth: 4,
-    borderLeftColor: '#2563eb',
+    borderLeftColor: colors.primary[600],
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -199,41 +225,47 @@ const styles = StyleSheet.create({
   documentType: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: colors.text.primary,
     flex: 1,
   },
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   statusText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
   },
   cardDate: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 13,
+    color: colors.text.secondary,
     marginBottom: 4,
   },
   cardRef: {
-    fontSize: 11,
-    color: '#999',
+    fontSize: 12,
+    color: colors.text.muted,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 16,
   },
   emptyText: {
     fontSize: 18,
-    color: '#333',
+    color: colors.text.primary,
     fontWeight: '600',
-    marginBottom: 5,
+    marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#999',
+    color: colors.text.muted,
+    textAlign: 'center',
   },
 });

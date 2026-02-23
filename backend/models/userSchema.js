@@ -6,16 +6,31 @@ const UserSchema = new Schema({
   // Phone Authentication
   phoneNumber: { 
     type: String, 
-    required: true, 
+    sparse: true,  // Allow null for Google-only users
     unique: true,
     trim: true 
   },
   
-  // Optional: Email for password reset
+  // Email Authentication
   email: { 
     type: String, 
     trim: true, 
-    lowercase: true 
+    lowercase: true,
+    sparse: true,
+    unique: true,
+  },
+  
+  // Google OAuth
+  googleId: {
+    type: String,
+    sparse: true,
+    unique: true,
+  },
+  profilePicture: { type: String },
+  authProvider: { 
+    type: String, 
+    enum: ['phone', 'email', 'google'],
+    default: 'phone',
   },
   
   // Account Security
@@ -25,6 +40,7 @@ const UserSchema = new Schema({
   otpCode: { type: String },
   otpExpiresAt: { type: Date },
   isPhoneVerified: { type: Boolean, default: false },
+  isEmailVerified: { type: Boolean, default: false },
   
   // Account Status
   isActive: { type: Boolean, default: true },
@@ -47,5 +63,6 @@ const UserSchema = new Schema({
 
 // Indexes
 UserSchema.index({ email: 1 });
+UserSchema.index({ googleId: 1 });
 
 module.exports = mongoose.model('User', UserSchema);

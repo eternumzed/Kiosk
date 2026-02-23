@@ -51,8 +51,8 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(express.json({ type: '*/*' }));
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(express.json({ limit: '10mb', type: '*/*' })); // Increased for base64 image uploads
+app.use(bodyParser.urlencoded({ extended: false, limit: '10mb' }));
 
 const pdfRoutes = require('./routes/pdfRoute.js');
 const authRoutes = require('./routes/authRoute.js');

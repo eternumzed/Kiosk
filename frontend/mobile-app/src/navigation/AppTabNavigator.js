@@ -5,6 +5,11 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import DashboardScreen from '../screens/DashboardScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import RequestDetailScreen from '../screens/RequestDetailScreen';
+import SelectDocumentScreen from '../screens/SelectDocumentScreen';
+import RequestFormScreen from '../screens/RequestFormScreen';
+import PaymentReviewScreen from '../screens/PaymentReviewScreen';
+import RequestSuccessScreen from '../screens/RequestSuccessScreen';
+import { colors } from '../theme/colors';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -27,6 +32,27 @@ const DashboardStack = ({ user, dispatch }) => {
         options={{
           headerShown: true,
           headerTitle: 'Request Details',
+          headerTintColor: colors.primary[600],
+          headerStyle: {
+            backgroundColor: '#fff',
+          },
+          headerTitleStyle: {
+            color: colors.text.primary,
+            fontWeight: '600',
+          },
+        }}
+      />
+      <Stack.Screen name="NewRequest">
+        {(props) => <SelectDocumentScreen {...props} />}
+      </Stack.Screen>
+      <Stack.Screen name="RequestForm" component={RequestFormScreen} />
+      <Stack.Screen name="PaymentReview" component={PaymentReviewScreen} />
+      <Stack.Screen 
+        name="RequestSuccess" 
+        component={RequestSuccessScreen}
+        options={{
+          headerShown: false,
+          gestureEnabled: false, // Prevent swipe back
         }}
       />
     </Stack.Navigator>
@@ -39,22 +65,28 @@ export default function AppTabNavigator({ user, dispatch }) {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          height: 60,
-          paddingBottom: 8,
-          borderTopColor: '#e5e7eb',
+          height: 65,
+          paddingBottom: 10,
+          paddingTop: 8,
+          borderTopColor: colors.border.light,
           borderTopWidth: 1,
+          backgroundColor: '#fff',
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '500',
+          fontWeight: '600',
         },
+        tabBarActiveTintColor: colors.primary[600],
+        tabBarInactiveTintColor: colors.text.muted,
       }}
     >
       <Tab.Screen
         name="Dashboard"
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>🏠</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.7 }}>🏠</Text>
+          ),
         }}
       >
         {(props) => (
@@ -65,7 +97,9 @@ export default function AppTabNavigator({ user, dispatch }) {
         name="Profile"
         options={{
           tabBarLabel: 'Profile',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>👤</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.7 }}>👤</Text>
+          ),
         }}
       >
         {(props) => (

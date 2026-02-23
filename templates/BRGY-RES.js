@@ -13,9 +13,9 @@ module.exports = {
     };
 
     return {
-      full_name: raw.fullName.toUpperCase() || '',
-      zone: raw.zone.toUpperCase() || '',
-      purpose: raw.purpose.toUpperCase() || '',
+      full_name: raw.fullName?.toUpperCase() || '',
+      zone: raw.zone?.toUpperCase() || '',
+      purpose: raw.purpose?.toUpperCase() || '',
       day: getOrdinal(dayNum),
       month: now.toLocaleString('en-US', { month: 'long' }).toUpperCase(),
       year: now.getFullYear(),

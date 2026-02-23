@@ -91,6 +91,34 @@ const App = () => {
     }
   };
 
+  const handleCashPayment = async () => {
+    try {
+      setPaymentStatus("Processing");
+
+      const paymentData = {
+        ...formData,
+        amount: getFee(),
+      };
+      console.log('Creating cash payment request:', paymentData);
+
+      const res = await axios.post("http://localhost:5000/api/payment/create-cash-payment", paymentData);
+
+      if (res.data.referenceNumber) {
+        setRequestRef({
+          reference: res.data.referenceNumber,
+        });
+        
+        // Navigate to confirmation page for cash payment
+        window.location.href = `/confirmation?referenceNumber=${res.data.referenceNumber}`;
+      } else {
+        throw new Error("Reference number missing");
+      }
+    } catch (err) {
+      console.error("Cash payment error:", err.response?.data || err.message);
+      setPaymentStatus("Failed");
+    }
+  };
+
   return (
     <Router>
       <div className="min-h-screen bg-[#EBEBF2] font-sans text-gray-800 flex flex-col justify-center items-center p-4">
@@ -106,6 +134,7 @@ const App = () => {
           setSelectedCategory={setSelectedCategory}
           getFee={getFee}
           handlePayment={handlePayment}
+          handleCashPayment={handleCashPayment}
           resetUI={resetUI}
         />
       </div>

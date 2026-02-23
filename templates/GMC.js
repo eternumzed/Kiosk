@@ -11,8 +11,8 @@ module.exports = {
     };
 
     return {
-      full_name: raw.fullName.toUpperCase() || '',
-      civil_status: raw.civilStatus.toUpperCase() || '',
+      full_name: raw.fullName?.toUpperCase() || '',
+      civil_status: raw.civilStatus?.toUpperCase() || '',
       day: getOrdinal(dayNum),
       month: now.toLocaleString('en-US', { month: 'long' }).toUpperCase(),
       year: now.getFullYear(),

@@ -10,7 +10,9 @@ import {
   Alert,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { userAPI } from '../services/api';
+import { colors } from '../theme/colors';
 
 export default function ProfileScreen({ navigation, user, dispatch }) {
   const [fullName, setFullName] = useState(user?.fullName || '');
@@ -36,6 +38,7 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
         type: 'UPDATE_USER',
         payload: updatedUser,
       });
+      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
       setEditing(false);
       Alert.alert('Success', 'Profile updated successfully');
     } catch (error) {
@@ -46,14 +49,16 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
   };
 
   const handleLogout = async () => {
-    Alert.alert('Logout', 'Are you sure?', [
-      { text: 'Cancel' },
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
       {
         text: 'Logout',
+        style: 'destructive',
         onPress: async () => {
           await SecureStore.deleteItemAsync('userToken');
+          await SecureStore.deleteItemAsync('refreshToken');
+          await AsyncStorage.removeItem('user');
           dispatch({ type: 'LOGOUT' });
-          navigation.replace('Auth');
         },
       },
     ]);
@@ -83,31 +88,32 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
 
         <Text style={styles.label}>Full Name</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, editing && styles.inputEditing]}
           value={fullName}
           onChangeText={setFullName}
           editable={editing}
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.text.placeholder}
         />
 
         <Text style={styles.label}>Phone Number</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, editing && styles.inputEditing]}
           value={phone}
           onChangeText={setPhone}
           editable={editing}
           keyboardType="phone-pad"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.text.placeholder}
         />
 
         <Text style={styles.label}>Email Address</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, editing && styles.inputEditing]}
           value={email}
           onChangeText={setEmail}
           editable={editing}
           keyboardType="email-address"
-          placeholderTextColor="#999"
+          autoCapitalize="none"
+          placeholderTextColor={colors.text.placeholder}
         />
 
         {editing && (
@@ -116,6 +122,7 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
               style={[styles.button, styles.saveButton]}
               onPress={handleUpdateProfile}
               disabled={loading}
+              activeOpacity={0.8}
             >
               {loading ? (
                 <ActivityIndicator color="#fff" />
@@ -131,6 +138,7 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
                 setPhone(user?.phone || '');
                 setEmail(user?.email || '');
               }}
+              activeOpacity={0.8}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
@@ -160,6 +168,7 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
         <TouchableOpacity
           style={[styles.button, styles.logoutButton]}
           onPress={handleLogout}
+          activeOpacity={0.8}
         >
           <Text style={styles.logoutButtonText}>Logout</Text>
         </TouchableOpacity>
@@ -171,91 +180,105 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background.primary,
   },
   header: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 30,
+    backgroundColor: colors.primary[600],
+    paddingTop: 50,
+    paddingBottom: 30,
     alignItems: 'center',
     paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: 'rgba(255,255,255,0.25)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 16,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   avatarText: {
     color: '#fff',
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
   },
   nameDisplay: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 5,
+    marginBottom: 6,
   },
   emailDisplay: {
-    color: '#e0e7ff',
+    color: colors.primary[200],
     fontSize: 14,
   },
   section: {
     backgroundColor: '#fff',
-    marginHorizontal: 15,
+    marginHorizontal: 16,
     marginVertical: 10,
     padding: 20,
-    borderRadius: 8,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
-    color: '#333',
+    color: colors.text.primary,
   },
   editButton: {
-    color: '#2563eb',
+    color: colors.primary[600],
     fontWeight: '600',
     fontSize: 14,
   },
   label: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: colors.text.secondary,
     fontWeight: '500',
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
-    fontSize: 14,
-    color: '#333',
-    backgroundColor: '#f9f9f9',
+    borderColor: colors.border.light,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 16,
+    fontSize: 15,
+    color: colors.text.primary,
+    backgroundColor: colors.gray[50],
+  },
+  inputEditing: {
+    backgroundColor: '#fff',
+    borderColor: colors.primary[600],
   },
   buttonGroup: {
-    marginTop: 10,
+    marginTop: 8,
   },
   button: {
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 10,
     alignItems: 'center',
-    marginVertical: 5,
+    marginVertical: 6,
   },
   saveButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary[600],
   },
   cancelButton: {
-    backgroundColor: '#e5e7eb',
+    backgroundColor: colors.gray[200],
   },
   buttonText: {
     color: '#fff',
@@ -263,7 +286,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   cancelButtonText: {
-    color: '#666',
+    color: colors.text.secondary,
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -271,21 +294,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 15,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.gray[100],
   },
   settingText: {
-    fontSize: 14,
-    color: '#333',
+    fontSize: 15,
+    color: colors.text.primary,
     fontWeight: '500',
   },
   settingArrow: {
-    fontSize: 20,
-    color: '#999',
+    fontSize: 22,
+    color: colors.text.muted,
   },
   logoutButton: {
-    backgroundColor: '#ef4444',
+    backgroundColor: colors.status.error,
   },
   logoutButtonText: {
     color: '#fff',

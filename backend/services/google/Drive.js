@@ -166,12 +166,6 @@ exports.listPdfs = async () => {
       }
     };
     
-    if (request) {
-      console.log(`Request found for ${file.id}: type=${request.type}, status=${request.status}`);
-    } else {
-      console.log(`No request found for fileId ${file.id}: ${file.name}`);
-    }
-    
     pdfsWithMetadata.push(merged);
   });
 
