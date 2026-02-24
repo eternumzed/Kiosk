@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as ExpoLinking from 'expo-linking';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { requestAPI } from '../services/api';
 import { colors } from '../theme/colors';
 
@@ -18,6 +19,23 @@ export default function PaymentReviewScreen({ navigation, route }) {
   const { document, formData, user } = route.params;
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('online'); // 'online' | 'cash'
+  const [photoId, setPhotoId] = useState(null);
+
+  // Retrieve photoId from AsyncStorage on mount
+  useEffect(() => {
+    const loadPhoto = async () => {
+      try {
+        const storedPhoto = await AsyncStorage.getItem('tempPhotoId');
+        if (storedPhoto) {
+          setPhotoId(storedPhoto);
+          console.log('Photo retrieved from storage (length):', storedPhoto.length);
+        }
+      } catch (error) {
+        console.error('Error loading photo from storage:', error);
+      }
+    };
+    loadPhoto();
+  }, []);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -28,11 +46,12 @@ export default function PaymentReviewScreen({ navigation, route }) {
         amount: document.fee,
         paymentMethod: paymentMethod === 'cash' ? 'Cash' : 'Online',
         userId: user?._id,  // Link request to authenticated user
+        ...(photoId ? { photoId } : {}),  // Include photoId if available
       };
 
       // Log without photoId to avoid console overload
-      const { photoId, ...logData } = requestData;
-      console.log('Submitting request:', logData, photoId ? '(with photo)' : '(no photo)');
+      const { photoId: _photo, ...logData } = requestData;
+      console.log('Submitting request:', logData, _photo ? '(with photo)' : '(no photo)');
 
       if (paymentMethod === 'online') {
         // Create deep link URL for PayMongo to redirect back to app
@@ -59,6 +78,8 @@ export default function PaymentReviewScreen({ navigation, route }) {
           if (result.type === 'success' && result.url) {
             const url = new URL(result.url);
             const refNum = url.searchParams.get('referenceNumber');
+            // Clean up stored photo
+            await AsyncStorage.removeItem('tempPhotoId');
             navigation.navigate('RequestSuccess', {
               referenceNumber: refNum || response.reference_number,
               document: document.name,
@@ -70,7 +91,10 @@ export default function PaymentReviewScreen({ navigation, route }) {
               'Payment Status',
               'If you completed your payment, your request has been submitted. You can check your request history for status updates.',
               [
-                { text: 'Go to Dashboard', onPress: () => navigation.navigate('Dashboard') },
+                { text: 'Go to Dashboard', onPress: async () => {
+                  await AsyncStorage.removeItem('tempPhotoId');
+                  navigation.navigate('Dashboard');
+                }},
                 { text: 'Stay Here', style: 'cancel' },
               ]
             );
@@ -82,6 +106,8 @@ export default function PaymentReviewScreen({ navigation, route }) {
         // Cash payment - create request without checkout
         const response = await requestAPI.createRequestCash(requestData);
         
+        // Clean up stored photo
+        await AsyncStorage.removeItem('tempPhotoId');
         navigation.navigate('RequestSuccess', {
           referenceNumber: response.referenceNumber || response.reference_number,
           document: document.name,
