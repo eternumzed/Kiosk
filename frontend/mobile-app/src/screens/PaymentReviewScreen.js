@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Feather } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   View,
   Text,
@@ -145,7 +147,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backButtonText}>←</Text>
+          <Feather name="arrow-left" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Review & Pay</Text>
         <View style={styles.placeholder} />
@@ -157,7 +159,10 @@ export default function PaymentReviewScreen({ navigation, route }) {
           <Text style={styles.documentName}>{document.name}</Text>
           <View style={styles.feeRow}>
             <Text style={styles.feeLabel}>Processing Fee</Text>
-            <Text style={styles.feeAmount}>₱{document.fee}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <MaterialCommunityIcons name="currency-php" size={20} color="#fff" style={{ marginRight: 4 }} />
+              <Text style={styles.feeAmount}>{document.fee}</Text>
+            </View>
           </View>
         </View>
 
@@ -233,7 +238,10 @@ export default function PaymentReviewScreen({ navigation, route }) {
       <View style={styles.footer}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Total Amount</Text>
-          <Text style={styles.totalAmount}>₱{document.fee}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <MaterialCommunityIcons name="currency-php" size={20} color={colors.primary[600]} style={{ marginRight: 4 }} />
+            <Text style={styles.totalAmount}>{document.fee}</Text>
+          </View>
         </View>
         <TouchableOpacity
           style={[styles.submitButton, loading && styles.submitButtonDisabled]}

@@ -10,6 +10,8 @@ import RequestFormScreen from '../screens/RequestFormScreen';
 import PaymentReviewScreen from '../screens/PaymentReviewScreen';
 import RequestSuccessScreen from '../screens/RequestSuccessScreen';
 import { colors } from '../theme/colors';
+import { Feather } from '@expo/vector-icons';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -85,7 +87,7 @@ export default function AppTabNavigator({ user, dispatch }) {
         options={{
           tabBarLabel: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.7 }}>🏠</Text>
+               <Feather name="home" size={25} color="#0000"  />
           ),
         }}
       >
@@ -98,7 +100,7 @@ export default function AppTabNavigator({ user, dispatch }) {
         options={{
           tabBarLabel: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.7 }}>👤</Text>
+             <FontAwesome name="user" size={24} color="black" />
           ),
         }}
       >

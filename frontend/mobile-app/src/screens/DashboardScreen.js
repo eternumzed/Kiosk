@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { requestAPI } from '../services/api';
 import { colors } from '../theme/colors';
+import { Feather } from '@expo/vector-icons';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 export default function DashboardScreen({ navigation, user, dispatch }) {
   const [requests, setRequests] = useState([]);
@@ -100,7 +102,7 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
           style={styles.profileButton}
           onPress={() => navigation.navigate('Profile')}
         >
-          <Text style={styles.profileButtonText}>👤</Text>
+          <FontAwesome name="user" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
 
@@ -125,8 +127,8 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl 
-              refreshing={refreshing} 
+            <RefreshControl
+              refreshing={refreshing}
               onRefresh={handleRefresh}
               colors={[colors.primary[600]]}
               tintColor={colors.primary[600]}

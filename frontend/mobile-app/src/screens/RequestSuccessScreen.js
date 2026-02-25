@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { requestAPI } from '../services/api';
 import { colors } from '../theme/colors';
+import { Feather } from '@expo/vector-icons';
 
 export default function RequestSuccessScreen({ navigation, route }) {
   const { referenceNumber, document, paymentMethod } = route.params;
@@ -57,7 +58,7 @@ export default function RequestSuccessScreen({ navigation, route }) {
   };
 
   const handleTrackRequest = () => {
-    navigation.navigate('RequestDetail', { 
+    navigation.navigate('RequestDetail', {
       requestId: request?._id,
       referenceNumber,
     });
@@ -81,7 +82,7 @@ export default function RequestSuccessScreen({ navigation, route }) {
         </View>
 
         <Text style={styles.title}>Request Submitted!</Text>
-        
+
         {paymentMethod === 'Cash' ? (
           <Text style={styles.subtitle}>
             Please visit the barangay hall to complete your payment and claim your document.
@@ -97,7 +98,7 @@ export default function RequestSuccessScreen({ navigation, route }) {
           <Text style={styles.referenceLabel}>Reference Number</Text>
           <Text style={styles.referenceNumber}>{referenceNumber}</Text>
           <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-            <Text style={styles.shareButtonText}>📤 Share</Text>
+            <Feather name="share" size={25} color="#0000" />
           </TouchableOpacity>
         </View>
 
@@ -137,7 +138,7 @@ export default function RequestSuccessScreen({ navigation, route }) {
         >
           <Text style={styles.secondaryButtonText}>Track Request</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={styles.primaryButton}
           onPress={handleGoHome}

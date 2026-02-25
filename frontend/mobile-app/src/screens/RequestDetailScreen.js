@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { requestAPI } from '../services/api';
 import { colors } from '../theme/colors';
+import { Feather } from '@expo/vector-icons';
 
 export default function RequestDetailScreen({ route, navigation }) {
   const { requestId, referenceNumber } = route.params;
@@ -172,7 +173,8 @@ export default function RequestDetailScreen({ route, navigation }) {
             onPress={handleDownload}
             activeOpacity={0.8}
           >
-            <Text style={styles.downloadButtonText}>📄 Download Document</Text>
+            <Text style={styles.downloadButtonText}>
+              <Feather name="download" size={25} color="#0000" /> Download Document</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -181,20 +183,23 @@ export default function RequestDetailScreen({ route, navigation }) {
         <Text style={styles.sectionTitle}>Next Steps</Text>
         <View style={styles.helpCard}>
           <Text style={styles.helpIcon}>
-            {request.status === 'Pending' ? '⏳' : 
-             request.status === 'For Pick-up' ? '✅' : 
-             request.status === 'Completed' ? '🎉' : 'ℹ️'}
+            {request.status === 'Pending' ? <Feather name="clock" size={25} color="green"  /> :
+              request.status === 'For Pick-up' ? <Feather name="truck" size={25} color="green"  /> :
+                request.status === 'Completed' ? <Feather name="check-circle" size={25} color="green" /> : <Feather name="info" size={25} color="green" />}
           </Text>
+
+
+
           <Text style={styles.helpText}>
             {request.status === 'Pending'
               ? 'Your request is being processed. We will notify you once it is ready.'
               : request.status === 'Processing'
-              ? 'Your document is currently being prepared.'
-              : request.status === 'For Pick-up'
-              ? 'Your document is ready! Visit the barangay hall to collect it.'
-              : request.status === 'Completed'
-              ? 'Your request has been completed. Thank you!'
-              : 'Please check the remarks above or visit the barangay hall for more information.'}
+                ? 'Your document is currently being prepared.'
+                : request.status === 'For Pick-up'
+                  ? 'Your document is ready! Visit the barangay hall to collect it.'
+                  : request.status === 'Completed'
+                    ? 'Your request has been completed. Thank you!'
+                    : 'Please check the remarks above or visit the barangay hall for more information.'}
           </Text>
         </View>
       </View>
