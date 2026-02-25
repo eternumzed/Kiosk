@@ -293,7 +293,7 @@ exports.updateUserProfile = asyncHandler(async (req, res) => {
  */
 exports.getRequestHistory = asyncHandler(async (req, res) => {
   try {
-    const requests = await Request.find({ userId: req.user.userId })
+    const requests = await Request.find({ userId: req.user.userId, deleted: false })
       .sort({ createdAt: -1 })
       .limit(50);
 
