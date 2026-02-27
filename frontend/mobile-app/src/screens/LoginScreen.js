@@ -7,8 +7,9 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  Image,
+  KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
@@ -18,17 +19,27 @@ import { authAPI } from '../services/api';
 import { colors } from '../theme/colors';
 
 export default function LoginScreen({ navigation, dispatch }) {
-  const [contact, setContact] = useState('');
-  const [password, setPassword] = useState('');
+  const [step, setStep] = useState('phone'); // 'phone' | 'otp'
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpToken, setOtpToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  // Countdown timer for resend OTP
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
 
   // Handle deep link callback from Google OAuth
   useEffect(() => {
     const handleDeepLink = async (event) => {
       const url = event.url;
       if (url && url.includes('google-auth-callback')) {
-        // Parse token from URL
         const params = new URLSearchParams(url.split('?')[1]);
         const token = params.get('token');
         const refreshToken = params.get('refreshToken');
@@ -60,26 +71,17 @@ export default function LoginScreen({ navigation, dispatch }) {
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     try {
-      // Dismiss any existing browser session first
       await WebBrowser.dismissBrowser();
       
-      // Open Google OAuth in browser - backend handles the flow
       const apiUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'https://dilemmatical-marvis-unegregiously.ngrok-free.dev';
-      // Use Linking.createURL for Expo Go compatibility
       const redirectUrl = Linking.createURL('google-auth-callback');
-      
-      console.log('Login - Expected redirect URL:', redirectUrl);
       
       const result = await WebBrowser.openAuthSessionAsync(
         `${apiUrl}/api/auth/google/mobile?redirectUrl=${encodeURIComponent(redirectUrl)}`,
         redirectUrl
       );
       
-      console.log('Login - WebBrowser result:', result.type);
-      console.log('Login - Returned URL:', result.url);
-      
       if (result.type === 'success' && result.url) {
-        // Parse the callback URL
         const url = result.url;
         const queryStart = url.indexOf('?');
         if (queryStart !== -1) {
@@ -87,8 +89,6 @@ export default function LoginScreen({ navigation, dispatch }) {
           const token = params.get('token');
           const userJson = params.get('user');
           const error = params.get('error');
-          
-          console.log('Parsed params - token:', !!token, 'user:', !!userJson, 'error:', error);
           
           if (error) {
             Alert.alert('Google Sign In', decodeURIComponent(error));
@@ -106,14 +106,7 @@ export default function LoginScreen({ navigation, dispatch }) {
           } else {
             Alert.alert('Google Sign In', 'No token received');
           }
-        } else {
-          Alert.alert('Google Sign In', 'Invalid callback URL');
         }
-      } else if (result.type === 'cancel' || result.type === 'dismiss') {
-        // User cancelled or dismissed
-        console.log('User cancelled/dismissed Google Sign In');
-      } else {
-        console.log('Unexpected result type:', result.type);
       }
     } catch (error) {
       Alert.alert('Google Sign In', error.message || 'Failed to sign in');
@@ -122,21 +115,46 @@ export default function LoginScreen({ navigation, dispatch }) {
     }
   };
 
-  const handleLogin = async () => {
-    if (!contact || !password) {
-      Alert.alert('Error', 'Please enter phone/email and password');
+  const formatPhoneNumber = (text) => {
+    // Remove non-numeric characters except +
+    const cleaned = text.replace(/[^\d+]/g, '');
+    setPhoneNumber(cleaned);
+  };
+
+  const handleRequestOTP = async () => {
+    if (!phoneNumber || phoneNumber.length < 10) {
+      Alert.alert('Error', 'Please enter a valid phone number');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await authAPI.login(contact, password);
+      const response = await authAPI.requestOTP(phoneNumber);
+      setOtpToken(response?.otpToken ?? response?.data?.otpToken);
+      setStep('otp');
+      setCountdown(60); // 60 second cooldown for resend
+      Alert.alert('OTP Sent', 'A verification code has been sent to your phone via SMS');
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.error || error.error || 'Failed to send OTP');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const handleVerifyOTP = async () => {
+    if (!otp || otp.length < 6) {
+      Alert.alert('Error', 'Please enter the 6-digit OTP');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await authAPI.verifyOTP(phoneNumber, otp, null, otpToken);
+      
       const token = response?.token ?? response?.data?.token;
       const refreshToken = response?.refreshToken ?? response?.data?.refreshToken;
       const user = response?.user ?? response?.data?.user;
 
-      // Store tokens
       if (token) await SecureStore.setItemAsync('userToken', token);
       if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
       if (user) await AsyncStorage.setItem('user', JSON.stringify(user));
@@ -146,55 +164,120 @@ export default function LoginScreen({ navigation, dispatch }) {
         payload: { user, token },
       });
     } catch (error) {
-      Alert.alert(
-        'Error',
-        error.response?.data?.error || error.error || 'Login failed'
-      );
+      Alert.alert('Error', error.response?.data?.error || error.error || 'Invalid OTP');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleResendOTP = async () => {
+    if (countdown > 0) return;
+    await handleRequestOTP();
+  };
+
+  const handleBack = () => {
+    setStep('phone');
+    setOtp('');
+    setOtpToken('');
+  };
+
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={styles.container} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <View style={styles.headerSection}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>🏛️</Text>
+          <Image
+            source={require('../../assets/BRGY_BILUSO_SEAL-modified.png')}
+            style={{ width: 100, height: 100, resizeMode: 'contain' }}
+          />
         </View>
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>Login to your Barangay Kiosk account</Text>
+        <Text style={styles.title}>
+          {step === 'phone' ? 'Welcome Back' : 'Enter OTP'}
+        </Text>
+        <Text style={styles.subtitle}>
+          {step === 'phone' 
+            ? 'Login with your mobile number' 
+            : `Enter the code sent to ${phoneNumber}`}
+        </Text>
       </View>
 
       <View style={styles.formSection}>
-        <TextInput
-          style={styles.input}
-          placeholder="Phone Number or Email"
-          value={contact}
-          onChangeText={setContact}
-          placeholderTextColor={colors.text.placeholder}
-          autoCapitalize="none"
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          placeholderTextColor={colors.text.placeholder}
-        />
+        {step === 'phone' ? (
+          <>
+            <Text style={styles.inputLabel}>Mobile Number</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="09XX XXX XXXX"
+              value={phoneNumber}
+              onChangeText={formatPhoneNumber}
+              placeholderTextColor={colors.text.placeholder}
+              keyboardType="phone-pad"
+              autoComplete="tel"
+              maxLength={15}
+            />
 
-        <TouchableOpacity
-          style={styles.button}
-          onPress={handleLogin}
-          disabled={loading}
-          activeOpacity={0.8}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Login</Text>
-          )}
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleRequestOTP}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Send OTP</Text>
+              )}
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <Text style={styles.inputLabel}>Verification Code</Text>
+            <TextInput
+              style={[styles.input, styles.otpInput]}
+              placeholder="000000"
+              value={otp}
+              onChangeText={setOtp}
+              placeholderTextColor={colors.text.placeholder}
+              keyboardType="number-pad"
+              maxLength={6}
+              autoFocus
+            />
+
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleVerifyOTP}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Verify & Login</Text>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.resendRow}>
+              <Text style={styles.resendText}>Didn't receive the code? </Text>
+              <TouchableOpacity 
+                onPress={handleResendOTP} 
+                disabled={countdown > 0}
+              >
+                <Text style={[
+                  styles.resendLink, 
+                  countdown > 0 && styles.resendDisabled
+                ]}>
+                  {countdown > 0 ? `Resend in ${countdown}s` : 'Resend OTP'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+              <Text style={styles.backText}>← Change phone number</Text>
+            </TouchableOpacity>
+          </>
+        )}
 
         <View style={styles.dividerContainer}>
           <View style={styles.divider} />
@@ -219,10 +302,12 @@ export default function LoginScreen({ navigation, dispatch }) {
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-          <Text style={styles.linkText}>Don't have an account? <Text style={styles.linkBold}>Sign up</Text></Text>
+          <Text style={styles.linkText}>
+            Don't have an account? <Text style={styles.linkBold}>Sign up</Text>
+          </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -268,6 +353,12 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingTop: 32,
   },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text.secondary,
+    marginBottom: 8,
+  },
   input: {
     backgroundColor: '#fff',
     borderWidth: 1,
@@ -277,6 +368,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 16,
     color: colors.text.primary,
+  },
+  otpInput: {
+    textAlign: 'center',
+    fontSize: 24,
+    letterSpacing: 8,
+    fontWeight: 'bold',
   },
   button: {
     backgroundColor: colors.primary[600],
@@ -290,6 +387,32 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  resendRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  resendText: {
+    color: colors.text.secondary,
+    fontSize: 14,
+  },
+  resendLink: {
+    color: colors.primary[600],
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  resendDisabled: {
+    color: colors.text.muted,
+  },
+  backButton: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  backText: {
+    color: colors.text.secondary,
+    fontSize: 14,
   },
   dividerContainer: {
     flexDirection: 'row',

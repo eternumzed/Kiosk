@@ -29,12 +29,9 @@ const UserSchema = new Schema({
   profilePicture: { type: String },
   authProvider: { 
     type: String, 
-    enum: ['phone', 'email', 'google'],
+    enum: ['phone', 'google'],  // Only phone OTP and Google OAuth supported
     default: 'phone',
   },
-  
-  // Account Security
-  passwordHash: { type: String },  // Optional, for email+password login
   
   // Phone OTP Verification
   otpCode: { type: String },
@@ -60,9 +57,5 @@ const UserSchema = new Schema({
   notificationEnabled: { type: Boolean, default: true },
   
 }, { timestamps: true });
-
-// Indexes
-UserSchema.index({ email: 1 });
-UserSchema.index({ googleId: 1 });
 
 module.exports = mongoose.model('User', UserSchema);

@@ -18,20 +18,22 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [email, setEmail] = useState(user?.email || '');
+  const [address, setAddress] = useState(user?.address || '');
+  const [barangay, setBarangay] = useState(user?.barangay || '');
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleUpdateProfile = async () => {
-    if (!fullName || !phone || !email) {
-      Alert.alert('Error', 'All fields are required');
-      return;
-    }
-
     setLoading(true);
     try {
+      // Split fullName into firstName and lastName
+      const [firstName, ...rest] = fullName.trim().split(' ');
+      const lastName = rest.join(' ');
       const updatedUser = await userAPI.updateProfile({
-        fullName,
-        phone,
+        firstName,
+        lastName,
+        address,
+        barangay,
         email,
       });
       dispatch({
@@ -40,6 +42,11 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
       });
       await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
       setEditing(false);
+      setFullName(`${updatedUser.firstName || ''} ${updatedUser.lastName || ''}`.trim());
+      setPhone(updatedUser.phone);
+      setEmail(updatedUser.email);
+      setAddress(updatedUser.address || '');
+      setBarangay(updatedUser.barangay || '');
       Alert.alert('Success', 'Profile updated successfully');
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Failed to update profile');
@@ -91,16 +98,21 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
           style={[styles.input, editing && styles.inputEditing]}
           value={fullName}
           onChangeText={setFullName}
-          editable={editing}
+          editable={editing && !loading}
           placeholderTextColor={colors.text.placeholder}
         />
 
+
         <Text style={styles.label}>Phone Number</Text>
         <TextInput
-          style={[styles.input, editing && styles.inputEditing]}
+          style={[
+            styles.input,
+            !editing && { color: colors.text.muted, backgroundColor: colors.gray[100] },
+            editing && styles.inputEditing
+          ]}
           value={phone}
           onChangeText={setPhone}
-          editable={editing}
+          editable={false}
           keyboardType="phone-pad"
           placeholderTextColor={colors.text.placeholder}
         />
@@ -110,9 +122,27 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
           style={[styles.input, editing && styles.inputEditing]}
           value={email}
           onChangeText={setEmail}
-          editable={editing}
+          editable={editing && !loading}
           keyboardType="email-address"
           autoCapitalize="none"
+          placeholderTextColor={colors.text.placeholder}
+        />
+
+        <Text style={styles.label}>Address</Text>
+        <TextInput
+          style={[styles.input, editing && styles.inputEditing]}
+          value={address}
+          onChangeText={setAddress}
+          editable={editing && !loading}
+          placeholderTextColor={colors.text.placeholder}
+        />
+
+        <Text style={styles.label}>Barangay</Text>
+        <TextInput
+          style={[styles.input, editing && styles.inputEditing]}
+          value={barangay}
+          onChangeText={setBarangay}
+          editable={editing && !loading}
           placeholderTextColor={colors.text.placeholder}
         />
 
@@ -137,6 +167,8 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
                 setFullName(user?.fullName || '');
                 setPhone(user?.phone || '');
                 setEmail(user?.email || '');
+                setAddress(user?.address || '');
+                setBarangay(user?.barangay || '');
               }}
               activeOpacity={0.8}
             >

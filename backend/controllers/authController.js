@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const User = require('../models/userSchema');
 const Request = require('../models/requestSchema');
-const EmailOTPService = require('../services/auth/emailOTP');
+const SMSOTPService = require('../services/auth/smsOTP');
 const tokenManager = require('../services/auth/tokenManager');
 
 /**
@@ -37,30 +37,23 @@ function getGoogleOAuthCredentials() {
 }
 
 /**
- * Request OTP via Email
+ * Request OTP via SMS (TextBee)
+ * For phone number login/signup
  */
-exports.requestOTPEmail = asyncHandler(async (req, res) => {
-  const { phoneNumber, email, fullName } = req.body;
+exports.requestOTPPhone = asyncHandler(async (req, res) => {
+  const { phoneNumber, fullName } = req.body;
 
-  if (!phoneNumber && !email) {
+  if (!phoneNumber) {
     return res.status(400).json({
-      error: 'Phone number or email is required',
+      error: 'Phone number is required',
     });
   }
 
-  // Find user by phone or email
-  const user = await User.findOne({
-    $or: [
-      phoneNumber ? { phoneNumber } : {},
-      email ? { email } : {},
-    ].filter((q) => Object.keys(q).length > 0),
-  });
+  // Find user by phone number
+  const user = await User.findOne({ phoneNumber });
 
-  // Generate and send OTP
-  const otpResult = await EmailOTPService.sendOTP(
-    email || phoneNumber,
-    fullName
-  );
+  // Generate and send OTP via SMS
+  const otpResult = await SMSOTPService.sendOTP(phoneNumber, fullName);
 
   if (!otpResult.success) {
     return res.status(500).json({
@@ -68,11 +61,10 @@ exports.requestOTPEmail = asyncHandler(async (req, res) => {
     });
   }
 
-  // Store OTP temporarily (expires in 5 minutes)
+  // Store OTP temporarily in JWT token (expires in 5 minutes)
   const tempToken = jwt.sign(
     {
-      phoneNumber: phoneNumber || null,
-      email: email || null,
+      phoneNumber,
       otp: otpResult.otp,
       expiresAt: otpResult.expiresAt.getTime(),
       fullName: fullName || '',
@@ -84,17 +76,19 @@ exports.requestOTPEmail = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'OTP sent successfully',
-    contact: phoneNumber || email,
+    message: 'OTP sent successfully via SMS',
+    contact: phoneNumber,
     otpToken: tempToken,
+    isNewUser: !user,
+    ...(otpResult.devMode && { devMode: true, devOtp: otpResult.otp }), // Only in dev mode
   });
 });
 
 /**
- * Verify OTP and create/login user
+ * Verify OTP and create/login user (Phone-based)
  */
-exports.verifyOTPEmail = asyncHandler(async (req, res) => {
-  const { phoneNumber, email, otp, fullName, otpToken } = req.body;
+exports.verifyOTPPhone = asyncHandler(async (req, res) => {
+  const { phoneNumber, otp, fullName, otpToken } = req.body;
 
   if (!otp || !otpToken) {
     return res.status(400).json({
@@ -108,12 +102,12 @@ exports.verifyOTPEmail = asyncHandler(async (req, res) => {
     otpData = jwt.verify(otpToken, process.env.JWT_SECRET || 'your-secret-key');
   } catch (error) {
     return res.status(400).json({
-      error: 'OTP token expired or invalid',
+      error: 'OTP token expired or invalid. Please request a new OTP.',
     });
   }
 
   // Verify OTP
-  const verification = EmailOTPService.verifyOTP(
+  const verification = SMSOTPService.verifyOTP(
     otp,
     otpData.otp,
     new Date(otpData.expiresAt)
@@ -125,29 +119,26 @@ exports.verifyOTPEmail = asyncHandler(async (req, res) => {
     });
   }
 
+  // Use phone number from token (more secure) or from request body
+  const verifiedPhoneNumber = otpData.phoneNumber || phoneNumber;
+
   // Find or create user
-  let user = await User.findOne({
-    $or: [
-      phoneNumber ? { phoneNumber } : {},
-      email ? { email } : {},
-    ].filter((q) => Object.keys(q).length > 0),
-  });
+  let user = await User.findOne({ phoneNumber: verifiedPhoneNumber });
 
   if (!user) {
     // Create new user
     user = await User.create({
-      phoneNumber: phoneNumber || null,
-      email: email || null,
-      firstName: fullName?.split(' ')[0] || '',
-      lastName: fullName?.split(' ')[1] || '',
+      phoneNumber: verifiedPhoneNumber,
+      firstName: fullName?.split(' ')[0] || otpData.fullName?.split(' ')[0] || '',
+      lastName: fullName?.split(' ').slice(1).join(' ') || otpData.fullName?.split(' ').slice(1).join(' ') || '',
       isPhoneVerified: true,
+      authProvider: 'phone',
       isActive: true,
       lastLoginAt: new Date(),
     });
   } else {
-    // Update verification
+    // Update existing user
     user.isPhoneVerified = true;
-    if (email) user.email = email;
     user.lastLoginAt = new Date();
     await user.save();
   }
@@ -158,7 +149,6 @@ exports.verifyOTPEmail = asyncHandler(async (req, res) => {
     {
       phoneNumber: user.phoneNumber,
       firstName: user.firstName,
-      email: user.email,
     }
   );
 
@@ -171,8 +161,8 @@ exports.verifyOTPEmail = asyncHandler(async (req, res) => {
       _id: user._id,
       phoneNumber: user.phoneNumber,
       email: user.email,
-      fullName: `${user.firstName} ${user.lastName}`.trim(),
-      phone: user.phoneNumber,
+      fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+      profilePicture: user.profilePicture,
     },
   });
 });
@@ -590,8 +580,8 @@ exports.googleMobileCallback = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  requestOTPEmail: exports.requestOTPEmail,
-  verifyOTPEmail: exports.verifyOTPEmail,
+  requestOTPPhone: exports.requestOTPPhone,
+  verifyOTPPhone: exports.verifyOTPPhone,
   refreshToken: exports.refreshToken,
   logout: exports.logout,
   getUserProfile: exports.getUserProfile,

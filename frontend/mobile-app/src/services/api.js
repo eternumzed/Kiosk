@@ -77,29 +77,18 @@ apiClient.interceptors.response.use(
 );
 
 export const authAPI = {
-  // Request OTP
-  requestOTP: async (phoneNumber, email) => {
-    return apiClient.post('/auth/request-otp', { phoneNumber, email });
+  // Request OTP via SMS (TextBee)
+  requestOTP: async (phoneNumber) => {
+    return apiClient.post('/auth/request-otp', { phoneNumber });
   },
 
-  // Verify OTP and register
-  verifyOTP: async (phoneNumber, email, otp, fullName) => {
+  // Verify OTP and login/register
+  verifyOTP: async (phoneNumber, otp, fullName, otpToken) => {
     return apiClient.post('/auth/verify-otp', {
       phoneNumber,
-      email,
       otp,
       fullName,
-    });
-  },
-
-  // Login with phone/email and password
-  login: async (contact, password) => {
-    // Check if contact is email or phone
-    const isEmail = contact.includes('@');
-    return apiClient.post('/auth/login', {
-      phoneNumber: isEmail ? null : contact,
-      email: isEmail ? contact : null,
-      password,
+      otpToken,
     });
   },
 

@@ -4,10 +4,15 @@ const authController = require('../controllers/authController');
 const { verifyAccessToken } = require('../middleware/authMiddleware');
 
 // Public routes (no auth required)
-router.post('/request-otp', authController.requestOTPEmail);
-router.post('/verify-otp', authController.verifyOTPEmail);
+// Phone OTP Authentication (via TextBee SMS)
+router.post('/request-otp', authController.requestOTPPhone);
+router.post('/verify-otp', authController.verifyOTPPhone);
+
+// Token management
 router.post('/refresh-token', authController.refreshToken);
 router.post('/logout', authController.logout);
+
+// Google OAuth
 router.post('/google', authController.googleAuth);
 
 // Mobile Google OAuth flow (for Expo Go)

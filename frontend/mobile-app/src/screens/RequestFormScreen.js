@@ -68,21 +68,44 @@ const personalInfoFields = [
 ];
 
 export default function RequestFormScreen({ navigation, route }) {
-  const { document, user } = route.params;
+  const { document } = route.params;
   const docSpecificFields = documentFields[document.name] || [];
   const requiresPhoto = TEMPLATES_REQUIRING_PHOTO.includes(document.name);
-  
+
+  // Fetch latest user info for autofill
+  const [user, setUser] = useState(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const latestUser = await userAPI.getProfile();
+        setUser(latestUser);
+      } catch (e) {
+        setUser(route.params.user || null);
+      }
+    })();
+  }, []);
+
   // Pre-fill from user data if available
   const [formData, setFormData] = useState({
-    fullName: user?.fullName || '',
-    email: user?.email || '',
-    contactNumber: user?.phone || '',
+    fullName: '',
+    email: '',
+    contactNumber: '',
     address: '',
-    // Initialize document-specific fields
     ...docSpecificFields.reduce((acc, field) => ({ ...acc, [field.key]: '' }), {}),
-    // Photo field if required
     ...(requiresPhoto ? { photoId: '' } : {}),
   });
+
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: user.fullName || '',
+        email: user.email || '',
+        contactNumber: user.phone || '',
+        address: user.address || '',
+      }));
+    }
+  }, [user]);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [imageLoading, setImageLoading] = useState(false);
