@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 
 const KeyboardContext = createContext(null);
 
@@ -12,12 +12,10 @@ export const useKeyboard = () => {
 
 export const KeyboardProvider = ({ children }) => {
     const [isVisible, setIsVisible] = useState(false);
-    const [activeInputRef, setActiveInputRef] = useState(null);
     const [inputValue, setInputValue] = useState('');
     const [onChangeCallback, setOnChangeCallback] = useState(null);
 
     const showKeyboard = useCallback((inputRef, value, onChange) => {
-        setActiveInputRef(inputRef);
         setInputValue(value || '');
         setOnChangeCallback(() => onChange);
         setIsVisible(true);
@@ -25,25 +23,31 @@ export const KeyboardProvider = ({ children }) => {
 
     const hideKeyboard = useCallback(() => {
         setIsVisible(false);
-        setActiveInputRef(null);
         setOnChangeCallback(null);
     }, []);
 
     const handleKeyPress = useCallback((key) => {
-        const newValue = inputValue + key;
-        setInputValue(newValue);
-        if (onChangeCallback) {
-            onChangeCallback(newValue);
-        }
-    }, [inputValue, onChangeCallback]);
+        setInputValue((prev) => {
+            const newValue = prev + key;
+            if (onChangeCallback) {
+                onChangeCallback(newValue);
+            }
+            return newValue;
+        });
+    }, [onChangeCallback]);
 
     const handleBackspace = useCallback(() => {
-        const newValue = inputValue.slice(0, -1);
-        setInputValue(newValue);
-        if (onChangeCallback) {
-            onChangeCallback(newValue);
-        }
-    }, [inputValue, onChangeCallback]);
+        setInputValue((prev) => {
+            if (prev.length === 0) {
+                return prev;
+            }
+            const newValue = prev.slice(0, -1);
+            if (onChangeCallback) {
+                onChangeCallback(newValue);
+            }
+            return newValue;
+        });
+    }, [onChangeCallback]);
 
     const handleEnter = useCallback(() => {
         hideKeyboard();

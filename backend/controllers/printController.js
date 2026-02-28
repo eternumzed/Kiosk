@@ -27,29 +27,177 @@ async function choosePrinter() {
 }
 
 function buildPayload(data) {
+  // ESC/POS Command Constants
   const ESC = "\x1B";
   const GS = "\x1D";
+  const LF = "\x0A";
+
+  // Printer initialization
   const init = ESC + "@";
-  const alignCenter = ESC + "a" + "\x01";
-  const alignLeft = ESC + "a" + "\x00";
-  const boldOn = ESC + "E" + "\x01";
-  const boldOff = ESC + "E" + "\x00";
-  const cut = GS + "V" + "\x00";
 
-  const header = `${init}${alignCenter}${boldOn}Barangay Biluso, Silang, Cavite${boldOff}\n`;
-  const body =
-    `${alignLeft}------------------------------\n` +
-    `Name: ${data.fullName}\n` +
-    `Document: ${data.document}\n` +
-    `Reference No: ${data.referenceNumber}\n` +
-    `Amount: PHP${data.amount}\n` +
-    `Status: ${data.status}\n` +
-    `Payment Status: ${data.paymentStatus}\n` +
-    `Date: ${data.date}\n\n` +
-    `Thank you for using our kiosk!\n`;
-  const footer = "\n\n\n" + cut;
+  // Text alignment
+  const alignCenter = ESC + "a\x01";
+  const alignLeft = ESC + "a\x00";
+  const alignRight = ESC + "a\x02";
 
-  return Buffer.from(header + body + footer, "ascii");
+  // Text emphasis
+  const boldOn = ESC + "E\x01";
+  const boldOff = ESC + "E\x00";
+  const underlineOn = ESC + "-\x01";
+  const underlineOff = ESC + "-\x00";
+  const doubleUnderlineOn = ESC + "-\x02";
+
+  // Text size (GS ! n) - combines width and height multipliers
+  const textNormal = GS + "!\x00";           // Normal size
+  const textDoubleWidth = GS + "!\x10";      // Double width
+  const textDoubleHeight = GS + "!\x01";     // Double height  
+  const textDouble = GS + "!\x11";           // Double width + height
+  const textTripleWidth = GS + "!\x20";      // Triple width
+
+  // Reverse print (white on black)
+  const reverseOn = GS + "B\x01";
+  const reverseOff = GS + "B\x00";
+
+  // Line spacing
+  const lineSpacingDefault = ESC + "2";      // Default line spacing
+  const lineSpacingTight = ESC + "3\x12";    // 18 dots
+  const lineSpacingWide = ESC + "3\x30";     // 48 dots
+
+  // Paper cut
+  const feedAndCut = GS + "V\x41\x03";       // Feed 3 lines then partial cut
+
+  // Helper: center text with padding
+  const RECEIPT_WIDTH = 32; // Standard 58mm thermal = ~32 chars
+  const centerText = (text, width = RECEIPT_WIDTH) => {
+    const padding = Math.max(0, Math.floor((width - text.length) / 2));
+    return " ".repeat(padding) + text;
+  };
+
+  // Helper: create labeled row with value right-aligned
+  const labeledRow = (label, value, width = RECEIPT_WIDTH) => {
+    const maxValueLen = width - label.length - 1;
+    const trimmedValue = String(value).substring(0, maxValueLen);
+    const spaces = width - label.length - trimmedValue.length;
+    return label + " ".repeat(Math.max(1, spaces)) + trimmedValue;
+  };
+
+  // Decorative elements
+  const doubleLine = "=".repeat(RECEIPT_WIDTH);
+  const singleLine = "-".repeat(RECEIPT_WIDTH);
+  const dotLine = ". ".repeat(RECEIPT_WIDTH / 2);
+
+  // Format amount with peso sign and decimals
+  const formatAmount = (amount) => {
+    const num = parseFloat(amount) || 0;
+    return `PHP ${num.toFixed(2)}`;
+  };
+
+  // Build receipt sections
+  let receipt = "";
+
+  // === HEADER SECTION ===
+  receipt += init;                           // Initialize printer
+  receipt += lineSpacingDefault;
+  receipt += alignCenter;
+  receipt += LF;
+  receipt += textDouble + boldOn;
+  receipt += "BARANGAY BILUSO" + LF;
+  receipt += textNormal + boldOff;
+  receipt += textDoubleWidth;
+  receipt += "Silang, Cavite" + LF;
+  receipt += textNormal;
+  receipt += LF;
+  receipt += boldOn + "KIOSK TRANSACTION RECEIPT" + boldOff + LF;
+  receipt += doubleLine + LF;
+
+  // === REFERENCE NUMBER (emphasized) ===
+  receipt += LF;
+  receipt += reverseOn + textDoubleHeight + boldOn;
+  receipt += `${data.referenceNumber || "N/A"} ` + LF;
+  receipt += reverseOff + textNormal + boldOff;
+  receipt += LF;
+
+  // === TRANSACTION DETAILS ===
+  receipt += alignLeft;
+  receipt += boldOn + underlineOn + "TRANSACTION DETAILS" + underlineOff + boldOff + LF;
+  receipt += lineSpacingTight;
+  receipt += LF;
+  receipt += labeledRow("Document:", data.document || "N/A") + LF;
+  receipt += labeledRow("Status:", (data.status || "N/A").toUpperCase()) + LF;
+  receipt += LF;
+  receipt += singleLine + LF;
+
+  // === CUSTOMER INFORMATION ===
+  receipt += LF;
+  receipt += boldOn + underlineOn + "CUSTOMER INFORMATION" + underlineOff + boldOff + LF;
+  receipt += LF;
+  receipt += labeledRow("Name:", data.fullName || "N/A") + LF;
+  if (data.email) {
+    receipt += labeledRow("Email:", data.email) + LF;
+  }
+  if (data.phone) {
+    receipt += labeledRow("Phone:", data.phone) + LF;
+  }
+  receipt += LF;
+  receipt += singleLine + LF;
+
+  // === PAYMENT SECTION ===
+  receipt += LF;
+  receipt += boldOn + underlineOn + "PAYMENT INFORMATION" + underlineOff + boldOff + LF;
+  receipt += LF;
+  receipt += lineSpacingDefault;
+
+  // Amount (larger text)
+  receipt += alignRight;
+  receipt += textDoubleHeight + boldOn;
+  receipt += formatAmount(data.amount) + LF;
+  receipt += textNormal + boldOff;
+  receipt += alignLeft;
+
+  receipt += LF;
+  receipt += labeledRow("Payment Status:", (data.paymentStatus || "N/A").toUpperCase()) + LF;
+  receipt += labeledRow("Payment Method:", data.paymentMethod || "Kiosk") + LF;
+  receipt += LF;
+  receipt += doubleLine + LF;
+
+  // === DATE & TIME ===
+  receipt += LF;
+  const now = new Date();
+  const dateStr = data.date || now.toLocaleDateString("en-PH", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit"
+  });
+  const timeStr = now.toLocaleTimeString("en-PH", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true
+  });
+  receipt += alignCenter;
+  receipt += `Date: ${dateStr}  Time: ${timeStr}` + LF;
+
+  // === FOOTER ===
+  receipt += LF;
+  receipt += singleLine + LF;
+  receipt += LF;
+  receipt += boldOn + "Thank you for using our kiosk!" + boldOff + LF;
+  receipt += LF;
+  receipt += textNormal;
+  receipt += "For inquiries, visit the" + LF;
+  receipt += "Barangay Hall, " + LF;
+  receipt += "TEL: (046) 414-0204" + LF;
+  receipt += "MOBILE: 0998-598-5622" + LF;
+  receipt += "EMAIL: brgybiluso@gmail.com";
+  receipt += LF;
+  receipt += dotLine + LF;
+  receipt += LF;
+  receipt += underlineOn + "Customer Copy" + underlineOff + LF;
+  receipt += LF + LF + LF;
+
+  // Cut paper
+  receipt += feedAndCut;
+
+  return Buffer.from(receipt, "ascii");
 }
 
 async function sendToPrinter(printerName, buffer) {
