@@ -464,7 +464,7 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
                                     alt="Preview" 
                                     className="rounded-lg shadow-lg w-full"
                                 />
-                                <div className="absolute top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">
+                                <div className="absolute top-4 right-4 bg-emerald-500 text-white px-4 py-2 rounded-xl font-semibold">
                                     Preview
                                 </div>
                             </div>
@@ -482,14 +482,14 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
                                 <button
                                     type="button"
                                     onClick={retakePhoto}
-                                    className="flex-1 px-4 py-3 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-all duration-200"
+                                    className="flex-1 px-4 py-3 bg-amber-500 text-white font-semibold rounded-xl hover:bg-amber-600 active:scale-[0.98] transition-all duration-200"
                                 >
                                     Retake
                                 </button>
                                 <button
                                     type="button"
                                     onClick={confirmCapture}
-                                    className="flex-1 px-4 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-all duration-200"
+                                    className="flex-1 px-4 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200"
                                 >
                                     Confirm
                                 </button>
@@ -557,8 +557,8 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
 
                                     {!isLoading && modelsLoaded && (
                                         <>
-                                            <div className={`flex items-center space-x-2 px-4 py-2 rounded-lg mt-4 ${
-                                                faceDetected ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                                            <div className={`flex items-center space-x-2 px-4 py-3 rounded-xl mt-4 ${
+                                                faceDetected ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
                                             }`}>
                                                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                                     {faceDetected ? (
@@ -568,12 +568,12 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
                                                     )}
                                                 </svg>
                                                 <span className="text-sm font-medium">
-                                                    {faceDetected ? 'Face properly positioned ✓ Ready to capture!' : 'Position face: center + facing forward'}
+                                                    {faceDetected ? 'Face properly positioned - Ready to capture!' : 'Position face: center + facing forward'}
                                                 </span>
                                             </div>
 
                                             {captureCountdown !== null && (
-                                                <div className="flex items-center justify-center px-4 py-3 rounded-lg mt-4 bg-blue-500 text-white">
+                                                <div className="flex items-center justify-center px-4 py-3 rounded-xl mt-4 bg-emerald-500 text-white">
                                                     <svg className="w-6 h-6 mr-2 animate-spin" fill="currentColor" viewBox="0 0 20 20">
                                                         <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 1119.414 5.414 1 1 0 01-1.414-1.414A5.002 5.002 0 005.659 4.1V3a1 1 0 011-1zm7.464 4.536a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L10 8.414l2.121 2.121a1 1 0 001.414-1.414l-3-3z" clipRule="evenodd" />
                                                     </svg>
@@ -596,7 +596,7 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
                                         <button
                                             type="button"
                                             onClick={handleClose}
-                                            className="flex-1 px-4 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-all duration-200"
+                                            className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl border border-gray-200 hover:bg-gray-200 active:scale-[0.98] transition-all duration-200"
                                         >
                                             Cancel
                                         </button>
@@ -604,13 +604,13 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
                                             type="button"
                                             onClick={captureImage}
                                             disabled={!faceDetected}
-                                            className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all duration-200 ${
+                                            className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${
                                                 faceDetected 
-                                                    ? 'bg-green-600 text-white hover:bg-green-700 cursor-pointer' 
-                                                    : 'bg-gray-400 text-gray-600 cursor-not-allowed opacity-60'
+                                                    ? 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] cursor-pointer' 
+                                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
                                             }`}
                                         >
-                                            {faceDetected ? '✓ Capture Photo' : 'Position Face to Capture'}
+                                            {faceDetected ? 'Capture Photo' : 'Position Face to Capture'}
                                         </button>
                                     </div>
                                 </>

@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 
 import AnimatedRoutes from "./AnimatedRoutes";
+import { KeyboardProvider, useKeyboard } from "./context/KeyboardContext";
+import VirtualKeyboard from "./components/VirtualKeyboard";
 
 const documents = [
   { name: "Barangay Clearance", fee: 50, category: "Clearance" },
@@ -120,8 +122,49 @@ const App = () => {
   };
 
   return (
-    <Router>
-      <div className="min-h-screen bg-[#EBEBF2] font-sans text-gray-800 flex flex-col justify-center items-center p-4">
+    <KeyboardProvider>
+      <Router>
+        <AppContent
+          documents={documents}
+          formData={formData}
+          setFormData={setFormData}
+          paymentStatus={paymentStatus}
+          setPaymentStatus={setPaymentStatus}
+          requestRef={requestRef}
+          setRequestRef={setRequestRef}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          getFee={getFee}
+          handlePayment={handlePayment}
+          handleCashPayment={handleCashPayment}
+          resetUI={resetUI}
+        />
+      </Router>
+    </KeyboardProvider>
+  );
+};
+
+// Separate component to use keyboard context
+const AppContent = ({
+  documents,
+  formData,
+  setFormData,
+  paymentStatus,
+  setPaymentStatus,
+  requestRef,
+  setRequestRef,
+  selectedCategory,
+  setSelectedCategory,
+  getFee,
+  handlePayment,
+  handleCashPayment,
+  resetUI,
+}) => {
+  const { isVisible, handleKeyPress, handleBackspace, handleEnter, hideKeyboard } = useKeyboard();
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 font-sans text-gray-800 flex flex-col">
+      <div className={`flex-grow flex flex-col justify-center items-center p-6 ${isVisible ? 'pb-80' : ''}`}>
         <AnimatedRoutes
           documents={documents}
           formData={formData}
@@ -138,7 +181,14 @@ const App = () => {
           resetUI={resetUI}
         />
       </div>
-    </Router>
+      <VirtualKeyboard
+        visible={isVisible}
+        onKeyPress={handleKeyPress}
+        onBackspace={handleBackspace}
+        onEnter={handleEnter}
+        onClose={hideKeyboard}
+      />
+    </div>
   );
 };
 

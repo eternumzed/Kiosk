@@ -1,4 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import KeyboardInput from './KeyboardInput';
+import { useKeyboard } from '../context/KeyboardContext';
 
 const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) => {
     const fields = [
@@ -10,25 +12,14 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
 
     const [currentStep, setCurrentStep] = useState(0);
     const [isReviewMode, setIsReviewMode] = useState(false);
-    const inputRef = useRef(null);
+    const { hideKeyboard } = useKeyboard();
     const totalSteps = fields.length;
 
-    // Hide keyboard when component unmounts
     useEffect(() => {
         return () => {
             hideKeyboard();
         };
-    }, []);
-
-    // Hide keyboard helper function
-    const hideKeyboard = () => {
-        if (inputRef.current) {
-            inputRef.current.blur();
-        }
-        if (navigator.virtualKeyboard) {
-            navigator.virtualKeyboard.hide().catch(() => {});
-        }
-    };
+    }, [hideKeyboard]);
 
     const handleChange = (key, value) => {
         handleFormChange({ target: { name: key, value } });
@@ -74,21 +65,21 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
     // Review Mode
     if (isReviewMode) {
         return (
-            <div className="w-full min-h-screen flex flex-col items-center justify-start p-4 pt-8">
-                <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-2xl transition-all duration-300">
-                    <h1 className="text-3xl font-extrabold text-gray-800 mb-2 text-center">Review Your Information</h1>
-                    <p className="text-gray-600 text-center mb-6">Please verify all information is correct</p>
+            <div className="w-full flex flex-col items-center justify-center p-4">
+                <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-2xl border border-gray-100">
+                    <h1 className="text-3xl font-bold text-gray-800 mb-2 text-center">Review Your Information</h1>
+                    <p className="text-gray-500 text-center mb-8">Please verify all information is correct</p>
 
                     <div className="space-y-4 mb-8">
                         {fields.map((field, index) => (
-                            <div key={field.key} className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-between">
+                            <div key={field.key} className="p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between hover:bg-gray-100 transition-colors">
                                 <div className="flex-1">
-                                    <p className="text-sm font-semibold text-gray-600">{field.label}</p>
-                                    <p className="text-lg font-bold text-gray-800">{formData[field.key] || '-'}</p>
+                                    <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{field.label}</p>
+                                    <p className="text-lg font-bold text-gray-800 mt-1">{formData[field.key] || '-'}</p>
                                 </div>
                                 <button
                                     onClick={() => editField(index)}
-                                    className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 whitespace-nowrap"
+                                    className="ml-4 px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition-all duration-200 font-semibold"
                                 >
                                     Edit
                                 </button>
@@ -96,16 +87,16 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
                         ))}
                     </div>
 
-                    <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                    <div className="flex space-x-4">
                         <button
                             onClick={() => setIsReviewMode(false)}
-                            className="w-full sm:w-1/2 bg-gray-200 text-gray-600 font-bold py-3 rounded-lg hover:bg-gray-300 transition-all duration-300"
+                            className="w-1/2 bg-gray-100 text-gray-700 font-bold py-4 rounded-xl hover:bg-gray-200 active:scale-[0.98] transition-all duration-200 border border-gray-200"
                         >
                             Back to Form
                         </button>
                         <button
                             onClick={submitForm}
-                            className="w-full sm:w-1/2 bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 transition-all duration-300"
+                            className="w-1/2 bg-emerald-600 text-white font-bold py-4 rounded-xl hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200"
                         >
                             Proceed to Next
                         </button>
@@ -120,18 +111,20 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
     const progressPercent = ((currentStep + 1) / totalSteps) * 100;
 
     return (
-        <div className="w-full min-h-screen flex flex-col items-center justify-start p-4 pt-8">
-            <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-xl transition-all duration-300">
+        <div className="w-full flex flex-col items-center justify-center p-4">
+            <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-xl border border-gray-100">
                 
+                {/* Header */}
+                <div className="text-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800">Personal Information</h2>
+                    <p className="text-gray-500 mt-1">Step {currentStep + 1} of {totalSteps}</p>
+                </div>
+
                 {/* Progress Bar */}
                 <div className="mb-8">
-                    <div className="flex items-center justify-between mb-2">
-                        <h2 className="text-sm font-semibold text-gray-700">Personal Information</h2>
-                        <span className="text-sm font-semibold text-gray-600">Step {currentStep + 1} of {totalSteps}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
                         <div 
-                            className="bg-green-600 h-3 rounded-full transition-all duration-300"
+                            className="bg-emerald-600 h-2.5 rounded-full transition-all duration-500 ease-out"
                             style={{ width: `${progressPercent}%` }}
                         ></div>
                     </div>
@@ -140,31 +133,29 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
                 <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); goNext(); }}>
                     
                     <div>
-                        <label className="block text-lg font-semibold text-gray-800 mb-3">
+                        <label className="block text-lg font-semibold text-gray-700 mb-3">
                             {currentField.label} <span className="text-red-500">*</span>
                         </label>
-                        <input
-                            ref={inputRef}
+                        <KeyboardInput
                             type={currentField.type}
                             placeholder={currentField.placeholder}
-                            className="w-full px-4 py-4 text-lg border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-150 ease-in-out placeholder-gray-400"
                             value={formData[currentField.key] || ''}
-                            onChange={(e) => handleChange(currentField.key, e.target.value)}
-                            autoFocus
+                            onChange={(value) => handleChange(currentField.key, value)}
+                            autoFocus={true}
                         />
                     </div>
 
-                    <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 pt-4">
+                    <div className="flex space-x-4 pt-4">
                         <button
                             type="button"
                             onClick={goPrevious}
-                            className="w-full sm:w-1/2 bg-gray-200 text-gray-600 font-bold py-3 rounded-lg hover:bg-gray-300 transition-all duration-300 transform hover:scale-[1.02]"
+                            className="w-1/2 bg-gray-100 text-gray-700 font-bold py-4 rounded-xl hover:bg-gray-200 active:scale-[0.98] transition-all duration-200 border border-gray-200"
                         >
                             {currentStep === 0 ? 'Back' : 'Previous'}
                         </button>
                         <button
                             type="submit"
-                            className="w-full sm:w-1/2 bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 transition-all duration-300 transform hover:scale-[1.02]"
+                            className="w-1/2 bg-emerald-600 text-white font-bold py-4 rounded-xl hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200"
                         >
                             {currentStep === totalSteps - 1 ? 'Review' : 'Next'}
                         </button>
