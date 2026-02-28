@@ -110,25 +110,57 @@ export const authAPI = {
   },
 };
 
+export const notificationAPI = {
+  // Register push token
+  registerPushToken: async (expoPushToken) => {
+    return apiClient.post('/auth/push-token', { expoPushToken });
+  },
+
+  // Remove push token
+  removePushToken: async () => {
+    return apiClient.delete('/auth/push-token');
+  },
+};
+
 export const userAPI = {
   // Get user profile
   getProfile: async () => {
-    return apiClient.get('/users/profile');
+    return apiClient.get('/auth/profile');
   },
 
   // Update user profile
   updateProfile: async (data) => {
-    return apiClient.patch('/users/profile', data);
+    return apiClient.patch('/auth/profile', data);
+  },
+
+  // Request phone number change (sends OTP to new phone)
+  requestPhoneChange: async (newPhoneNumber) => {
+    return apiClient.post('/auth/profile/request-phone-change', { newPhoneNumber });
+  },
+
+  // Verify phone number change with OTP
+  verifyPhoneChange: async (otp, verificationToken) => {
+    return apiClient.post('/auth/profile/verify-phone-change', { otp, verificationToken });
+  },
+
+  // Request email change (sends OTP to new email)
+  requestEmailChange: async (newEmail) => {
+    return apiClient.post('/auth/profile/request-email-change', { newEmail });
+  },
+
+  // Verify email change with OTP
+  verifyEmailChange: async (otp, verificationToken) => {
+    return apiClient.post('/auth/profile/verify-email-change', { otp, verificationToken });
   },
 
   // Get user requests/history
   getRequestHistory: async () => {
-    return apiClient.get('/users/requests');
+    return apiClient.get('/auth/request-history');
   },
 
   // Get single request details
   getRequestDetails: async (requestId) => {
-    return apiClient.get(`/users/requests/${requestId}`);
+    return apiClient.get(`/request/${requestId}`);
   },
 };
 

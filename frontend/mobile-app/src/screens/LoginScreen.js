@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import { AntDesign } from '@expo/vector-icons';
 import { authAPI } from '../services/api';
 import { colors } from '../theme/colors';
 
@@ -187,6 +188,11 @@ export default function LoginScreen({ navigation, dispatch }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.headerSection}>
+        {/* Backdrop Seal */}
+        <Image
+          source={require('../../assets/BRGY_BILUSO_SEAL-modified.png')}
+          style={styles.backdropSeal}
+        />
         <View style={styles.logoContainer}>
           <Image
             source={require('../../assets/BRGY_BILUSO_SEAL-modified.png')}
@@ -295,16 +301,10 @@ export default function LoginScreen({ navigation, dispatch }) {
             <ActivityIndicator color={colors.text.primary} />
           ) : (
             <>
-              <Text style={styles.googleIcon}>G</Text>
+              <AntDesign name="google" size={20} color="#4285F4" style={styles.googleIcon} />
               <Text style={styles.googleButtonText}>Continue with Google</Text>
             </>
           )}
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-          <Text style={styles.linkText}>
-            Don't have an account? <Text style={styles.linkBold}>Sign up</Text>
-          </Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -324,6 +324,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    overflow: 'hidden',
+  },
+  backdropSeal: {
+    position: 'absolute',
+    right: -60,
+    top: -20,
+    width: 280,
+    height: 280,
+    opacity: 0.12,
+    resizeMode: 'contain',
   },
   logoContainer: {
     width: 80,
@@ -441,9 +451,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   googleIcon: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#4285F4',
     marginRight: 12,
   },
   googleButtonText: {

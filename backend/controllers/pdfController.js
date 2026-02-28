@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const pdfService = require('../services/pdf/generatePdf');
 const auth = require('../services/google/Auth');
 const drive = require('../services/google/Drive');
+const PushNotificationService = require('../services/notifications/pushNotification');
 
 const fs = require('fs');
 const path = require('path');
@@ -144,6 +145,22 @@ exports.updateStatus = asyncHandler(async (req, res) => {
   
   try {
     const updated = await drive.updateStatus(identifier, status);
+    
+    // Send push notification to the user if they have a userId
+    if (updated && updated.userId) {
+      try {
+        await PushNotificationService.sendRequestStatusNotification(
+          updated.userId,
+          updated.referenceNumber,
+          status,
+          updated.document || updated.documentCode
+        );
+      } catch (notifError) {
+        // Don't fail the request if notification fails
+        console.error('Failed to send push notification:', notifError.message);
+      }
+    }
+    
     res.json({ success: true, data: updated });
   } catch (err) {
     res.status(500).json({ error: 'Update failed', details: err.message });

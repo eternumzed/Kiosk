@@ -5,6 +5,7 @@ const path = require('path');
 const User = require('../models/userSchema');
 const Request = require('../models/requestSchema');
 const SMSOTPService = require('../services/auth/smsOTP');
+const EmailOTPService = require('../services/auth/emailOTP');
 const tokenManager = require('../services/auth/tokenManager');
 
 /**
@@ -247,21 +248,66 @@ exports.getUserProfile = asyncHandler(async (req, res) => {
 
 /**
  * Update user profile
+ * Note: Phone number and email changes require verification via separate endpoints
  */
 exports.updateUserProfile = asyncHandler(async (req, res) => {
-  const { firstName, lastName, address, barangay, email } = req.body;
+  const { firstName, lastName, address, barangay, email, phone, phoneNumber } = req.body;
+  const userId = req.user.userId;
 
   try {
+    // Get current user
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check if email is being changed - require verification
+    const newEmail = email?.trim().toLowerCase();
+    if (newEmail && newEmail !== currentUser.email) {
+      return res.status(400).json({ 
+        error: 'Email changes require verification. Please use the email change verification flow.',
+        requiresVerification: true,
+        field: 'email'
+      });
+    }
+
+    // Check if phone number is being changed - require verification
+    const newPhoneNumber = (phone || phoneNumber)?.trim();
+    if (newPhoneNumber && newPhoneNumber !== currentUser.phoneNumber) {
+      // Format phone number for comparison
+      const formattedPhone = SMSOTPService.formatPhoneNumber(newPhoneNumber);
+      const currentFormattedPhone = currentUser.phoneNumber ? 
+        SMSOTPService.formatPhoneNumber(currentUser.phoneNumber) : null;
+      
+      if (formattedPhone !== currentFormattedPhone) {
+        return res.status(400).json({ 
+          error: 'Phone number changes require verification. Please use the phone change verification flow.',
+          requiresVerification: true,
+          field: 'phone'
+        });
+      }
+    }
+
+    // Build update object (only include fields that were provided and non-empty)
+    const updateFields = { updatedAt: new Date() };
+    if (firstName && firstName.trim()) updateFields.firstName = firstName.trim();
+    if (lastName && lastName.trim()) updateFields.lastName = lastName.trim();
+    if (address && address.trim()) updateFields.address = address.trim();
+    if (barangay && barangay.trim()) updateFields.barangay = barangay.trim();
+
+    // Only update if there are actual changes
+    if (Object.keys(updateFields).length === 1) {
+      // Only updatedAt, no actual changes
+      return res.json({
+        success: true,
+        message: 'No changes to update',
+        user: currentUser,
+      });
+    }
+
     const user = await User.findByIdAndUpdate(
-      req.user.userId,
-      {
-        firstName: firstName || undefined,
-        lastName: lastName || undefined,
-        address: address || undefined,
-        barangay: barangay || undefined,
-        email: email || undefined,
-        updatedAt: new Date(),
-      },
+      userId,
+      updateFields,
       { new: true }
     ).select('-passwordHash');
 
@@ -274,6 +320,274 @@ exports.updateUserProfile = asyncHandler(async (req, res) => {
     res.status(500).json({ 
       error: 'Failed to update profile', 
       details: err.message 
+    });
+  }
+});
+
+/**
+ * Request phone number change with OTP verification
+ * Sends OTP to new phone number before updating
+ */
+exports.requestPhoneChange = asyncHandler(async (req, res) => {
+  const { newPhoneNumber } = req.body;
+  const userId = req.user.userId;
+
+  if (!newPhoneNumber) {
+    return res.status(400).json({ error: 'New phone number is required' });
+  }
+
+  try {
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Format and check if phone number is different
+    const formattedPhone = SMSOTPService.formatPhoneNumber(newPhoneNumber);
+    if (currentUser.phoneNumber === formattedPhone) {
+      return res.status(400).json({ error: 'New phone number is the same as current' });
+    }
+
+    // Check if phone number is already used by another account
+    const existingUser = await User.findOne({
+      phoneNumber: { $in: [newPhoneNumber, formattedPhone] },
+      _id: { $ne: userId }
+    });
+    if (existingUser) {
+      return res.status(400).json({ 
+        error: 'This phone number is already registered to another account.' 
+      });
+    }
+
+    // Send OTP to new phone number
+    const otpResult = await SMSOTPService.sendOTP(newPhoneNumber, currentUser.firstName);
+
+    if (!otpResult.success) {
+      return res.status(500).json({
+        error: otpResult.message || 'Failed to send OTP',
+      });
+    }
+
+    // Create verification token
+    const verificationToken = jwt.sign(
+      {
+        userId,
+        newPhoneNumber: formattedPhone,
+        otp: otpResult.otp,
+        expiresAt: otpResult.expiresAt.getTime(),
+        type: 'phone_change',
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '5m' }
+    );
+
+    res.json({
+      success: true,
+      message: 'OTP sent to new phone number',
+      verificationToken,
+      ...(otpResult.devMode && { devMode: true, devOtp: otpResult.otp }),
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: 'Failed to request phone change',
+      details: err.message
+    });
+  }
+});
+
+/**
+ * Verify phone number change OTP and update
+ */
+exports.verifyPhoneChange = asyncHandler(async (req, res) => {
+  const { otp, verificationToken } = req.body;
+  const userId = req.user.userId;
+
+  if (!otp || !verificationToken) {
+    return res.status(400).json({ error: 'OTP and verification token are required' });
+  }
+
+  try {
+    // Verify token
+    let tokenData;
+    try {
+      tokenData = jwt.verify(verificationToken, process.env.JWT_SECRET || 'your-secret-key');
+    } catch (error) {
+      return res.status(400).json({ error: 'Verification token expired or invalid' });
+    }
+
+    // Validate token data
+    if (tokenData.type !== 'phone_change' || tokenData.userId !== userId) {
+      return res.status(400).json({ error: 'Invalid verification token' });
+    }
+
+    // Verify OTP
+    const verification = SMSOTPService.verifyOTP(otp, tokenData.otp, new Date(tokenData.expiresAt));
+    if (!verification.valid) {
+      return res.status(400).json({ error: verification.error });
+    }
+
+    // Re-check uniqueness before updating (in case someone registered in between)
+    const existingUser = await User.findOne({
+      phoneNumber: tokenData.newPhoneNumber,
+      _id: { $ne: userId }
+    });
+    if (existingUser) {
+      return res.status(400).json({ 
+        error: 'This phone number was just registered by another account.' 
+      });
+    }
+
+    // Update phone number
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { 
+        phoneNumber: tokenData.newPhoneNumber,
+        isPhoneVerified: true,
+        updatedAt: new Date()
+      },
+      { new: true }
+    ).select('-passwordHash');
+
+    res.json({
+      success: true,
+      message: 'Phone number updated successfully',
+      user,
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: 'Failed to verify phone change',
+      details: err.message
+    });
+  }
+});
+
+/**
+ * Request email change with OTP verification
+ * Sends OTP to new email before updating
+ */
+exports.requestEmailChange = asyncHandler(async (req, res) => {
+  const { newEmail } = req.body;
+  const userId = req.user.userId;
+
+  if (!newEmail) {
+    return res.status(400).json({ error: 'New email is required' });
+  }
+
+  try {
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const normalizedEmail = newEmail.trim().toLowerCase();
+
+    // Check if email is the same
+    if (currentUser.email === normalizedEmail) {
+      return res.status(400).json({ error: 'New email is the same as current' });
+    }
+
+    // Check if email is already used by another account
+    const existingUser = await User.findOne({
+      email: normalizedEmail,
+      _id: { $ne: userId }
+    });
+    if (existingUser) {
+      return res.status(400).json({ 
+        error: 'This email is already registered to another account.' 
+      });
+    }
+
+    // Send OTP to new email
+    const otpResult = await EmailOTPService.sendOTP(normalizedEmail, currentUser.firstName);
+
+    // Create verification token
+    const verificationToken = jwt.sign(
+      {
+        userId,
+        newEmail: normalizedEmail,
+        otp: otpResult.otp,
+        expiresAt: otpResult.expiresAt.getTime(),
+        type: 'email_change',
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '5m' }
+    );
+
+    res.json({
+      success: true,
+      message: 'OTP sent to new email address',
+      verificationToken,
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: 'Failed to request email change',
+      details: err.message
+    });
+  }
+});
+
+/**
+ * Verify email change OTP and update
+ */
+exports.verifyEmailChange = asyncHandler(async (req, res) => {
+  const { otp, verificationToken } = req.body;
+  const userId = req.user.userId;
+
+  if (!otp || !verificationToken) {
+    return res.status(400).json({ error: 'OTP and verification token are required' });
+  }
+
+  try {
+    // Verify token
+    let tokenData;
+    try {
+      tokenData = jwt.verify(verificationToken, process.env.JWT_SECRET || 'your-secret-key');
+    } catch (error) {
+      return res.status(400).json({ error: 'Verification token expired or invalid' });
+    }
+
+    // Validate token data
+    if (tokenData.type !== 'email_change' || tokenData.userId !== userId) {
+      return res.status(400).json({ error: 'Invalid verification token' });
+    }
+
+    // Verify OTP
+    const verification = EmailOTPService.verifyOTP(otp, tokenData.otp, new Date(tokenData.expiresAt));
+    if (!verification.valid) {
+      return res.status(400).json({ error: verification.error });
+    }
+
+    // Re-check uniqueness before updating
+    const existingUser = await User.findOne({
+      email: tokenData.newEmail,
+      _id: { $ne: userId }
+    });
+    if (existingUser) {
+      return res.status(400).json({ 
+        error: 'This email was just registered by another account.' 
+      });
+    }
+
+    // Update email
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { 
+        email: tokenData.newEmail,
+        isEmailVerified: true,
+        updatedAt: new Date()
+      },
+      { new: true }
+    ).select('-passwordHash');
+
+    res.json({
+      success: true,
+      message: 'Email updated successfully',
+      user,
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: 'Failed to verify email change',
+      details: err.message
     });
   }
 });
@@ -579,6 +893,65 @@ exports.googleMobileCallback = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Register or update Expo push token for notifications
+ */
+exports.registerPushToken = asyncHandler(async (req, res) => {
+  const { expoPushToken } = req.body;
+  const userId = req.user.userId;
+
+  if (!expoPushToken) {
+    return res.status(400).json({ error: 'Push token is required' });
+  }
+
+  // Validate token format
+  if (!expoPushToken.startsWith('ExponentPushToken[')) {
+    return res.status(400).json({ error: 'Invalid push token format' });
+  }
+
+  try {
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { expoPushToken, updatedAt: new Date() },
+      { new: true }
+    ).select('-passwordHash');
+
+    res.json({
+      success: true,
+      message: 'Push token registered successfully',
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: 'Failed to register push token',
+      details: err.message,
+    });
+  }
+});
+
+/**
+ * Remove push token (for logout or disabling notifications)
+ */
+exports.removePushToken = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+
+  try {
+    await User.findByIdAndUpdate(
+      userId,
+      { $unset: { expoPushToken: 1 }, updatedAt: new Date() }
+    );
+
+    res.json({
+      success: true,
+      message: 'Push token removed successfully',
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: 'Failed to remove push token',
+      details: err.message,
+    });
+  }
+});
+
 module.exports = {
   requestOTPPhone: exports.requestOTPPhone,
   verifyOTPPhone: exports.verifyOTPPhone,
@@ -590,4 +963,12 @@ module.exports = {
   googleAuth: exports.googleAuth,
   googleMobileInit: exports.googleMobileInit,
   googleMobileCallback: exports.googleMobileCallback,
+  // Phone/Email change verification
+  requestPhoneChange: exports.requestPhoneChange,
+  verifyPhoneChange: exports.verifyPhoneChange,
+  requestEmailChange: exports.requestEmailChange,
+  verifyEmailChange: exports.verifyEmailChange,
+  // Push notifications
+  registerPushToken: exports.registerPushToken,
+  removePushToken: exports.removePushToken,
 };

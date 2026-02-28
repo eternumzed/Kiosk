@@ -78,7 +78,7 @@ export default function RequestSuccessScreen({ navigation, route }) {
       <View style={styles.content}>
         {/* Success Icon */}
         <View style={styles.iconContainer}>
-          <Text style={styles.successIcon}>✓</Text>
+          <Feather name="check" size={40} color="#fff" />
         </View>
 
         <Text style={styles.title}>Request Submitted!</Text>
@@ -181,11 +181,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
-  },
-  successIcon: {
-    fontSize: 40,
-    color: '#fff',
-    fontWeight: 'bold',
   },
   title: {
     fontSize: 28,

@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Feather } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
 // Documents that require a photo
@@ -248,7 +249,7 @@ export default function RequestFormScreen({ navigation, route }) {
         </View>
       ) : (
         <View style={styles.photoPlaceholder}>
-          <Text style={styles.photoPlaceholderIcon}>📷</Text>
+          <Feather name="camera" size={40} color={colors.gray[400]} />
           <Text style={styles.photoPlaceholderText}>ID Photo Required</Text>
         </View>
       )}
@@ -261,14 +262,14 @@ export default function RequestFormScreen({ navigation, route }) {
             style={[styles.photoButton, styles.cameraButton]}
             onPress={() => pickImage(true)}
           >
-            <Text style={styles.photoButtonIcon}>📸</Text>
+            <Feather name="camera" size={20} color="#fff" />
             <Text style={[styles.photoButtonText, styles.cameraButtonText]}>Take Photo</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.photoButton, styles.galleryButton]}
             onPress={() => pickImage(false)}
           >
-            <Text style={styles.photoButtonIcon}>🖼️</Text>
+            <Feather name="image" size={20} color={colors.primary[600]} />
             <Text style={[styles.photoButtonText, styles.galleryButtonText]}>Choose from Gallery</Text>
           </TouchableOpacity>
         </View>
@@ -287,7 +288,7 @@ export default function RequestFormScreen({ navigation, route }) {
           style={styles.backButton}
           onPress={handlePrevious}
         >
-          <Text style={styles.backButtonText}>←</Text>
+          <Feather name="arrow-left" size={20} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{document.name}</Text>
@@ -403,11 +404,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
   },
   headerCenter: {
     flex: 1,
@@ -547,13 +543,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  photoPlaceholderIcon: {
-    fontSize: 48,
-    marginBottom: 8,
-  },
   photoPlaceholderText: {
     color: colors.text.secondary,
     fontSize: 14,
+    marginTop: 8,
   },
   photoButtonsContainer: {
     marginTop: 24,
@@ -576,9 +569,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary[100],
     borderWidth: 2,
     borderColor: colors.primary[600],
-  },
-  photoButtonIcon: {
-    fontSize: 20,
   },
   photoButtonText: {
     fontSize: 16,

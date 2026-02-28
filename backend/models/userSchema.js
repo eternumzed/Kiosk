@@ -46,7 +46,7 @@ const UserSchema = new Schema({
   firstName: { type: String, trim: true },
   lastName: { type: String, trim: true },
   address: { type: String, trim: true },
-  barangay: { type: String, trim: true },
+  barangay: { type: String, trim: true, default: 'Biluso' },
   
   // Account Metadata
   lastLoginAt: { type: Date },
@@ -55,6 +55,9 @@ const UserSchema = new Schema({
   
   // Preferences
   notificationEnabled: { type: Boolean, default: true },
+  
+  // Push Notifications
+  expoPushToken: { type: String, sparse: true },
   
 }, { timestamps: true });
 

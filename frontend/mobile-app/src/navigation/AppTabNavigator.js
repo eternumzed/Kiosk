@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Text, Image, View, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import DashboardScreen from '../screens/DashboardScreen';
@@ -87,7 +87,7 @@ export default function AppTabNavigator({ user, dispatch }) {
         options={{
           tabBarLabel: 'Home',
           tabBarIcon: ({ color, focused }) => (
-               <Feather name="home" size={25} color="#0000"  />
+               <Feather name="home" size={25} color={color} />
           ),
         }}
       >
@@ -100,7 +100,24 @@ export default function AppTabNavigator({ user, dispatch }) {
         options={{
           tabBarLabel: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-             <FontAwesome name="user" size={24} color="black" />
+            user?.profilePicture ? (
+              <View style={[
+                styles.profileImageContainer,
+                focused && styles.profileImageContainerActive
+              ]}>
+                <Image 
+                  source={{ uri: user.profilePicture }} 
+                  style={styles.profileImage}
+                />
+              </View>
+            ) : (
+              <View style={[
+                styles.defaultProfileContainer,
+                focused && styles.defaultProfileContainerActive
+              ]}>
+                <FontAwesome name="user" size={18} color={color} />
+              </View>
+            )
           ),
         }}
       >
@@ -111,3 +128,34 @@ export default function AppTabNavigator({ user, dispatch }) {
     </Tab.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  profileImageContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  profileImageContainerActive: {
+    borderColor: colors.primary[600],
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+  },
+  defaultProfileContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.gray[200],
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  defaultProfileContainerActive: {
+    borderColor: colors.primary[600],
+  },
+});

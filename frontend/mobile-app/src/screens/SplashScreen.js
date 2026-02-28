@@ -1,10 +1,20 @@
 import React from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Image } from 'react-native';
 import { colors } from '../theme/colors';
 
 export default function SplashScreen() {
   return (
     <View style={styles.container}>
+      {/* Backdrop Seal */}
+      <Image
+        source={require('../../assets/BRGY_BILUSO_SEAL-modified.png')}
+        style={styles.backdropSeal}
+      />
+      {/* Logo */}
+      <Image
+        source={require('../../assets/BRGY_BILUSO_SEAL-modified.png')}
+        style={styles.logo}
+      />
       <Text style={styles.title}>Barangay Kiosk</Text>
       <Text style={styles.subtitle}>Your Digital Service Hub</Text>
       <ActivityIndicator size="large" color="#fff" style={styles.loader} />
@@ -18,6 +28,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.primary[600],
+    overflow: 'hidden',
+  },
+  backdropSeal: {
+    position: 'absolute',
+    width: 400,
+    height: 400,
+    opacity: 0.08,
+    resizeMode: 'contain',
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    resizeMode: 'contain',
+    marginBottom: 20,
   },
   title: {
     color: '#fff',

@@ -10,11 +10,13 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import { AntDesign } from '@expo/vector-icons';
 import { authAPI } from '../services/api';
 import { colors } from '../theme/colors';
 
@@ -185,6 +187,11 @@ export default function SignupScreen({ navigation, dispatch }) {
     >
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <View style={styles.headerSection}>
+          {/* Backdrop Seal */}
+          <Image
+            source={require('../../assets/BRGY_BILUSO_SEAL-modified.png')}
+            style={styles.backdropSeal}
+          />
           <View style={styles.stepIndicator}>
             <View style={[styles.stepDot, step === 'phone' && styles.stepDotActive]} />
             <View style={styles.stepLine} />
@@ -240,7 +247,7 @@ export default function SignupScreen({ navigation, dispatch }) {
                   <ActivityIndicator color={colors.text.primary} />
                 ) : (
                   <>
-                    <Text style={styles.googleIcon}>G</Text>
+                    <AntDesign name="google" size={20} color="#4285F4" style={styles.googleIcon} />
                     <Text style={styles.googleButtonText}>Continue with Google</Text>
                   </>
                 )}
@@ -351,6 +358,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    overflow: 'hidden',
+  },
+  backdropSeal: {
+    position: 'absolute',
+    right: -60,
+    top: -20,
+    width: 280,
+    height: 280,
+    opacity: 0.12,
+    resizeMode: 'contain',
   },
   stepIndicator: {
     flexDirection: 'row',
@@ -467,9 +484,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   googleIcon: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#4285F4',
     marginRight: 12,
   },
   googleButtonText: {

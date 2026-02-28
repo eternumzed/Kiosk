@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -8,10 +8,13 @@ import * as SecureStore from 'expo-secure-store';
 import AuthStackNavigator from './src/navigation/AuthStackNavigator';
 import AppTabNavigator from './src/navigation/AppTabNavigator';
 import SplashScreen from './src/screens/SplashScreen';
+import NotificationService from './src/services/notificationService';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+  const navigationRef = useRef(null);
+  
   const [state, dispatch] = React.useReducer(
     (prevState, action) => {
       switch (action.type) {
@@ -70,15 +73,29 @@ export default function App() {
       dispatch({ type: 'RESTORE_TOKEN', token: userToken, user });
     };
 
+    // Initialize notifications on app start
+    NotificationService.initialize(navigationRef);
+
     bootstrapAsync();
+
+    return () => {
+      NotificationService.cleanup();
+    };
   }, []);
+
+  // Register push token when user is logged in
+  useEffect(() => {
+    if (state.userToken && state.user) {
+      NotificationService.registerPendingToken();
+    }
+  }, [state.userToken, state.user]);
 
   if (state.isLoading) {
     return <SplashScreen />;
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {state.userToken == null ? (
           <Stack.Screen name="Auth" options={{ animationEnabled: false }}>
