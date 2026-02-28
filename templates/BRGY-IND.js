@@ -13,7 +13,7 @@ module.exports = {
     return {
       full_name: raw.fullName?.toUpperCase() || '',
       age: raw.age || '',
-      purpose: raw.purpose.toUpperCase() || '',
+      purpose: raw.purpose?.toUpperCase() || '',
       day: getOrdinal(dayNum),
       month: now.toLocaleString('en-US', { month: 'long' }).toUpperCase(),
       year: now.getFullYear(),

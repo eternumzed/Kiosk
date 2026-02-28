@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 
 import AnimatedRoutes from "./AnimatedRoutes";
+import { KeyboardProvider, useKeyboard } from "./context/KeyboardContext";
+import VirtualKeyboard from "./components/VirtualKeyboard";
 
 const documents = [
   { name: "Barangay Clearance", fee: 50, category: "Clearance" },
@@ -91,9 +93,78 @@ const App = () => {
     }
   };
 
+  const handleCashPayment = async () => {
+    try {
+      setPaymentStatus("Processing");
+
+      const paymentData = {
+        ...formData,
+        amount: getFee(),
+      };
+      console.log('Creating cash payment request:', paymentData);
+
+      const res = await axios.post("http://localhost:5000/api/payment/create-cash-payment", paymentData);
+
+      if (res.data.referenceNumber) {
+        setRequestRef({
+          reference: res.data.referenceNumber,
+        });
+        
+        // Navigate to confirmation page for cash payment
+        window.location.href = `/confirmation?referenceNumber=${res.data.referenceNumber}`;
+      } else {
+        throw new Error("Reference number missing");
+      }
+    } catch (err) {
+      console.error("Cash payment error:", err.response?.data || err.message);
+      setPaymentStatus("Failed");
+    }
+  };
+
   return (
-    <Router>
-      <div className="min-h-screen bg-[#EBEBF2] font-sans text-gray-800 flex flex-col justify-center items-center p-4">
+    <KeyboardProvider>
+      <Router>
+        <AppContent
+          documents={documents}
+          formData={formData}
+          setFormData={setFormData}
+          paymentStatus={paymentStatus}
+          setPaymentStatus={setPaymentStatus}
+          requestRef={requestRef}
+          setRequestRef={setRequestRef}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          getFee={getFee}
+          handlePayment={handlePayment}
+          handleCashPayment={handleCashPayment}
+          resetUI={resetUI}
+        />
+      </Router>
+    </KeyboardProvider>
+  );
+};
+
+// Separate component to use keyboard context
+const AppContent = ({
+  documents,
+  formData,
+  setFormData,
+  paymentStatus,
+  setPaymentStatus,
+  requestRef,
+  setRequestRef,
+  selectedCategory,
+  setSelectedCategory,
+  getFee,
+  handlePayment,
+  handleCashPayment,
+  resetUI,
+}) => {
+  const { isVisible, handleKeyPress, handleBackspace, handleEnter, hideKeyboard } = useKeyboard();
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 font-sans text-gray-800 flex flex-col">
+      <div className={`flex-grow flex flex-col justify-center items-center p-6 ${isVisible ? 'pb-80' : ''}`}>
         <AnimatedRoutes
           documents={documents}
           formData={formData}
@@ -106,10 +177,18 @@ const App = () => {
           setSelectedCategory={setSelectedCategory}
           getFee={getFee}
           handlePayment={handlePayment}
+          handleCashPayment={handleCashPayment}
           resetUI={resetUI}
         />
       </div>
-    </Router>
+      <VirtualKeyboard
+        visible={isVisible}
+        onKeyPress={handleKeyPress}
+        onBackspace={handleBackspace}
+        onEnter={handleEnter}
+        onClose={hideKeyboard}
+      />
+    </div>
   );
 };
 

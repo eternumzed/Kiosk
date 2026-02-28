@@ -11,8 +11,8 @@ module.exports = {
     };
 
     return {
-      full_name: raw.fullName.toUpperCase() || '',
-      zone: raw.zone.toUpperCase() || '',
+      full_name: raw.fullName?.toUpperCase() || '',
+      zone: raw.zone?.toUpperCase() || '',
       length_of_residency: raw.lengthOfResidency,
       date: now.toLocaleDateString(),
       day: getOrdinal(dayNum),

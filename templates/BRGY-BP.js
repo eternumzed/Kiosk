@@ -11,10 +11,10 @@ module.exports = {
     };
 
     return {
-      business_name: raw.businessName.toUpperCase() || '',
-      business_kind: raw.businessKind.toUpperCase() || '',
-      address: raw.address.toUpperCase() || '',
-      full_name: raw.fullName.toUpperCase() || '',
+      business_name: raw.businessName?.toUpperCase() || '',
+      business_kind: raw.businessKind?.toUpperCase() || '',
+      address: raw.address?.toUpperCase() || '',
+      full_name: raw.fullName?.toUpperCase() || '',
       date: now.toLocaleDateString(),
       day: getOrdinal(dayNum),
       month: now.toLocaleString('en-US', { month: 'long' }).toUpperCase(),

@@ -2,18 +2,25 @@
 const axios = require('axios')
 const fs = require('fs');
 const Request = require('../models/requestSchema.js');
+const Counter = require('../models/counter.js');
 const pdfService = require('../services/pdf/generatePdf.js');
 const drive = require('../services/google/Drive.js');
 const requestService = require('../services/requestService.js');
 
-const kioskUrl = "http://localhost:4000" || process.env.VITE_KIOSK_URL;
+const kioskUrl = process.env.KIOSK_URL || "http://localhost:4000";
 
-const paymentMethodTypes = ["gcash", "card", "paymaya", "qrph", "grab_pay", "shopee_pay", "billease", "brankas_bdo", "brankas_landbank", "brankas_metrobank"];
+const paymentMethodTypes = ["gcash", "paymaya", "qrph", "grab_pay", "shopee_pay", "billease", "brankas_bdo", "brankas_landbank", "brankas_metrobank"];
 
 
 exports.createCheckout = async (req, res) => {
     try {
         const newRequest = req.body
+        
+        // Use client-provided returnUrl (for mobile deep linking) or default to kiosk URL
+        const successUrl = newRequest.returnUrl 
+            ? `${newRequest.returnUrl}?referenceNumber=${newRequest.referenceNumber}`
+            : `${kioskUrl}/confirmation?referenceNumber=${newRequest.referenceNumber}`;
+        const cancelUrl = newRequest.cancelUrl || `${kioskUrl}/payment`;
 
         const checkoutRes = await axios.post(
             "https://api.paymongo.com/v1/checkout_sessions",
@@ -30,8 +37,8 @@ exports.createCheckout = async (req, res) => {
                         ],
                         description: `Request for ${newRequest.document} by ${newRequest.fullName}`,
                         payment_method_types: paymentMethodTypes,
-                        success_url: `${kioskUrl}/confirmation?referenceNumber=${newRequest.referenceNumber}`,
-                        cancel_url: `${kioskUrl}/payment`,
+                        success_url: successUrl,
+                        cancel_url: cancelUrl,
                         billing: {
                             name: newRequest.fullName,
                             email: newRequest.email,
@@ -65,6 +72,8 @@ exports.handleWebhook = async (req, res) => {
     try {
         const event = req.body.data;
         const eventType = event?.attributes?.type;
+
+        console.log(`Webhook received - Event Type: ${eventType}`);
 
         if (eventType === 'checkout_session.payment.paid') {
 
@@ -150,5 +159,107 @@ exports.handleWebhook = async (req, res) => {
     } catch (err) {
         console.error('Webhook processing error:', err);
         res.sendStatus(500);
+    }
+};
+
+exports.createCashPayment = async (req, res) => {
+    try {
+        const newRequest = req.body;
+        const { fullName, email, contactNumber, address, document, amount, userId, ...templateFields } = newRequest;
+        
+        console.log('Cash payment - User ID:', userId);
+
+        // Generate reference number same way as e-wallet
+        const year = new Date().getFullYear();
+        const counter = await Counter.findOneAndUpdate(
+            { name: 'requestCounter', year },
+            { $inc: { seq: 1 } },
+            { new: true, upsert: true, setDefaultsOnInsert: true }
+        );
+
+        const docCode = requestService.getDocCode(document);
+        const seqNum = String(counter.seq).padStart(4, '0');
+        const referenceNumber = `${docCode}-${year}-${seqNum}`;
+
+        // Set current Manila time
+        const paidAt = new Date(
+            new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" })
+        );
+
+        // Create request with cash payment status
+        const request = await Request.create({
+            fullName,
+            document,
+            contactNumber,
+            email,
+            address,
+            amount,
+            referenceNumber,
+            status: "Pending",
+            paymentStatus: "Pending",
+            paymentMethod: "Cash",
+            paidAt: paidAt,
+            userId: userId || null,  // Link to mobile user if provided
+            ...templateFields
+        });
+
+        console.log(`\n=== CASH PAYMENT CREATED ===`);
+        console.log(`Reference: ${request.referenceNumber}`);
+        console.log(`Document: ${request.document}`);
+        console.log(`Amount: PHP ${request.amount}\n`);
+
+        // Generate PDF for cash payment (don't wait for webhook)
+        try {
+            const templateKey = requestService.getDocCode(request.document);
+            console.log(`[PDF GENERATION] Starting...`);
+            console.log(`[PDF GENERATION] Template Key: ${templateKey}`);
+            console.log(`[PDF GENERATION] Document: ${request.document}`);
+            
+            const rawData = request.toObject();
+            
+            const pdfPath = await pdfService({ templateKey, rawData });
+            console.log(`[PDF GENERATION] Success`);
+            console.log(`[PDF GENERATION] File Path: ${pdfPath}\n`);
+            
+            try {
+                console.log(`[GOOGLE DRIVE] Uploading PDF...`);
+                const uploaded = await drive.uploadPdf(pdfPath, request.referenceNumber, {
+                    type: templateKey,
+                    referenceNumber: request.referenceNumber,
+                    requestId: request._id,
+                });
+                console.log(`[GOOGLE DRIVE] Upload Success`);
+                console.log(`[GOOGLE DRIVE] File ID: ${uploaded.fileId || uploaded.id || 'N/A'}`);
+                console.log(`[GOOGLE DRIVE] View URL: ${uploaded.webViewLink || 'N/A'}\n`);
+            } finally {
+                try {
+                    if (fs.existsSync(pdfPath)) {
+                        fs.unlinkSync(pdfPath);
+                        console.log(`[CLEANUP] Temp PDF file deleted\n`);
+                    }
+                } catch (e) {
+                    console.warn(`⚠️  Could not delete temp file: ${e.message}`);
+                }
+            }
+        } catch (err) {
+            console.error(`\n[ERROR] PDF GENERATION/UPLOAD FAILED`);
+            console.error(`[ERROR] Message: ${err.message || err}`);
+            console.error(`[ERROR] Reference: ${request.referenceNumber}\n`);
+            // Don't fail the payment creation if PDF generation fails
+        }
+
+        res.json({
+            success: true,
+            referenceNumber: request.referenceNumber,
+            status: request.status,
+            paymentStatus: request.paymentStatus,
+            paymentMethod: request.paymentMethod,
+            message: "Request created. Please proceed to barangay cashier with receipt."
+        });
+
+    } catch (err) {
+        console.error(`\n[ERROR] CASH PAYMENT CREATION FAILED`);
+        console.error(`[ERROR] Message: ${err.message}\n`);
+        res.status(500).json({ error: err.message });
     }
 };

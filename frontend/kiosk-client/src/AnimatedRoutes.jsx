@@ -34,6 +34,7 @@ const AnimatedRoutes = ({
   setSelectedCategory,
   getFee,
   handlePayment,
+  handleCashPayment,
   resetUI,
 }) => {
   const location = useLocation();
@@ -131,6 +132,7 @@ const AnimatedRoutes = ({
                 setPaymentStatus={setPaymentStatus}
                 setRequestRef={setRequestRef}
                 handlePayment={handlePayment}
+                handleCashPayment={handleCashPayment}
                 handleBack={() => navigate("/document-form")}
               />
             </PageTransition>

@@ -36,7 +36,7 @@ function buildPayload(data) {
   const boldOff = ESC + "E" + "\x00";
   const cut = GS + "V" + "\x00";
 
-  const header = `${init}${alignCenter}${boldOn}City of Trece Martires${boldOff}\n`;
+  const header = `${init}${alignCenter}${boldOn}Barangay Biluso, Silang, Cavite${boldOff}\n`;
   const body =
     `${alignLeft}------------------------------\n` +
     `Name: ${data.fullName}\n` +

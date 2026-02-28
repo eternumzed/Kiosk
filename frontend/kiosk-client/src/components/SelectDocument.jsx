@@ -1,47 +1,47 @@
 const SelectDocument = ({ filteredDocuments, selectedCategory, setSelectedCategory, handleDocumentSelect, handleBack, handleNext }) => {
     return (
-        <div className="w-full flex-grow flex flex-col items-center justify-center p-4">
-            <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-4xl transition-all duration-300 flex flex-col sm:flex-row">
-                <div className="w-full sm:w-1/4 mb-6 sm:mb-0 sm:pr-8 flex flex-col items-center sm:items-start space-y-4">
-                    <h3 className="text-lg font-bold text-gray-800 hidden sm:block">Categories</h3>
+        <div className="w-full flex flex-col items-center justify-center p-4">
+            <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-4xl border border-gray-100 flex flex-col sm:flex-row">
+                {/* Categories Sidebar */}
+                <div className="w-full sm:w-1/4 mb-6 sm:mb-0 sm:pr-6 flex flex-col items-stretch space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 hidden sm:block">Categories</h3>
                     <button
                         onClick={() => setSelectedCategory('All')}
-                        className={`w-full font-semibold py-6 px-6 my-2 rounded-lg shadow-md focus:outline-none focus:ring-4 transition-colors duration-200 ${selectedCategory === 'All' ? 'bg-green-600 text-white focus:ring-green-300' : 'bg-gray-200 text-gray-800 focus:ring-gray-300'}`}
+                        className={`w-full font-semibold py-4 px-4 rounded-xl transition-all duration-200 ${selectedCategory === 'All' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'}`}
                     >
-                        All Documents</button>
+                        All Documents
+                    </button>
                     <button
                         onClick={() => setSelectedCategory('Clearance')}
-                        className={`w-full font-semibold py-6 px-6 my-2 rounded-lg shadow-md focus:outline-none focus:ring-4 transition-colors duration-200 ${selectedCategory === 'Clearance' ? 'bg-green-600 text-white focus:ring-green-300' : 'bg-gray-200 text-gray-800 focus:ring-gray-300'}`}
+                        className={`w-full font-semibold py-4 px-4 rounded-xl transition-all duration-200 ${selectedCategory === 'Clearance' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'}`}
                     >
                         Clearance
                     </button>
                     <button
                         onClick={() => setSelectedCategory('Certification')}
-                        className={`w-full font-semibold py-6 px-6 my-2 rounded-lg shadow-md focus:outline-none focus:ring-4 transition-colors duration-200 ${selectedCategory === 'Certification' ? 'bg-green-600 text-white focus:ring-green-300' : 'bg-gray-200 text-gray-800 focus:ring-gray-300'}`}
+                        className={`w-full font-semibold py-4 px-4 rounded-xl transition-all duration-200 ${selectedCategory === 'Certification' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'}`}
                     >
                         Certification
                     </button>
                     <button
                         onClick={() => setSelectedCategory('Permit')}
-                        className={`w-full font-semibold py-6 px-6 my-2 rounded-lg shadow-md focus:outline-none focus:ring-4 transition-colors duration-200 ${selectedCategory === 'Permit' ? 'bg-green-600 text-white focus:ring-green-300' : 'bg-gray-200 text-gray-800 focus:ring-gray-300'}`}
+                        className={`w-full font-semibold py-4 px-4 rounded-xl transition-all duration-200 ${selectedCategory === 'Permit' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'}`}
                     >
                         Permit
                     </button>
                 </div>
 
-
-                <div className="w-full sm:w-3/4 flex flex-col items-center text-center">
-                    <h2 className="text-2xl font-bold mb-6 text-gray-800">Select Document to Pay</h2>
+                {/* Documents Section */}
+                <div className="w-full sm:w-3/4 flex flex-col items-center">
+                    <h2 className="text-2xl font-bold mb-6 text-gray-800">Select Document</h2>
 
                     <div className="flex flex-col items-center justify-center mb-6">
-                        <div className="w-30 h-30 rounded-full mb-2 flex items-center justify-center overflow-hidden">
-                            <img src="../src/assets/images/BRGY_BILUSO_SEAL.jpg" alt="Brgy. Biluso Seal" className="w-full h-full object-contain p-2" />
+                        <div className="w-24 h-24 rounded-full mb-2 flex items-center justify-center overflow-hidden bg-gray-50 border-2 border-emerald-200">
+                            <img src="../src/assets/images/BRGY_BILUSO_SEAL.jpg" alt="Brgy. Biluso Seal" className="w-full h-full object-contain p-1" />
                         </div>
-
                     </div>
 
-
-                    <div className="flex flex-wrap justify-center gap-4 mb-6">
+                    <div className="flex flex-wrap justify-center gap-3 mb-8 w-full">
                         {filteredDocuments.length > 0 ? (
                             filteredDocuments.map(doc => (
                                 <button
@@ -50,7 +50,7 @@ const SelectDocument = ({ filteredDocuments, selectedCategory, setSelectedCatego
                                         handleDocumentSelect(doc);
                                         handleNext();
                                     }}
-                                    className="bg-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-green-700 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 min-w-[150px]"
+                                    className="bg-emerald-600 text-white font-semibold py-3 px-5 rounded-xl shadow-md hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200 min-w-[140px]"
                                 >
                                     {doc.name}
                                 </button>
@@ -60,10 +60,9 @@ const SelectDocument = ({ filteredDocuments, selectedCategory, setSelectedCatego
                         )}
                     </div>
 
-
                     <button
                         onClick={handleBack}
-                        className="w-full max-w-xs bg-gray-200 text-gray-600 font-bold py-3 rounded-lg hover:bg-gray-300 transition-all duration-300 transform hover:scale-105"
+                        className="w-full max-w-xs bg-gray-100 text-gray-700 font-bold py-4 rounded-xl hover:bg-gray-200 active:scale-[0.98] transition-all duration-200 border border-gray-200"
                     >
                         Back
                     </button>
@@ -72,6 +71,5 @@ const SelectDocument = ({ filteredDocuments, selectedCategory, setSelectedCatego
         </div>
     );
 };
-
 
 export default SelectDocument;

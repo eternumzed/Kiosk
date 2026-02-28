@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
+.expo/
 
 # Editor directories and files
 .vscode/*
@@ -27,7 +28,7 @@ dist-ssr
 
 taq
 tatusqq
-
+_oauth_credentials.json
 oauth_credentials.json
 token.json
 

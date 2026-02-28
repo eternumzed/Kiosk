@@ -10,13 +10,11 @@ const SCOPES = ["https://www.googleapis.com/auth/drive.file"];
 const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH));
 const { client_id, client_secret, redirect_uris } = credentials.installed || credentials.web;
 
-// Use the redirect URI from credentials, or construct the callback path
-const REDIRECT_URI = redirect_uris[0]; // http://localhost:3000/oauth2callback
+ const REDIRECT_URI = redirect_uris[0]; // http://localhost:3000/oauth2callback
 
 const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, REDIRECT_URI);
 
-// Generate Google OAuth consent URL
-function getAuthUrl(req, res) {
+ function getAuthUrl(req, res) {
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: "offline", // request refresh token
     scope: SCOPES,

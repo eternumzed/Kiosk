@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const pdfService = require('../services/pdf/generatePdf');
 const auth = require('../services/google/Auth');
 const drive = require('../services/google/Drive');
+const PushNotificationService = require('../services/notifications/pushNotification');
 
 const fs = require('fs');
 const path = require('path');
@@ -77,7 +78,7 @@ exports.oauthCallback = asyncHandler(async (req, res) => {
 
   try {
     await auth.handleOAuthCallback(code);
-     const adminUrl = process.env.VITE_ADMIN_URL || 'http://localhost:4000';
+     const adminUrl = process.env.VITE_ADMIN_URL || 'http://localhost:3000';
     res.redirect(`${adminUrl}?auth=success`);
   } catch (err) {
     console.error('OAuth callback error:', err.message);
@@ -144,6 +145,22 @@ exports.updateStatus = asyncHandler(async (req, res) => {
   
   try {
     const updated = await drive.updateStatus(identifier, status);
+    
+    // Send push notification to the user if they have a userId
+    if (updated && updated.userId) {
+      try {
+        await PushNotificationService.sendRequestStatusNotification(
+          updated.userId,
+          updated.referenceNumber,
+          status,
+          updated.document || updated.documentCode
+        );
+      } catch (notifError) {
+        // Don't fail the request if notification fails
+        console.error('Failed to send push notification:', notifError.message);
+      }
+    }
+    
     res.json({ success: true, data: updated });
   } catch (err) {
     res.status(500).json({ error: 'Update failed', details: err.message });
@@ -167,5 +184,72 @@ exports.deleteMultiple = asyncHandler(async (req, res) => {
     res.json({ success: true, message: `${result.deleted} PDFs deleted successfully` });
   } catch (err) {
     res.status(500).json({ error: 'Deletion failed', details: err.message });
+  }
+});
+
+exports.listTrash = asyncHandler(async (req, res) => {
+  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  const trash = await drive.listTrash();
+  res.json(trash);
+});
+
+exports.permanentlyDeleteFromTrash = asyncHandler(async (req, res) => {
+  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  
+  try {
+    await drive.permanentlyDeleteFromTrash(req.params.fileId, {
+      deletedBy: 'admin',
+      deletedReason: 'Permanently deleted from trash'
+    });
+    res.json({ success: true, message: 'PDF permanently deleted' });
+  } catch (err) {
+    res.status(500).json({ error: 'Permanent deletion failed', details: err.message });
+  }
+});
+
+exports.permanentlyDeleteMultipleFromTrash = asyncHandler(async (req, res) => {
+  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  
+  const { fileIds } = req.body;
+  
+  if (!Array.isArray(fileIds) || fileIds.length === 0) {
+    return res.status(400).json({ error: 'Invalid file IDs' });
+  }
+  
+  try {
+    const result = await drive.permanentlyDeleteMultipleFromTrash(fileIds, {
+      deletedBy: 'admin',
+      deletedReason: 'Bulk permanently deleted from trash'
+    });
+    res.json({ success: true, message: `${result.deleted} PDFs permanently deleted` });
+  } catch (err) {
+    res.status(500).json({ error: 'Permanent deletion failed', details: err.message });
+  }
+});
+exports.restoreFromTrash = asyncHandler(async (req, res) => {
+  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  
+  try {
+    const updated = await drive.restoreFromTrash(req.params.fileId);
+    res.json({ success: true, message: 'Document restored successfully', data: updated });
+  } catch (err) {
+    res.status(500).json({ error: 'Restore failed', details: err.message });
+  }
+});
+
+exports.restoreMultipleFromTrash = asyncHandler(async (req, res) => {
+  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  
+  const { fileIds } = req.body;
+  
+  if (!Array.isArray(fileIds) || fileIds.length === 0) {
+    return res.status(400).json({ error: 'Invalid file IDs' });
+  }
+  
+  try {
+    const result = await drive.restoreMultipleFromTrash(fileIds);
+    res.json({ success: true, message: `${result.restored} document(s) restored successfully` });
+  } catch (err) {
+    res.status(500).json({ error: 'Restore failed', details: err.message });
   }
 });

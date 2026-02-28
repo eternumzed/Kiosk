@@ -24,9 +24,10 @@ exports.createRequest = async (req, res) => {
     try {
         console.log('createRequest received body:', req.body);
         
-        const { fullName, email, contactNumber, address, document, amount, ...templateFields } = req.body;
+        const { fullName, email, contactNumber, address, document, amount, returnUrl, cancelUrl, userId, ...templateFields } = req.body;
         
         console.log('Extracted template fields:', templateFields);
+        console.log('User ID for request:', userId);
 
         const year = new Date().getFullYear();
         const counter = await Counter.findOneAndUpdate(
@@ -48,11 +49,15 @@ exports.createRequest = async (req, res) => {
             amount,
             status: "Pending",
             referenceNumber,
+            userId: userId || null,  // Link to mobile user if provided
             ...templateFields  // Store all template-specific fields (age, zone, purpose, etc.)
         });
 
         await newRequest.save();
-        const paymongoRes = await axios.post('http://localhost:5000/api/payment/create-checkout', newRequest);
+        
+        // Pass returnUrl and cancelUrl to payment controller for mobile deep linking
+        const paymentData = { ...newRequest.toObject(), returnUrl, cancelUrl };
+        const paymongoRes = await axios.post('http://localhost:5000/api/payment/create-checkout', paymentData);
 
         res.json(paymongoRes.data);
 

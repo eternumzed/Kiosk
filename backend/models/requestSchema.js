@@ -42,7 +42,7 @@ const RequestSchema = new Schema({
     },
     paymentStatus: {
         type: String,
-        enum: ["Unpaid", "Processing", "Paid", "Failed"],
+        enum: ["Unpaid", "Processing", "Paid", "Failed", "Pending"],
         default: "Unpaid"
     },
     remarks: { type: String },

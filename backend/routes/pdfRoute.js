@@ -12,8 +12,13 @@ router.post('/auth/logout', pdfController.logout);
 router.post('/', pdfController.generatePdf);
 router.get('/download/:fileId', pdfController.downloadPdf);
 router.get('/list', pdfController.listPdfs);
+router.get('/trash', pdfController.listTrash);
 router.delete('/delete/:fileId', pdfController.deletePdf);
 router.delete('/delete-multiple', pdfController.deleteMultiple);
+router.delete('/trash/:fileId', pdfController.permanentlyDeleteFromTrash);
+router.delete('/trash-multiple', pdfController.permanentlyDeleteMultipleFromTrash);
+router.post('/restore/:fileId', pdfController.restoreFromTrash);
+router.post('/restore-multiple', pdfController.restoreMultipleFromTrash);
 
 // Status update routes - support both fileId and referenceNumber
 router.patch('/status/:fileId', pdfController.updateStatus);
