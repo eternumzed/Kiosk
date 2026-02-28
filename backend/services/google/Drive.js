@@ -1,7 +1,7 @@
 const fs = require('fs');
 const { Readable } = require('stream');
 const { google } = require('googleapis');
-const { oAuth2Client } = require('../../googleAuth');
+const { oAuth2Client, ensureValidToken } = require('../../googleAuth');
 const Request = require('../../models/requestSchema');
 
 const FOLDER_ID = '1KPii8KmyrfMflpCPGMEOtp89kzqj2AxI';
@@ -15,6 +15,9 @@ const drive = google.drive({ version: 'v3', auth: oAuth2Client });
  * @param {object} meta - Metadata including { type, referenceNumber, requestId }
  */
 exports.uploadPdf = async (pdfPath, namePrefix, meta) => {
+  // Ensure token is valid before uploading
+  await ensureValidToken();
+  
   // If namePrefix looks like a reference number (contains dashes), use it verbatim
   // otherwise include a timestamp to avoid collisions
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
@@ -96,6 +99,9 @@ exports.uploadPdf = async (pdfPath, namePrefix, meta) => {
 
 
 exports.listPdfs = async () => {
+  // Ensure token is valid before listing
+  await ensureValidToken();
+  
   const res = await drive.files.list({
     q: `'${FOLDER_ID}' in parents and mimeType='application/pdf'`,
     fields: 'files(id,name,createdTime,size,webViewLink,webContentLink)',
@@ -209,6 +215,9 @@ exports.listTrash = async () => {
 };
 
 exports.downloadPdf = async (fileId) => {
+  // Ensure token is valid before downloading
+  await ensureValidToken();
+  
   return drive.files.get(
     { fileId, alt: 'media' },
     { responseType: 'stream' }
@@ -248,6 +257,9 @@ exports.deletePdf = async (fileId, options = {}) => {
 
 exports.updateStatus = async (fileIdOrRef, status) => {
   try {
+    // Ensure token is valid before API calls
+    await ensureValidToken();
+    
     console.log(`[updateStatus] Updating for: ${fileIdOrRef} to status: ${status}`);
     
     let updated;
@@ -343,6 +355,9 @@ exports.deleteMultiple = async (fileIds, options = {}) => {
  */
 exports.permanentlyDeleteFromTrash = async (fileId, options = {}) => {
   try {
+    // Ensure token is valid before deleting
+    await ensureValidToken();
+    
     console.log(`Permanently deleting file ${fileId} from Google Drive`);
     await drive.files.delete({ fileId });
     
@@ -366,6 +381,9 @@ exports.permanentlyDeleteFromTrash = async (fileId, options = {}) => {
  */
 exports.permanentlyDeleteMultipleFromTrash = async (fileIds, options = {}) => {
   try {
+    // Ensure token is valid before deleting
+    await ensureValidToken();
+    
     console.log(`Permanently deleting ${fileIds.length} files from Google Drive`);
     await Promise.all(
       fileIds.map(id => drive.files.delete({ fileId: id }).catch(err => {
@@ -453,6 +471,9 @@ exports.restoreMultipleFromTrash = async (fileIds) => {
  */
 exports.uploadPhoto = async (photoBuffer, referenceNumber, mimeType = 'image/jpeg') => {
   try {
+    // Ensure token is valid before uploading
+    await ensureValidToken();
+    
     const fileName = `${referenceNumber}-photo.jpg`;
     
     // Convert Buffer to Readable stream
