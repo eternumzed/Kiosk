@@ -3,6 +3,9 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 
 import AnimatedRoutes from "./AnimatedRoutes";
+
+// API URL from environment variable
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 import { KeyboardProvider, useKeyboard } from "./context/KeyboardContext";
 import VirtualKeyboard from "./components/VirtualKeyboard";
 
@@ -72,7 +75,7 @@ const App = () => {
       };
       console.log('Sending payment data to backend:', paymentData);
 
-      const res = await axios.post("http://localhost:5000/api/request/create-request", paymentData);
+      const res = await axios.post(`${API_URL}/request/create-request`, paymentData);
 
 
       if (res.data.checkout_url) {
@@ -103,7 +106,7 @@ const App = () => {
       };
       console.log('Creating cash payment request:', paymentData);
 
-      const res = await axios.post("http://localhost:5000/api/payment/create-cash-payment", paymentData);
+      const res = await axios.post(`${API_URL}/payment/create-cash-payment`, paymentData);
 
       if (res.data.referenceNumber) {
         setRequestRef({

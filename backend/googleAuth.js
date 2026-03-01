@@ -3,16 +3,38 @@ const { google } = require("googleapis");
 const fs = require("fs");
 const path = require("path");
 
-const CREDENTIALS_PATH = path.join(__dirname, "oauth_credentials.json");
 const TOKEN_PATH = path.join(__dirname, "token.json");
+const CREDENTIALS_PATH = path.join(__dirname, "oauth_credentials.json");
 const SCOPES = ["https://www.googleapis.com/auth/drive.file"];
 
-const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH));
-const { client_id, client_secret, redirect_uris } = credentials.installed || credentials.web;
+// Get Google OAuth credentials from environment variables or fallback to JSON file (dev only)
+function getCredentials() {
+  // Priority 1: Environment variables (recommended for production)
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    return {
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: process.env.GOOGLE_REDIRECT_URI || 'https://api.brgybiluso.me/oauth2callback',
+    };
+  }
+  
+  // Priority 2: JSON file (for local development only)
+  if (fs.existsSync(CREDENTIALS_PATH)) {
+    console.warn('⚠️  Using oauth_credentials.json - use environment variables in production!');
+    const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH));
+    const { client_id, client_secret, redirect_uris } = credentials.installed || credentials.web;
+    return {
+      client_id,
+      client_secret,
+      redirect_uri: redirect_uris[0],
+    };
+  }
+  
+  throw new Error('Google OAuth credentials not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.');
+}
 
- const REDIRECT_URI = redirect_uris[0]; // http://localhost:3000/oauth2callback
-
-const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, REDIRECT_URI);
+const { client_id, client_secret, redirect_uri } = getCredentials();
+const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uri);
 
  function getAuthUrl(req, res) {
   const authUrl = oAuth2Client.generateAuthUrl({

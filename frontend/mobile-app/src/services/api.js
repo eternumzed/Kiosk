@@ -6,7 +6,8 @@ const resolveApiUrl = () => {
   if (typeof envUrl === 'string' && envUrl.trim().length > 0) {
     return envUrl.trim().replace(/\/$/, '');
   }
-  return 'http://192.168.0.106:5000/api';
+  // Default to production API - update during development as needed
+  return 'https://api.brgybiluso.me/api';
 };
 
 const API_URL = resolveApiUrl();
