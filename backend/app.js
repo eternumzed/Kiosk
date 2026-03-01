@@ -90,12 +90,13 @@ app.use('/api/auth', authRoutes);
 
 app.get('/', (req, res) => res.send('Hello world!'));
 
- app.get('/oauth2callback', (req, res, next) => pdfController.oauthCallback(req, res, next));
+// Google OAuth routes for Drive authorization
+const googleAuth = require('./googleAuth');
+app.get('/google-auth', googleAuth.getAuthUrl);
+app.get('/oauth2callback', googleAuth.handleCallback);
 
 // centralized error handler
 app.use(errorHandler);
-
- const googleAuth = require('./googleAuth');
 
 config.dbMain()
     .then(() => {

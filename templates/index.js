@@ -1,10 +1,10 @@
 module.exports = {
-  'GMC': require('./gmc'),
+  'GMC': require('./GMC.js'),
   'FTJSC': require('./FTJSC.js'),
-  'BRGY-WP': require('./brgy-wp'),
-  'BRGY-RES': require('./brgy-res'),
-  'BRGY-IND': require('./brgy-ind'),
-  'BRGY-CLR': require('./brgy-clr'),
-  'BRGY-BP': require('./brgy-bp'),
-  'BRGY-BLD': require('./brgy-bld'),
+  'BRGY-WP': require('./BRGY-WP.js'),
+  'BRGY-RES': require('./BRGY-RES.js'),
+  'BRGY-IND': require('./BRGY-IND.js'),
+  'BRGY-CLR': require('./BRGY-CLR.js'),
+  'BRGY-BP': require('./BRGY-BP.js'),
+  'BRGY-BLD': require('./BRGY-BLD.js'),
 };

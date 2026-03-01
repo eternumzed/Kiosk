@@ -41,6 +41,9 @@ function getCredentials() {
 }
 
 const { client_id, client_secret, redirect_uri } = getCredentials();
+console.log('🔧 Google OAuth Config:');
+console.log('   Client ID:', client_id?.substring(0, 20) + '...');
+console.log('   Redirect URI:', redirect_uri);
 const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uri);
 
  function getAuthUrl(req, res) {
@@ -49,6 +52,7 @@ const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_u
     scope: SCOPES,
     prompt: "consent",       // force consent to get refresh token
   });
+  console.log('🔗 Redirecting to:', authUrl);
   res.redirect(authUrl);
 }
 
