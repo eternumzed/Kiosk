@@ -57,7 +57,7 @@ exports.createRequest = async (req, res) => {
         
         // Pass returnUrl and cancelUrl to payment controller for mobile deep linking
         const paymentData = { ...newRequest.toObject(), returnUrl, cancelUrl };
-        const paymongoRes = await axios.post('http://localhost:5000/api/payment/create-checkout', paymentData);
+        const paymongoRes = await axios.post('https://api.brgybiluso.me/api/payment/create-checkout', paymentData);
 
         res.json(paymongoRes.data);
 
