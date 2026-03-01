@@ -3,7 +3,7 @@ const { google } = require("googleapis");
 const fs = require("fs");
 const path = require("path");
 
-const TOKEN_PATH = path.join(__dirname, "token.json");
+
 const CREDENTIALS_PATH = path.join(__dirname, "oauth_credentials.json");
 const TOKEN_PATH = path.join(__dirname, "token.json");
 const SCOPES = [
