@@ -8,6 +8,7 @@ import AnimatedRoutes from "./AnimatedRoutes";
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 import { KeyboardProvider, useKeyboard } from "./context/KeyboardContext";
 import VirtualKeyboard from "./components/VirtualKeyboard";
+import brgyBilusoSeal from "./assets/images/BRGY_BILUSO_SEAL.jpg";
 
 const documents = [
   { name: "Barangay Clearance", fee: 50, category: "Clearance" },
@@ -166,8 +167,16 @@ const AppContent = ({
   const { isVisible, handleKeyPress, handleBackspace, handleEnter, hideKeyboard } = useKeyboard();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 font-sans text-gray-800 flex flex-col">
-      <div className={`flex-grow flex flex-col justify-center items-center p-6 ${isVisible ? 'pb-80' : ''}`}>
+    <div className="relative min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 font-sans text-gray-800 flex flex-col overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-0">
+        <img
+          src={brgyBilusoSeal}
+          alt="BRGY Biluso Seal"
+          className="w-[150vmin] max-w-[700px] opacity-10"
+          draggable={false}
+        />
+      </div>
+      <div className={`relative z-10 flex-grow flex flex-col justify-center items-center p-6 ${isVisible ? 'pb-80' : ''}`}>
         <AnimatedRoutes
           documents={documents}
           formData={formData}

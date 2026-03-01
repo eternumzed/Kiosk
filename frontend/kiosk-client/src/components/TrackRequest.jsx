@@ -24,9 +24,13 @@ const TrackRequest = () => {
         setRequest(null);
         setError(false);
 
-        if (referenceNumber) {
+        // Convert to uppercase for more forgiving search
+        const trackingNumber = referenceNumber.toUpperCase();
+        setReferenceNumber(trackingNumber);
+
+        if (trackingNumber) {
             try {
-                const res = await axios.get(`http://localhost:5000/api/request/track-request/${referenceNumber}`);
+                const res = await axios.get(`http://localhost:5000/api/request/track-request/${trackingNumber}`);
                 console.log(res.data[0]);
 
                 if (res.data[0] !== undefined) {
