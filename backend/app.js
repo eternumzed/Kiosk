@@ -24,25 +24,47 @@ const { errorHandler } = require('./middleware/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Production domains
+const PRODUCTION_DOMAINS = [
+    'https://brgybiluso.me',
+    'https://api.brgybiluso.me',
+    'https://kiosk.brgybiluso.me',
+    'https://admin.brgybiluso.me',
+];
+
+// Allowed origins for CORS
 const allowedOrigins = [
+    // Development
     'http://localhost:3000',
     'http://localhost:4000',
-    process.env.VITE_KIOSK_URL,
-    process.env.VITE_ADMIN_URL,
-    process.env.VITE_NGROK_URL, // Add Ngrok support
-];
+    'http://localhost:5000',
+    // Production (from env or defaults)
+    process.env.KIOSK_URL,
+    process.env.ADMIN_URL,
+    process.env.API_URL,
+    ...PRODUCTION_DOMAINS,
+].filter(Boolean); // Remove undefined values
 
 const corsOptions = {
     origin: function (origin, callback) {
-        // allow requests with no origin (like mobile apps or curl requests)
+        // Allow requests with no origin (mobile apps, curl, Postman)
         if (!origin) return callback(null, true);
         
-        // Relaxed CORS for development: allow any localhost or ngrok origin
-        if (allowedOrigins.indexOf(origin) !== -1 || 
-            origin.includes('localhost') || 
-            origin.includes('ngrok-free.app')) {
+        // Check against allowed origins
+        if (allowedOrigins.includes(origin)) {
             return callback(null, true);
         }
+        
+        // Development: allow localhost
+        if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+            return callback(null, true);
+        }
+        
+        // Production: allow brgybiluso.me subdomains
+        if (origin.endsWith('.brgybiluso.me') || origin === 'https://brgybiluso.me') {
+            return callback(null, true);
+        }
+        
         return callback(new Error('CORS policy: This origin is not allowed.'));
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

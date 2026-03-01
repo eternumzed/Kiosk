@@ -78,10 +78,44 @@ exports.oauthCallback = asyncHandler(async (req, res) => {
 
   try {
     await auth.handleOAuthCallback(code);
-     const adminUrl = process.env.VITE_ADMIN_URL || 'http://localhost:3000';
+    const adminUrl = process.env.VITE_ADMIN_URL || 'http://localhost:3000';
     res.redirect(`${adminUrl}?auth=success`);
   } catch (err) {
     console.error('OAuth callback error:', err.message);
+    
+    // Check if this is an access denied error
+    if (err.message.startsWith('ACCESS_DENIED:')) {
+      const errorDetails = err.message.replace('ACCESS_DENIED:', '');
+      return res.status(403).send(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Access Denied</title>
+            <style>
+              body { font-family: 'Inter', system-ui, sans-serif; padding: 40px; text-align: center; background: #1f2937; min-height: 100vh; }
+              .card { max-width: 520px; margin: 60px auto; padding: 48px; background: #111827; border-radius: 8px; border: 1px solid #374151; }
+              h1 { color: #dc2626; margin-bottom: 24px; font-size: 28px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
+              .divider { width: 60px; height: 3px; background: #dc2626; margin: 0 auto 24px; }
+              p { color: #9ca3af; line-height: 1.8; margin: 16px 0; font-size: 15px; }
+              .warning { color: #fbbf24; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-top: 32px; }
+              a { display: inline-block; margin-top: 32px; padding: 14px 32px; background: #374151; color: #e5e7eb; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; border: 1px solid #4b5563; transition: all 0.2s; }
+              a:hover { background: #4b5563; color: #ffffff; }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <h1>Access Denied</h1>
+              <div class="divider"></div>
+              <p>${errorDetails}</p>
+              <p>This system is restricted to authorized personnel only. Unauthorized access attempts are logged and may be subject to further action.</p>
+              <p class="warning">This incident has been recorded.</p>
+              <a href="${process.env.VITE_ADMIN_URL || 'http://localhost:3000'}">Return</a>
+            </div>
+          </body>
+        </html>
+      `);
+    }
+    
     res.status(500).json({ error: 'Authentication failed', details: err.message });
   }
 });

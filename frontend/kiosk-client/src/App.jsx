@@ -3,8 +3,12 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 
 import AnimatedRoutes from "./AnimatedRoutes";
+
+// API URL from environment variable
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 import { KeyboardProvider, useKeyboard } from "./context/KeyboardContext";
 import VirtualKeyboard from "./components/VirtualKeyboard";
+import brgyBilusoSeal from "./assets/images/BRGY_BILUSO_SEAL.jpg";
 
 const documents = [
   { name: "Barangay Clearance", fee: 50, category: "Clearance" },
@@ -72,7 +76,7 @@ const App = () => {
       };
       console.log('Sending payment data to backend:', paymentData);
 
-      const res = await axios.post("http://localhost:5000/api/request/create-request", paymentData);
+      const res = await axios.post(`${API_URL}/request/create-request`, paymentData);
 
 
       if (res.data.checkout_url) {
@@ -103,7 +107,7 @@ const App = () => {
       };
       console.log('Creating cash payment request:', paymentData);
 
-      const res = await axios.post("http://localhost:5000/api/payment/create-cash-payment", paymentData);
+      const res = await axios.post(`${API_URL}/payment/create-cash-payment`, paymentData);
 
       if (res.data.referenceNumber) {
         setRequestRef({
@@ -163,8 +167,16 @@ const AppContent = ({
   const { isVisible, handleKeyPress, handleBackspace, handleEnter, hideKeyboard } = useKeyboard();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 font-sans text-gray-800 flex flex-col">
-      <div className={`flex-grow flex flex-col justify-center items-center p-6 ${isVisible ? 'pb-80' : ''}`}>
+    <div className="relative min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 font-sans text-gray-800 flex flex-col overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-0">
+        <img
+          src={brgyBilusoSeal}
+          alt="BRGY Biluso Seal"
+          className="w-[150vmin] max-w-[700px] opacity-10"
+          draggable={false}
+        />
+      </div>
+      <div className={`relative z-10 flex-grow flex flex-col justify-center items-center p-6 ${isVisible ? 'pb-80' : ''}`}>
         <AnimatedRoutes
           documents={documents}
           formData={formData}

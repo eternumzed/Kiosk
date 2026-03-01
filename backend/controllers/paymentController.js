@@ -9,7 +9,7 @@ const requestService = require('../services/requestService.js');
 
 const kioskUrl = process.env.KIOSK_URL || "http://localhost:4000";
 
-const paymentMethodTypes = ["gcash", "paymaya", "qrph", "grab_pay", "shopee_pay", "billease", "brankas_bdo", "brankas_landbank", "brankas_metrobank"];
+const paymentMethodTypes = ["gcash", "paymaya", "qrph", "grab_pay", "shopee_pay", "billease"];
 
 
 exports.createCheckout = async (req, res) => {

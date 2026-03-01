@@ -450,7 +450,10 @@ function App() {
   return (
     <div className="admin-container">
       <header className="admin-header">
-        <h1>Document Management Dashboard</h1>
+        <div className="header-brand">
+          <h1>Barangay Biluso</h1>
+          <span className="header-subtitle">Document Management Dashboard</span>
+        </div>
         <div className="auth-status">
           {authenticated ? (
             <button onClick={logout} className="btn btn-logout">

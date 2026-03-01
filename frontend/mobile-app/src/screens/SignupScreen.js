@@ -43,7 +43,7 @@ export default function SignupScreen({ navigation, dispatch }) {
     try {
       await WebBrowser.dismissBrowser();
       
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'https://dilemmatical-marvis-unegregiously.ngrok-free.dev';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'https://api.brgybiluso.me';
       const redirectUrl = Linking.createURL('google-auth-callback');
       
       const result = await WebBrowser.openAuthSessionAsync(

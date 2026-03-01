@@ -23,14 +23,38 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables (NEVER commit these)
 .env
+.env.local
+.env.production
+.env.*.local
+
+# Personal notes
 .notes
 
+# Temp folders
 taq
 tatusqq
-_oauth_credentials.json
+tmp/
+
+# Google OAuth credentials (SENSITIVE - use environment variables)
 oauth_credentials.json
+_oauth_credentials.json
 token.json
 
+# Documentation (generated)
 CAMERA_MODAL_IMPLEMENTATION.md
 ARCHITECTURE_OVERVIEW.md
+DEPLOYMENT.md
+vps-setup.sh
+
+# Build outputs
+build/
+*.tgz
+
+# OS files
+Thumbs.db
+
+# Postman (may contain sensitive data)
+postman-samples.json
