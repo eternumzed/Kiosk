@@ -23,6 +23,7 @@ apiClient.interceptors.request.use(
     try {
       const token = await SecureStore.getItemAsync('userToken');
       if (token) {
+        SecureStore.getItemAsync('userToken').then(token => console.log('User Token:', token));
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
@@ -51,14 +52,14 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       try {
         const refreshToken = await SecureStore.getItemAsync('refreshToken');
-        
+
         // Only attempt refresh if we have a refresh token
         if (!refreshToken) {
           console.log('No refresh token available, skipping refresh');
           await SecureStore.deleteItemAsync('userToken');
           return Promise.reject(error);
         }
-        
+
         const response = await axios.post(`${API_URL}/auth/refresh-token`, {
           refreshToken,
         });

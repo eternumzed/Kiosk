@@ -6,13 +6,12 @@ import { makeRedirectUri } from 'expo-auth-session';
 WebBrowser.maybeCompleteAuthSession();
 
 // Google OAuth configuration
-// You'll need to replace these with your actual Google OAuth credentials
-// Create credentials at https://console.cloud.google.com/apis/credentials
+
 const GOOGLE_CLIENT_ID = {
   expo: 'YOUR_EXPO_CLIENT_ID.apps.googleusercontent.com',
   ios: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
   android: 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com',
-  web: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
+  web: '410554279522-jm96cq4bn0oblcumtecp6n283qtqqb10.apps.googleusercontent.com',
 };
 
 export const useGoogleAuth = () => {

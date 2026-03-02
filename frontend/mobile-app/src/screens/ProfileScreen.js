@@ -422,7 +422,7 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
               maxLength={6}
               autoFocus={true}
             />
-        4   
+         
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.button, styles.cancelButton, { marginRight: 5, paddingHorizontal: 15 }]}

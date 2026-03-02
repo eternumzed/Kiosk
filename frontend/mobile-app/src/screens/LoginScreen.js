@@ -74,7 +74,9 @@ export default function LoginScreen({ navigation, dispatch }) {
     try {
       await WebBrowser.dismissBrowser();
       
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'https://api.brgybiluso.me';
+      // Use the env URL (or fallback) and only remove a trailing '/api' (and optional slash).
+      // This avoids removing 'api' occurrences from subdomains or other parts of the URL.
+      const apiUrl = (process.env.EXPO_PUBLIC_API_URL?.trim() ?? 'https://api.brgybiluso.me').replace(/\/api\/?$/i, '');
       const redirectUrl = Linking.createURL('google-auth-callback');
       
       const result = await WebBrowser.openAuthSessionAsync(

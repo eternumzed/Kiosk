@@ -18,7 +18,7 @@ Notifications.setNotificationHandler({
  * Check if running in Expo Go
  * Push notifications are not supported in Expo Go since SDK 53
  */
-const isExpoGo = Constants.appOwnership === 'expo';
+const isExpoGo = Constants.executionEnvironment === 'expo';
 
 class NotificationService {
   static notificationListener = null;
