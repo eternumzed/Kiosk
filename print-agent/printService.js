@@ -88,35 +88,35 @@ function buildReceiptPayload(data) {
     const LF = "\x0A";
 
     // Printer initialization
-    const init = ESC + "@";
+    const init = ESC + "\x40";  // ESC @
 
-    // Text alignment
-    const alignCenter = ESC + "a\x01";
-    const alignLeft = ESC + "a\x00";
-    const alignRight = ESC + "a\x02";
+    // Text alignment (using hex codes for better compatibility)
+    const alignCenter = ESC + "\x61\x01";  // ESC a 1
+    const alignLeft = ESC + "\x61\x00";    // ESC a 0
+    const alignRight = ESC + "\x61\x02";   // ESC a 2
 
     // Text emphasis
-    const boldOn = ESC + "E\x01";
-    const boldOff = ESC + "E\x00";
-    const underlineOn = ESC + "-\x01";
-    const underlineOff = ESC + "-\x00";
+    const boldOn = ESC + "\x45\x01";       // ESC E 1
+    const boldOff = ESC + "\x45\x00";      // ESC E 0
+    const underlineOn = ESC + "\x2D\x01";  // ESC - 1
+    const underlineOff = ESC + "\x2D\x00"; // ESC - 0
 
     // Text size (GS ! n) - combines width and height multipliers
-    const textNormal = GS + "!\x00";
-    const textDoubleWidth = GS + "!\x10";
-    const textDoubleHeight = GS + "!\x01";
-    const textDouble = GS + "!\x11";
+    const textNormal = GS + "\x21\x00";
+    const textDoubleWidth = GS + "\x21\x10";
+    const textDoubleHeight = GS + "\x21\x01";
+    const textDouble = GS + "\x21\x11";
 
     // Reverse print (white on black)
-    const reverseOn = GS + "B\x01";
-    const reverseOff = GS + "B\x00";
+    const reverseOn = GS + "\x42\x01";   // GS B 1
+    const reverseOff = GS + "\x42\x00";  // GS B 0
 
     // Line spacing
-    const lineSpacingDefault = ESC + "2";
-    const lineSpacingTight = ESC + "3\x12";
+    const lineSpacingDefault = ESC + "\x32";      // ESC 2
+    const lineSpacingTight = ESC + "\x33\x12";    // ESC 3 n
 
-    // Paper cut
-    const feedAndCut = GS + "V\x41\x03";
+    // Paper cut - using simple format for XP-58 compatibility
+    const feedAndCut = GS + "\x56\x00";           // GS V 0 (full cut)
 
     // Helper functions
     const RECEIPT_WIDTH = 32; // Standard 58mm thermal = ~32 chars
@@ -149,7 +149,6 @@ function buildReceiptPayload(data) {
 
     // === HEADER ===
     receipt += init;
-    receipt += lineSpacingDefault;
     receipt += alignCenter;
     receipt += LF;
     receipt += textDouble + boldOn;
@@ -172,7 +171,6 @@ function buildReceiptPayload(data) {
     // === TRANSACTION DETAILS ===
     receipt += alignLeft;
     receipt += boldOn + underlineOn + "TRANSACTION DETAILS" + underlineOff + boldOff + LF;
-    receipt += lineSpacingTight;
     receipt += LF;
     receipt += labeledRow("Document:", data.document || "N/A") + LF;
     receipt += labeledRow("Status:", (data.status || "N/A").toUpperCase()) + LF;
@@ -197,7 +195,6 @@ function buildReceiptPayload(data) {
     receipt += LF;
     receipt += boldOn + underlineOn + "PAYMENT INFORMATION" + underlineOff + boldOff + LF;
     receipt += LF;
-    receipt += lineSpacingDefault;
     receipt += alignRight;
     receipt += textDoubleHeight + boldOn;
     receipt += formatAmount(data.amount) + LF;
@@ -212,9 +209,11 @@ function buildReceiptPayload(data) {
     // === DATE & TIME ===
     receipt += LF;
     const now = new Date();
-    const dateStr = now.getFullYear() + '-' +
-        String(now.getMonth() + 1).padStart(2, '0') + '-' +
-        String(now.getDate()).padStart(2, '0');
+    const dateStr = now.toLocaleDateString("en-PH", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit"
+    });
     const timeStr = now.toLocaleTimeString("en-PH", {
         hour: "2-digit",
         minute: "2-digit",
@@ -234,8 +233,7 @@ function buildReceiptPayload(data) {
     receipt += "Barangay Hall" + LF;
     receipt += "TEL: (046) 414-0204" + LF;
     receipt += "MOBILE: 0998-598-5622" + LF;
-    receipt += "EMAIL: brgybiluso@gmail.com";
-    receipt += LF;
+    receipt += "EMAIL: brgybiluso@gmail.com" + LF;
     receipt += dotLine + LF;
     receipt += LF;
     receipt += underlineOn + "Customer Copy" + underlineOff + LF;
@@ -255,11 +253,11 @@ function buildTestPayload() {
     const GS = "\x1D";
     const LF = "\x0A";
 
-    const init = ESC + "@";
-    const alignCenter = ESC + "a\x01";
-    const boldOn = ESC + "E\x01";
-    const boldOff = ESC + "E\x00";
-    const feedAndCut = GS + "V\x41\x03";
+    const init = ESC + "\x40";           // ESC @
+    const alignCenter = ESC + "\x61\x01"; // ESC a 1
+    const boldOn = ESC + "\x45\x01";      // ESC E 1
+    const boldOff = ESC + "\x45\x00";     // ESC E 0
+    const feedAndCut = GS + "\x56\x00";   // GS V 0 (full cut)
 
     let test = "";
     test += init;
