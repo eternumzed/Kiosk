@@ -58,3 +58,6 @@ Thumbs.db
 
 # Postman (may contain sensitive data)
 postman-samples.json
+
+# Ignore LibreOffice lock files
+.~lock.*#
