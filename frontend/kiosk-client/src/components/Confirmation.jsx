@@ -20,7 +20,7 @@ const Confirmation = ({ handleNext, resetUI }) => {
       };
       
       const response = await axios.get(
-        `https://api.brgybiluso.me/api/request/track-request/api/request/track-request/${referenceNumber}`,
+        `https://api.brgybiluso.me/api/request/track-request/${referenceNumber}`,
         config
       );
       
@@ -162,7 +162,7 @@ const Confirmation = ({ handleNext, resetUI }) => {
           <button
             onClick={async () => {
               try {
-                await axios.post('https://api.brgybiluso.me/api/request/track-request/api/print', {
+                await axios.post('https://api.brgybiluso.me/api/print', {
                   referenceNumber: request.referenceNumber,
                   fullName: request.fullName,
                   document: request.document,
