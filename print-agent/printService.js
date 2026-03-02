@@ -1,3 +1,9 @@
+/**
+ * Print Service for XP-58 Thermal Printer
+ * 
+ * Handles ESC/POS command generation and raw printing via Windows API
+ */
+
 const { writeFileSync, unlinkSync } = require("fs");
 const { tmpdir } = require("os");
 const { join } = require("path");
@@ -6,25 +12,16 @@ const { promisify } = require("util");
 
 const execFileAsync = promisify(execFile);
 
-// Check if we're running on Windows (can print locally) or Linux (need WebSocket)
-const isWindows = process.platform === "win32";
-
-// Import WebSocket handler for remote printing (only used on Linux)
-let websocketHandler = null;
-if (!isWindows) {
-  websocketHandler = require("../services/websocketHandler");
-}
-
+/**
+ * List all available printers on the Windows system
+ */
 async function listPrinters() {
-  if (!isWindows) {
-    // On Linux, we can't list printers directly
-    // The print agent will handle this
-    return [];
-  }
-  
   try {
     const ps = 'Get-Printer | Select-Object -Property Name,Default | ConvertTo-Json';
-    const { stdout } = await execFileAsync("powershell.exe", ["-NoProfile", "-Command", ps], { windowsHide: true });
+    const { stdout } = await execFileAsync("powershell.exe", ["-NoProfile", "-Command", ps], { 
+      windowsHide: true,
+      timeout: 10000 
+    });
     const data = JSON.parse(stdout);
     const printers = Array.isArray(data) ? data : [data];
     return printers.map(p => ({ name: p.Name, isDefault: !!p.Default }));
@@ -34,14 +31,34 @@ async function listPrinters() {
   }
 }
 
-async function choosePrinter() {
+/**
+ * Choose the best printer (prefer thermal/XP-58, then default)
+ */
+async function choosePrinter(preferredName = null) {
   const printers = await listPrinters();
   if (!printers.length) return null;
-  const preferred = printers.find(p => /thermal/i.test(p.name)) || printers.find(p => p.isDefault) || printers[0];
+  
+  // If a specific printer is requested, try to find it
+  if (preferredName) {
+    const found = printers.find(p => p.name.toLowerCase() === preferredName.toLowerCase());
+    if (found) return found.name;
+  }
+  
+  // Priority: XP-58 > thermal > POS > default > first
+  const preferred = 
+    printers.find(p => /xp-?58/i.test(p.name)) ||
+    printers.find(p => /thermal/i.test(p.name)) ||
+    printers.find(p => /pos|receipt/i.test(p.name)) ||
+    printers.find(p => p.isDefault) ||
+    printers[0];
+    
   return preferred.name;
 }
 
-function buildPayload(data) {
+/**
+ * Build ESC/POS receipt payload
+ */
+function buildReceiptPayload(data) {
   // ESC/POS Command Constants
   const ESC = "\x1B";
   const GS = "\x1D";
@@ -60,35 +77,32 @@ function buildPayload(data) {
   const boldOff = ESC + "E\x00";
   const underlineOn = ESC + "-\x01";
   const underlineOff = ESC + "-\x00";
-  const doubleUnderlineOn = ESC + "-\x02";
 
   // Text size (GS ! n) - combines width and height multipliers
-  const textNormal = GS + "!\x00";           // Normal size
-  const textDoubleWidth = GS + "!\x10";      // Double width
-  const textDoubleHeight = GS + "!\x01";     // Double height  
-  const textDouble = GS + "!\x11";           // Double width + height
-  const textTripleWidth = GS + "!\x20";      // Triple width
+  const textNormal = GS + "!\x00";
+  const textDoubleWidth = GS + "!\x10";
+  const textDoubleHeight = GS + "!\x01";
+  const textDouble = GS + "!\x11";
 
   // Reverse print (white on black)
   const reverseOn = GS + "B\x01";
   const reverseOff = GS + "B\x00";
 
   // Line spacing
-  const lineSpacingDefault = ESC + "2";      // Default line spacing
-  const lineSpacingTight = ESC + "3\x12";    // 18 dots
-  const lineSpacingWide = ESC + "3\x30";     // 48 dots
+  const lineSpacingDefault = ESC + "2";
+  const lineSpacingTight = ESC + "3\x12";
 
   // Paper cut
-  const feedAndCut = GS + "V\x41\x03";       // Feed 3 lines then partial cut
+  const feedAndCut = GS + "V\x41\x03";
 
-  // Helper: center text with padding
+  // Helper functions
   const RECEIPT_WIDTH = 32; // Standard 58mm thermal = ~32 chars
+  
   const centerText = (text, width = RECEIPT_WIDTH) => {
     const padding = Math.max(0, Math.floor((width - text.length) / 2));
     return " ".repeat(padding) + text;
   };
 
-  // Helper: create labeled row with value right-aligned
   const labeledRow = (label, value, width = RECEIPT_WIDTH) => {
     const maxValueLen = width - label.length - 1;
     const trimmedValue = String(value).substring(0, maxValueLen);
@@ -101,17 +115,17 @@ function buildPayload(data) {
   const singleLine = "-".repeat(RECEIPT_WIDTH);
   const dotLine = ". ".repeat(RECEIPT_WIDTH / 2);
 
-  // Format amount with peso sign and decimals
+  // Format amount
   const formatAmount = (amount) => {
     const num = parseFloat(amount) || 0;
     return `PHP ${num.toFixed(2)}`;
   };
 
-  // Build receipt sections
+  // Build receipt
   let receipt = "";
 
-  // === HEADER SECTION ===
-  receipt += init;                           // Initialize printer
+  // === HEADER ===
+  receipt += init;
   receipt += lineSpacingDefault;
   receipt += alignCenter;
   receipt += LF;
@@ -125,10 +139,10 @@ function buildPayload(data) {
   receipt += boldOn + "KIOSK TRANSACTION RECEIPT" + boldOff + LF;
   receipt += doubleLine + LF;
 
-  // === REFERENCE NUMBER (emphasized) ===
+  // === REFERENCE NUMBER ===
   receipt += LF;
   receipt += reverseOn + textDoubleHeight + boldOn;
-  receipt += `${data.referenceNumber || "N/A"} ` + LF;
+  receipt += ` ${data.referenceNumber || "N/A"} ` + LF;
   receipt += reverseOff + textNormal + boldOff;
   receipt += LF;
 
@@ -142,7 +156,7 @@ function buildPayload(data) {
   receipt += LF;
   receipt += singleLine + LF;
 
-  // === CUSTOMER INFORMATION ===
+  // === CUSTOMER INFO ===
   receipt += LF;
   receipt += boldOn + underlineOn + "CUSTOMER INFORMATION" + underlineOff + boldOff + LF;
   receipt += LF;
@@ -156,19 +170,16 @@ function buildPayload(data) {
   receipt += LF;
   receipt += singleLine + LF;
 
-  // === PAYMENT SECTION ===
+  // === PAYMENT ===
   receipt += LF;
   receipt += boldOn + underlineOn + "PAYMENT INFORMATION" + underlineOff + boldOff + LF;
   receipt += LF;
   receipt += lineSpacingDefault;
-
-  // Amount (larger text)
   receipt += alignRight;
   receipt += textDoubleHeight + boldOn;
   receipt += formatAmount(data.amount) + LF;
   receipt += textNormal + boldOff;
   receipt += alignLeft;
-
   receipt += LF;
   receipt += labeledRow("Payment Status:", (data.paymentStatus || "N/A").toUpperCase()) + LF;
   receipt += labeledRow("Payment Method:", data.paymentMethod || "Kiosk") + LF;
@@ -199,7 +210,7 @@ function buildPayload(data) {
   receipt += LF;
   receipt += textNormal;
   receipt += "For inquiries, visit the" + LF;
-  receipt += "Barangay Hall, " + LF;
+  receipt += "Barangay Hall" + LF;
   receipt += "TEL: (046) 414-0204" + LF;
   receipt += "MOBILE: 0998-598-5622" + LF;
   receipt += "EMAIL: brgybiluso@gmail.com";
@@ -215,9 +226,46 @@ function buildPayload(data) {
   return Buffer.from(receipt, "ascii");
 }
 
+/**
+ * Build test print payload
+ */
+function buildTestPayload() {
+  const ESC = "\x1B";
+  const GS = "\x1D";
+  const LF = "\x0A";
+  
+  const init = ESC + "@";
+  const alignCenter = ESC + "a\x01";
+  const boldOn = ESC + "E\x01";
+  const boldOff = ESC + "E\x00";
+  const feedAndCut = GS + "V\x41\x03";
+  
+  let test = "";
+  test += init;
+  test += alignCenter;
+  test += LF;
+  test += boldOn + "=== PRINT TEST ===" + boldOff + LF;
+  test += LF;
+  test += "Barangay Biluso Print Agent" + LF;
+  test += LF;
+  test += "If you can read this," + LF;
+  test += "the printer is working!" + LF;
+  test += LF;
+  test += `Test time: ${new Date().toLocaleString()}` + LF;
+  test += LF;
+  test += "================================" + LF;
+  test += LF + LF;
+  test += feedAndCut;
+  
+  return Buffer.from(test, "ascii");
+}
+
+/**
+ * Send raw bytes to printer using Windows API
+ */
 async function sendToPrinter(printerName, buffer) {
   const base64 = buffer.toString("base64");
-  const tempPath = join(tmpdir(), `send_raw_print_${Date.now()}.ps1`);
+  const tempPath = join(tmpdir(), `print_job_${Date.now()}.ps1`);
 
   const psScript = `
 param([string]$printerName, [string]$base64)
@@ -243,7 +291,7 @@ public class RawPrinter {
   [DllImport("winspool.Drv")] public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, int dwCount, out int dwWritten);
   public static bool SendBytesToPrinter(string szPrinterName, byte[] pBytes) {
     IntPtr hPrinter;
-    DOCINFOA di = new DOCINFOA(); di.pDocName = "RawDocument"; di.pDataType = "RAW";
+    DOCINFOA di = new DOCINFOA(); di.pDocName = "KioskReceipt"; di.pDataType = "RAW";
     if(!OpenPrinter(szPrinterName, out hPrinter, IntPtr.Zero)) return false;
     if(!StartDocPrinter(hPrinter, 1, di)) { ClosePrinter(hPrinter); return false; }
     if(!StartPagePrinter(hPrinter)) { EndDocPrinter(hPrinter); ClosePrinter(hPrinter); return false; }
@@ -280,147 +328,69 @@ try {
       tempPath,
       printerName,
       base64
-    ], { windowsHide: true, maxBuffer: 10 * 1024 * 1024 });
+    ], { 
+      windowsHide: true, 
+      maxBuffer: 10 * 1024 * 1024,
+      timeout: 30000
+    });
 
-    return { ok: stdout.includes("OK"), stdout, stderr };
+    return { success: stdout.includes("OK"), stdout, stderr };
   } finally {
     try { unlinkSync(tempPath); } catch (_) { }
   }
 }
 
-
-exports.print = async (req, res) => {
-  // On Linux/VPS, use WebSocket to send to print agent
-  if (!isWindows && websocketHandler) {
-    if (!websocketHandler.isPrintAgentAvailable()) {
-      return res.status(503).json({
-        success: false,
-        error: "No print agent connected. Please start the print agent on the Windows machine with the XP-58 printer."
-      });
-    }
-    
-    try {
-      const result = await websocketHandler.sendPrintJob(req.body);
-      if (result.success) {
-        return res.json({ success: true, message: "Receipt sent to printer" });
-      } else {
-        return res.status(500).json({ success: false, error: result.error });
-      }
-    } catch (err) {
-      return res.status(500).json({ success: false, error: err.message });
-    }
-  }
-  
-  // On Windows, print locally (original behavior)
-  const printer = await choosePrinter();
-  if (!printer) {
-    return res.status(500).send("No printer found. Add a thermal printer in Windows 'Printers & Scanners'.");
-  }
-
-  const payload = buildPayload(req.body);
-
+/**
+ * Print a receipt
+ */
+async function printReceipt(data, preferredPrinter = null) {
   try {
-    const result = await sendToPrinter(printer, payload);
-    if (result.ok) res.send("Receipt sent to printer");
-    else res.status(500).send(`Printing failed: ${result.stderr || result.stdout}`);
-  } catch (err) {
-    res.status(500).send(`Error printing receipt: ${err.message || err}`);
-  }
-}
-
-// Additional endpoints for print agent management
-exports.getPrintStatus = async (req, res) => {
-  if (!isWindows && websocketHandler) {
-    const agentCount = websocketHandler.getConnectedAgentsCount();
-    const available = websocketHandler.isPrintAgentAvailable();
-    return res.json({
-      platform: "linux",
-      agentsConnected: agentCount,
-      printAvailable: available,
-      message: available 
-        ? "Print agent connected and ready" 
-        : "No print agent connected. Start the print agent on Windows."
-    });
-  }
-  
-  // Windows - check local printers
-  const printers = await listPrinters();
-  return res.json({
-    platform: "windows",
-    printers: printers.map(p => p.name),
-    printAvailable: printers.length > 0,
-    message: printers.length > 0 
-      ? `${printers.length} printer(s) available` 
-      : "No printers found"
-  });
-};
-
-exports.testPrint = async (req, res) => {
-  if (!isWindows && websocketHandler) {
-    const result = websocketHandler.requestTestPrint(req.body?.printerName);
-    return res.json(result);
-  }
-  
-  // Windows local test print
-  const printer = await choosePrinter();
-  if (!printer) {
-    return res.status(500).json({ success: false, error: "No printer found" });
-  }
-  
-  const testPayload = buildTestPayload();
-  try {
-    const result = await sendToPrinter(printer, testPayload);
-    res.json({ success: result.ok, printerName: printer });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-};
-
-// Build test receipt payload
-function buildTestPayload() {
-  const ESC = "\x1B";
-  const GS = "\x1D";
-  const LF = "\x0A";
-  
-  const init = ESC + "@";
-  const alignCenter = ESC + "a\x01";
-  const boldOn = ESC + "E\x01";
-  const boldOff = ESC + "E\x00";
-  const feedAndCut = GS + "V\x41\x03";
-  
-  let test = "";
-  test += init;
-  test += alignCenter;
-  test += LF;
-  test += boldOn + "=== PRINT TEST ===" + boldOff + LF;
-  test += LF;
-  test += "Barangay Biluso Kiosk" + LF;
-  test += LF;
-  test += "If you can read this," + LF;
-  test += "the printer is working!" + LF;
-  test += LF;
-  test += `Test time: ${new Date().toLocaleString()}` + LF;
-  test += LF;
-  test += "================================" + LF;
-  test += LF + LF;
-  test += feedAndCut;
-  
-  return Buffer.from(test, "ascii");
-}
-
-// Only warm up printer on Windows
-if (isWindows) {
-  (async () => {
-    const printer = await choosePrinter();
-    if (printer) {
-      console.log(`>> Warming up printer: ${printer}`);
-      const buffer = Buffer.from(" ", "ascii");
-      try {
-        await sendToPrinter(printer, buffer);
-        console.log(">> Printer ready.");
-      } catch (err) {
-        console.warn(">> Warm-up failed:", err.message);
-      }
+    const printerName = await choosePrinter(preferredPrinter);
+    if (!printerName) {
+      return { success: false, error: "No printer found" };
     }
-  })();
+
+    const payload = buildReceiptPayload(data);
+    const result = await sendToPrinter(printerName, payload);
+
+    return {
+      success: result.success,
+      printerName,
+      error: result.success ? null : (result.stderr || "Print failed")
+    };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
 }
+
+/**
+ * Test print
+ */
+async function testPrint(preferredPrinter = null) {
+  try {
+    const printerName = await choosePrinter(preferredPrinter);
+    if (!printerName) {
+      return { success: false, error: "No printer found" };
+    }
+
+    const payload = buildTestPayload();
+    const result = await sendToPrinter(printerName, payload);
+
+    return {
+      success: result.success,
+      printerName,
+      error: result.success ? null : (result.stderr || "Test print failed")
+    };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+module.exports = {
+  listPrinters,
+  choosePrinter,
+  printReceipt,
+  testPrint,
+  buildReceiptPayload,
+  sendToPrinter
+};

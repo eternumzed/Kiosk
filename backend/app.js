@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
+const http = require('http');
 
 // Ensure LibreOffice binaries are discoverable on Windows before any imports
 if (process.platform === 'win32') {
@@ -98,6 +99,13 @@ app.get('/oauth2callback', googleAuth.handleCallback);
 // centralized error handler
 app.use(errorHandler);
 
+// Create HTTP server for WebSocket support
+const server = http.createServer(app);
+
+// Initialize WebSocket for print agent communication
+const websocketHandler = require('./services/websocketHandler');
+websocketHandler.initWebSocket(server);
+
 config.dbMain()
     .then(() => {
         try {
@@ -106,8 +114,9 @@ config.dbMain()
             console.warn('Could not load saved Google token:', err.message || err);
         }
 
-        app.listen(PORT, () => {
+        server.listen(PORT, () => {
             console.log(`>> Listening at PORT: ${PORT}`);
+            console.log(`>> WebSocket ready for print agents`);
         });
     })
     .catch((err) => {

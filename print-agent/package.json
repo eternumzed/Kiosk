@@ -1,0 +1,16 @@
+{
+  "name": "brgy-biluso-print-agent",
+  "version": "1.0.0",
+  "description": "Windows Print Agent for Barangay Biluso Kiosk - connects to VPS and prints to local XP-58",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "dotenv": "^16.4.5"
+  },
+  "author": "Barangay Biluso",
+  "license": "ISC"
+}
