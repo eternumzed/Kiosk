@@ -30,7 +30,7 @@ const TrackRequest = () => {
 
         if (trackingNumber) {
             try {
-                const res = await axios.get(`http://localhost:5000/api/request/track-request/${trackingNumber}`);
+                const res = await axios.get(`https://api.brgybiluso.me/api/request/track-request/${trackingNumber}`);
                 console.log(res.data[0]);
 
                 if (res.data[0] !== undefined) {
