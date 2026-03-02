@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import './App.css';
 
-const API_URL = import.meta.env.VITE_PDF_API_URL || 'http://localhost:5000/api/pdf';
+const API_URL = 'https://api.brgybiluso.me/api/pdf';
 
 
 const TYPE_LABELS = {
