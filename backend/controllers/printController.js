@@ -178,7 +178,7 @@ function buildPayload(data) {
   // === DATE & TIME ===
   receipt += LF;
   const now = new Date();
-  const dateStr = data.date || now.toLocaleDateString("en-PH", {
+  const dateStr = now.toLocaleDateString("en-PH", {
     year: "numeric",
     month: "short",
     day: "2-digit"

@@ -45,8 +45,7 @@ function initWebSocket(server) {
     ws.on("close", () => handleDisconnect(ws));
     ws.on("error", (err) => console.error("[WS] Error:", err.message));
 
-    // Send welcome message
-    ws.send(JSON.stringify({ type: "welcome", message: "Connected to Barangay Biluso API" }));
+
   });
 
   // Heartbeat to keep connections alive

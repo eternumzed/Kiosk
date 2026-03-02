@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 
 const Confirmation = ({ handleNext, resetUI }) => {
@@ -6,13 +6,15 @@ const Confirmation = ({ handleNext, resetUI }) => {
   const [request, setRequest] = useState(null);
   const [error, setError] = useState(null);
   const [retrying, setRetrying] = useState(false);
+  const retryCountRef = useRef(0);
+  const maxAutoRetries = 3;
 
-  const fetchRequest = async (referenceNumber) => {
+  const fetchRequest = async (referenceNumber, isAutoRetry = false) => {
     try {
       setError(null);
       setRetrying(true);
       
-      console.log('Fetching request:', referenceNumber);
+      console.log('Fetching request:', referenceNumber, isAutoRetry ? '(auto-retry)' : '');
       
       // Add timeout to request
       const config = {
@@ -35,9 +37,25 @@ const Confirmation = ({ handleNext, resetUI }) => {
       
       setRequest(response.data[0]);
       setRetrying(false);
+      retryCountRef.current = 0; // Reset retry count on success
       
     } catch (err) {
       console.error('Error fetching request:', err.message);
+      
+      // Auto-retry on 502/network errors (up to maxAutoRetries times)
+      const is502 = err.response?.status === 502;
+      const isNetworkError = err.message.includes('Network') || err.code === 'ECONNABORTED';
+      
+      if ((is502 || isNetworkError) && retryCountRef.current < maxAutoRetries) {
+        retryCountRef.current += 1;
+        console.log(`Auto-retrying (${retryCountRef.current}/${maxAutoRetries})...`);
+        
+        // Wait a bit before retrying
+        setTimeout(() => {
+          fetchRequest(referenceNumber, true);
+        }, 1000);
+        return;
+      }
       
       // Provide more specific error messages
       if (err.code === 'ECONNABORTED') {
@@ -45,6 +63,8 @@ const Confirmation = ({ handleNext, resetUI }) => {
       } else if (err.response?.status === 404) {
         const refNum = new URLSearchParams(location.search).get("referenceNumber");
         setError(`No request found with reference number: ${refNum}`);
+      } else if (err.response?.status === 502) {
+        setError('Server temporarily unavailable. Please try again.');
       } else if (err.message.includes('Network')) {
         setError('Network error. Please check if the server is running.');
       } else {
