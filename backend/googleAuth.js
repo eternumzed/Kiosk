@@ -226,11 +226,17 @@ async function handleCallback(req, res) {
   }
 
   try {
+    // Get tokens but DON'T set on shared client yet
     const { tokens } = await oAuth2Client.getToken(code);
-    oAuth2Client.setCredentials(tokens);
     
-    // Verify the user's email before saving tokens
-    const oauth2 = google.oauth2({ version: 'v2', auth: oAuth2Client });
+    // Create a TEMPORARY client just for email verification
+    // This prevents contaminating the shared oAuth2Client with wrong credentials
+    const { client_id, client_secret, redirect_uri } = getCredentials();
+    const tempClient = new google.auth.OAuth2(client_id, client_secret, redirect_uri);
+    tempClient.setCredentials(tokens);
+    
+    // Verify the user's email using the temp client
+    const oauth2 = google.oauth2({ version: 'v2', auth: tempClient });
     const { data: userInfo } = await oauth2.userinfo.get();
     
     console.log('🔍 Attempting sign-in with email:', userInfo.email);
@@ -238,14 +244,17 @@ async function handleCallback(req, res) {
     // Check if the email matches the allowed admin email
     if (userInfo.email.toLowerCase() !== ALLOWED_ADMIN_EMAIL.toLowerCase()) {
       console.error('❌ Unauthorized email attempted sign-in:', userInfo.email);
-      oAuth2Client.setCredentials({}); // Clear credentials
+      // Don't touch the shared oAuth2Client at all - just reject
       return res.status(403).send(getAccessDeniedPage(userInfo.email));
     }
     
-    // Email verified - save tokens WITH email
+    // Email verified - NOW it's safe to set credentials on the shared client
+    oAuth2Client.setCredentials(tokens);
+    
+    // Save tokens WITH email
     const tokenData = {
       ...tokens,
-      email: userInfo.email  // Store the verified email
+      email: userInfo.email
     };
     fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokenData, null, 2));
     console.log('✅ Tokens saved for', userInfo.email, '(includes refresh token:', !!tokens.refresh_token, ')');

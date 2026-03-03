@@ -113,11 +113,20 @@ exports.isAuthenticated = () => {
 };
 
 exports.handleOAuthCallback = async (code) => {
+  // Get tokens but DON'T set on shared client yet
   const { tokens } = await oAuth2Client.getToken(code);
-  oAuth2Client.setCredentials(tokens);
   
-  // Verify the user's email before saving tokens
-  const oauth2 = google.oauth2({ version: 'v2', auth: oAuth2Client });
+  // Create a TEMPORARY client just for email verification
+  // This prevents contaminating the shared oAuth2Client with wrong credentials
+  const tempClient = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+  );
+  tempClient.setCredentials(tokens);
+  
+  // Verify the user's email using the temp client
+  const oauth2 = google.oauth2({ version: 'v2', auth: tempClient });
   const { data: userInfo } = await oauth2.userinfo.get();
   
   console.log('🔍 Attempting sign-in with email:', userInfo.email);
@@ -125,18 +134,19 @@ exports.handleOAuthCallback = async (code) => {
   // Check if the email matches the allowed admin email
   if (userInfo.email.toLowerCase() !== ALLOWED_ADMIN_EMAIL.toLowerCase()) {
     console.error('❌ Unauthorized email attempted sign-in:', userInfo.email);
-    oAuth2Client.setCredentials({}); // Clear this login attempt from memory
-    
+    // Don't touch the shared oAuth2Client at all - just reject
     // DO NOT delete token.json - backend PDF operations must continue
-    // Just reject this login attempt - they won't get a session
     
     throw new Error(`ACCESS_DENIED:Only ${ALLOWED_ADMIN_EMAIL} can sign in. You attempted with: ${userInfo.email}`);
   }
   
-  // Email verified - save tokens WITH email
+  // Email verified - NOW it's safe to set credentials on the shared client
+  oAuth2Client.setCredentials(tokens);
+  
+  // Save tokens WITH email
   const tokenData = {
     ...tokens,
-    email: userInfo.email  // Store the verified email
+    email: userInfo.email
   };
   
   await fsp.writeFile(TOKEN_PATH, JSON.stringify(tokenData, null, 2));
