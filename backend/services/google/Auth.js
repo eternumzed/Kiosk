@@ -1,13 +1,18 @@
 const fs = require('fs');
 const fsp = require('fs/promises');
 const path = require('path');
+const crypto = require('crypto');
 const { google } = require('googleapis');
 const { oAuth2Client } = require('../../googleAuth');
 
 const TOKEN_PATH = path.join(__dirname, '../../token.json');
+const SESSION_PATH = path.join(__dirname, '../../admin_session.json');
 
 // ALLOWED ADMIN EMAIL - only this email can sign in
 const ALLOWED_ADMIN_EMAIL = "brgybiluso@gmail.com";
+
+// Session duration: 8 hours
+const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
 
 oAuth2Client.on('tokens', (tokens) => {
   if (!fs.existsSync(TOKEN_PATH)) return;
@@ -38,6 +43,48 @@ exports.generateAuthUrl = () => {
   });
 };
 
+// Create a new admin session (called after successful OAuth)
+function createSession(email) {
+  const session = {
+    email,
+    sessionId: crypto.randomBytes(32).toString('hex'),
+    createdAt: Date.now(),
+    expiresAt: Date.now() + SESSION_DURATION_MS
+  };
+  fs.writeFileSync(SESSION_PATH, JSON.stringify(session, null, 2));
+  console.log(`✅ Admin session created for ${email} (expires in 8 hours)`);
+  return session.sessionId;
+}
+
+// Check if admin UI session is valid (for admin dashboard access)
+exports.isAdminLoggedIn = () => {
+  if (!fs.existsSync(SESSION_PATH)) return false;
+  
+  try {
+    const session = JSON.parse(fs.readFileSync(SESSION_PATH));
+    
+    // Check if session is expired
+    if (Date.now() > session.expiresAt) {
+      console.log('⏰ Admin session expired');
+      // Clean up expired session
+      try { fs.unlinkSync(SESSION_PATH); } catch (_) {}
+      return false;
+    }
+    
+    // Check if email matches
+    if (session.email?.toLowerCase() !== ALLOWED_ADMIN_EMAIL.toLowerCase()) {
+      return false;
+    }
+    
+    return true;
+  } catch (err) {
+    console.error('Error reading session:', err.message);
+    return false;
+  }
+};
+
+// Check if Google Drive token exists (for backend PDF operations)
+// This is separate from admin UI session
 exports.isAuthenticated = () => {
   if (!fs.existsSync(TOKEN_PATH)) return false;
   
@@ -76,6 +123,11 @@ exports.handleOAuthCallback = async (code) => {
       fs.unlinkSync(TOKEN_PATH);
     }
     
+    // Also clear any session
+    if (fs.existsSync(SESSION_PATH)) {
+      fs.unlinkSync(SESSION_PATH);
+    }
+    
     throw new Error(`ACCESS_DENIED:Only ${ALLOWED_ADMIN_EMAIL} can sign in. You attempted with: ${userInfo.email}`);
   }
   
@@ -87,18 +139,26 @@ exports.handleOAuthCallback = async (code) => {
   
   await fsp.writeFile(TOKEN_PATH, JSON.stringify(tokenData, null, 2));
   console.log('✅ Tokens saved for', userInfo.email);
+  
+  // Create admin UI session
+  createSession(userInfo.email);
 };
 
-// Logout just ends the admin UI session - does NOT revoke Drive access
-// This is standard practice: logging out of admin panel shouldn't break backend integrations
+// Logout - ends admin UI session (Drive token stays for backend operations)
 exports.logout = () => {
-  // No-op for session logout. Token stays intact for backend operations.
-  console.log('Admin session ended (Drive token preserved)');
+  if (fs.existsSync(SESSION_PATH)) {
+    fs.unlinkSync(SESSION_PATH);
+    console.log('🚪 Admin session ended');
+  }
 };
 
 // Disconnect Drive - actually revokes access and deletes token
 // Use this when you explicitly want to stop all Google Drive operations
 exports.disconnectDrive = () => {
+  // Clear session too
+  if (fs.existsSync(SESSION_PATH)) {
+    fs.unlinkSync(SESSION_PATH);
+  }
   if (fs.existsSync(TOKEN_PATH)) {
     fs.unlinkSync(TOKEN_PATH);
     console.log('🔌 Google Drive disconnected - token deleted');

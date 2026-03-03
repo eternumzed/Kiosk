@@ -203,7 +203,8 @@ exports.oauthCallback = asyncHandler(async (req, res) => {
 });
 
 exports.checkAuth = asyncHandler(async (req, res) => {
-  res.json({ authenticated: auth.isAuthenticated() });
+  // Check if admin has an active session (not just if Drive token exists)
+  res.json({ authenticated: auth.isAdminLoggedIn() });
 });
 
 exports.logout = asyncHandler(async (req, res) => {
@@ -218,13 +219,13 @@ exports.disconnectDrive = asyncHandler(async (req, res) => {
 });
 
 exports.listPdfs = asyncHandler(async (req, res) => {
-  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  if (!auth.isAdminLoggedIn()) return res.status(401).json({ error: 'Not authenticated' });
   const pdfs = await drive.listPdfs();
   res.json(pdfs);
 });
 
 exports.downloadPdf = asyncHandler(async (req, res) => {
-  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  if (!auth.isAdminLoggedIn()) return res.status(401).json({ error: 'Not authenticated' });
   
   try {
     const stream = await drive.downloadPdf(req.params.fileId);
@@ -236,7 +237,7 @@ exports.downloadPdf = asyncHandler(async (req, res) => {
 });
 
 exports.deletePdf = asyncHandler(async (req, res) => {
-  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  if (!auth.isAdminLoggedIn()) return res.status(401).json({ error: 'Not authenticated' });
   
   try {
     await drive.deletePdf(req.params.fileId, {
@@ -250,7 +251,7 @@ exports.deletePdf = asyncHandler(async (req, res) => {
 });
 
 exports.updateStatus = asyncHandler(async (req, res) => {
-  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  if (!auth.isAdminLoggedIn()) return res.status(401).json({ error: 'Not authenticated' });
   
    const { fileId, referenceNumber } = req.params;
   const identifier = fileId || referenceNumber;
@@ -290,7 +291,7 @@ exports.updateStatus = asyncHandler(async (req, res) => {
 });
 
 exports.deleteMultiple = asyncHandler(async (req, res) => {
-  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  if (!auth.isAdminLoggedIn()) return res.status(401).json({ error: 'Not authenticated' });
   
   const { fileIds } = req.body;
   
@@ -310,13 +311,13 @@ exports.deleteMultiple = asyncHandler(async (req, res) => {
 });
 
 exports.listTrash = asyncHandler(async (req, res) => {
-  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  if (!auth.isAdminLoggedIn()) return res.status(401).json({ error: 'Not authenticated' });
   const trash = await drive.listTrash();
   res.json(trash);
 });
 
 exports.permanentlyDeleteFromTrash = asyncHandler(async (req, res) => {
-  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  if (!auth.isAdminLoggedIn()) return res.status(401).json({ error: 'Not authenticated' });
   
   try {
     await drive.permanentlyDeleteFromTrash(req.params.fileId, {
@@ -330,7 +331,7 @@ exports.permanentlyDeleteFromTrash = asyncHandler(async (req, res) => {
 });
 
 exports.permanentlyDeleteMultipleFromTrash = asyncHandler(async (req, res) => {
-  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  if (!auth.isAdminLoggedIn()) return res.status(401).json({ error: 'Not authenticated' });
   
   const { fileIds } = req.body;
   
@@ -349,7 +350,7 @@ exports.permanentlyDeleteMultipleFromTrash = asyncHandler(async (req, res) => {
   }
 });
 exports.restoreFromTrash = asyncHandler(async (req, res) => {
-  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  if (!auth.isAdminLoggedIn()) return res.status(401).json({ error: 'Not authenticated' });
   
   try {
     const updated = await drive.restoreFromTrash(req.params.fileId);
@@ -360,7 +361,7 @@ exports.restoreFromTrash = asyncHandler(async (req, res) => {
 });
 
 exports.restoreMultipleFromTrash = asyncHandler(async (req, res) => {
-  if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  if (!auth.isAdminLoggedIn()) return res.status(401).json({ error: 'Not authenticated' });
   
   const { fileIds } = req.body;
   

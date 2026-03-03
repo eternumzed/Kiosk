@@ -42,6 +42,7 @@ tmp/
 oauth_credentials.json
 _oauth_credentials.json
 token.json
+admin_session.json
 
 # Documentation (generated)
 CAMERA_MODAL_IMPLEMENTATION.md
