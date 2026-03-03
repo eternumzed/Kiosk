@@ -89,7 +89,19 @@ exports.handleOAuthCallback = async (code) => {
   console.log('✅ Tokens saved for', userInfo.email);
 };
 
+// Logout just ends the admin UI session - does NOT revoke Drive access
+// This is standard practice: logging out of admin panel shouldn't break backend integrations
 exports.logout = () => {
-  if (fs.existsSync(TOKEN_PATH)) fs.unlinkSync(TOKEN_PATH);
+  // No-op for session logout. Token stays intact for backend operations.
+  console.log('Admin session ended (Drive token preserved)');
+};
+
+// Disconnect Drive - actually revokes access and deletes token
+// Use this when you explicitly want to stop all Google Drive operations
+exports.disconnectDrive = () => {
+  if (fs.existsSync(TOKEN_PATH)) {
+    fs.unlinkSync(TOKEN_PATH);
+    console.log('🔌 Google Drive disconnected - token deleted');
+  }
   oAuth2Client.setCredentials({});
 };

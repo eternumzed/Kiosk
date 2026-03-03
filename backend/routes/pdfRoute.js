@@ -7,6 +7,7 @@ router.get('/auth/check', pdfController.checkAuth);
 router.get('/auth/init', pdfController.initAuth);
 router.get('/auth/callback', pdfController.oauthCallback);
 router.post('/auth/logout', pdfController.logout);
+router.post('/auth/disconnect', pdfController.disconnectDrive);  // Revokes Drive access (use with caution)
 
 // PDF operations
 router.post('/', pdfController.generatePdf);

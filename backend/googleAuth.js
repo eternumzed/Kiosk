@@ -171,12 +171,19 @@ async function ensureValidToken() {
   }
 }
 
-// Logout function to clear token
+// Logout function - ends admin session but preserves Drive token
+// Standard practice: logging out of admin UI shouldn't break backend integrations
 function logout() {
+  // No-op for session logout. Token stays intact for backend operations.
+  console.log('Admin session ended (Drive token preserved)');
+}
+
+// Disconnect Drive - actually revokes access and deletes token
+function disconnectDrive() {
   if (fs.existsSync(TOKEN_PATH)) {
     fs.unlinkSync(TOKEN_PATH);
     oAuth2Client.setCredentials({});
-    console.log('✅ Token cleared - user must re-authenticate');
+    console.log('🔌 Google Drive disconnected - token deleted');
   }
 }
 
@@ -206,6 +213,7 @@ module.exports = {
   loadSavedToken,
   ensureValidToken,
   logout,
+  disconnectDrive,
   isAuthenticated,
 };
 

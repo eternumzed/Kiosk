@@ -151,6 +151,12 @@ exports.logout = asyncHandler(async (req, res) => {
   res.json({ message: 'Logged out successfully' });
 });
 
+// Disconnect Google Drive - actually revokes token (use with caution)
+exports.disconnectDrive = asyncHandler(async (req, res) => {
+  auth.disconnectDrive();
+  res.json({ message: 'Google Drive disconnected. PDF uploads will stop until re-authenticated.' });
+});
+
 exports.listPdfs = asyncHandler(async (req, res) => {
   if (!auth.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
   const pdfs = await drive.listPdfs();
