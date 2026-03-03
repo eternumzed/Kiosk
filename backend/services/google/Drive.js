@@ -99,8 +99,11 @@ exports.uploadPdf = async (pdfPath, namePrefix, meta) => {
 
 
 exports.listPdfs = async () => {
+  console.log('[listPdfs] Starting to list PDFs...');
+  
   // Ensure token is valid before listing
   await ensureValidToken();
+  console.log('[listPdfs] Token validated');
   
   const res = await drive.files.list({
     q: `'${FOLDER_ID}' in parents and mimeType='application/pdf'`,
@@ -108,7 +111,7 @@ exports.listPdfs = async () => {
     orderBy: 'createdTime desc',
   });
 
-  console.log(`Found ${res.data.files?.length || 0} PDFs in Google Drive`);
+  console.log(`[listPdfs] Found ${res.data.files?.length || 0} PDFs in Google Drive`);
 
   const requestByFileId = {};
   const requestByRefNumber = {};

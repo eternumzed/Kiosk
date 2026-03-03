@@ -21,14 +21,19 @@ const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
 
 // Create admin session after successful login
 function createSession(email) {
+  console.log(`[createSession] Creating session at: ${SESSION_PATH}`);
   const session = {
     email,
     sessionId: crypto.randomBytes(32).toString('hex'),
     createdAt: Date.now(),
     expiresAt: Date.now() + SESSION_DURATION_MS
   };
-  fs.writeFileSync(SESSION_PATH, JSON.stringify(session, null, 2));
-  console.log(`✅ Admin session created for ${email} (expires in 8 hours)`);
+  try {
+    fs.writeFileSync(SESSION_PATH, JSON.stringify(session, null, 2));
+    console.log(`[createSession] ✅ Session file written successfully for ${email}`);
+  } catch (err) {
+    console.error(`[createSession] ❌ Failed to write session file:`, err.message);
+  }
   return session.sessionId;
 }
 

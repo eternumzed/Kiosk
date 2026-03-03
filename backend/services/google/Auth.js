@@ -58,14 +58,21 @@ function createSession(email) {
 
 // Check if admin UI session is valid (for admin dashboard access)
 exports.isAdminLoggedIn = () => {
-  if (!fs.existsSync(SESSION_PATH)) return false;
+  console.log(`[isAdminLoggedIn] Checking session at: ${SESSION_PATH}`);
+  console.log(`[isAdminLoggedIn] Session file exists: ${fs.existsSync(SESSION_PATH)}`);
+  
+  if (!fs.existsSync(SESSION_PATH)) {
+    console.log('[isAdminLoggedIn] No session file found');
+    return false;
+  }
   
   try {
     const session = JSON.parse(fs.readFileSync(SESSION_PATH));
+    console.log(`[isAdminLoggedIn] Session loaded:`, { email: session.email, expiresAt: new Date(session.expiresAt).toISOString() });
     
     // Check if session is expired
     if (Date.now() > session.expiresAt) {
-      console.log('⏰ Admin session expired');
+      console.log('[isAdminLoggedIn] Session expired');
       // Clean up expired session
       try { fs.unlinkSync(SESSION_PATH); } catch (_) {}
       return false;
@@ -73,12 +80,14 @@ exports.isAdminLoggedIn = () => {
     
     // Check if email matches
     if (session.email?.toLowerCase() !== ALLOWED_ADMIN_EMAIL.toLowerCase()) {
+      console.log(`[isAdminLoggedIn] Email mismatch: ${session.email} vs ${ALLOWED_ADMIN_EMAIL}`);
       return false;
     }
     
+    console.log('[isAdminLoggedIn] Session valid!');
     return true;
   } catch (err) {
-    console.error('Error reading session:', err.message);
+    console.error('[isAdminLoggedIn] Error reading session:', err.message);
     return false;
   }
 };
