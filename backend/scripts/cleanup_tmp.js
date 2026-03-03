@@ -6,7 +6,8 @@ const path = require('path');
 
 async function cleanup(ttlHoursArg) {
   const cwd = __dirname;
-  const BASE_TMP_DIR = path.join(cwd, '..', 'tmp', 'carbone_render');
+  // target the repo root tmp folder: /var/www/Kiosk/tmp/carbone_render
+  const BASE_TMP_DIR = path.join(cwd, '..', '..', 'tmp', 'carbone_render');
   // TTL resolution: accept hours arg, CLI arg, env `TMP_TTL_HOURS`, or minutes env `TMP_TTL_MINUTES`.
   const envTtlMinutes = Number(process.env.TMP_TTL_MINUTES) || 0;
   const ttlHoursFromMinutes = envTtlMinutes > 0 ? envTtlMinutes / 60 : 0;
@@ -15,6 +16,14 @@ async function cleanup(ttlHoursArg) {
   const ttlMs = ttlHours * 60 * 60 * 1000;
 
   try {
+    // Ensure target directory exists (create if missing) to avoid ENOENT
+    try {
+      await fs.mkdir(BASE_TMP_DIR, { recursive: true });
+    } catch (mkdirErr) {
+      console.error('Failed to ensure tmp directory exists:', mkdirErr.message || mkdirErr);
+      throw mkdirErr;
+    }
+
     const files = await fs.readdir(BASE_TMP_DIR);
     let removed = 0;
     for (const f of files) {
