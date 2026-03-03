@@ -116,17 +116,10 @@ exports.handleOAuthCallback = async (code) => {
   // Check if the email matches the allowed admin email
   if (userInfo.email.toLowerCase() !== ALLOWED_ADMIN_EMAIL.toLowerCase()) {
     console.error('❌ Unauthorized email attempted sign-in:', userInfo.email);
-    oAuth2Client.setCredentials({}); // Clear credentials from client
+    oAuth2Client.setCredentials({}); // Clear this login attempt from memory
     
-    // Delete any existing token file to prevent stale tokens
-    if (fs.existsSync(TOKEN_PATH)) {
-      fs.unlinkSync(TOKEN_PATH);
-    }
-    
-    // Also clear any session
-    if (fs.existsSync(SESSION_PATH)) {
-      fs.unlinkSync(SESSION_PATH);
-    }
+    // DO NOT delete token.json - backend PDF operations must continue
+    // Just reject this login attempt - they won't get a session
     
     throw new Error(`ACCESS_DENIED:Only ${ALLOWED_ADMIN_EMAIL} can sign in. You attempted with: ${userInfo.email}`);
   }
