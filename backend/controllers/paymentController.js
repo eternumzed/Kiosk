@@ -5,6 +5,7 @@ const Request = require('../models/requestSchema.js');
 const Counter = require('../models/counter.js');
 const pdfService = require('../services/pdf/generatePdf.js');
 const drive = require('../services/google/Drive.js');
+const auth = require('../services/google/Auth.js');
 const requestService = require('../services/requestService.js');
 
 const kioskUrl = process.env.KIOSK_URL || "http://localhost:4000";
@@ -129,21 +130,30 @@ exports.handleWebhook = async (req, res) => {
                     const pdfPath = await pdfService({ templateKey, rawData });
                     console.log(`PDF generated at: ${pdfPath}`);
                     
-                    try {
-                         const uploaded = await drive.uploadPdf(pdfPath, updatedRequest.referenceNumber, {
-                            type: templateKey,
-                            referenceNumber: updatedRequest.referenceNumber,
-                            requestId: updatedRequest._id,
-                        });
-                        console.log('PDF uploaded to Drive:', uploaded);
-                    } finally {
-                         try {
-                            if (fs.existsSync(pdfPath)) {
-                                fs.unlinkSync(pdfPath);
-                                console.log(`Temp PDF deleted: ${pdfPath}`);
+                    // Only attempt upload if authenticated
+                    if (!auth.isAuthenticated()) {
+                        console.warn('Google Drive not authenticated - skipping upload. File will be cleaned by pm2 daemon.');
+                    } else {
+                        try {
+                            const uploaded = await drive.uploadPdf(pdfPath, updatedRequest.referenceNumber, {
+                                type: templateKey,
+                                referenceNumber: updatedRequest.referenceNumber,
+                                requestId: updatedRequest._id,
+                            });
+                            console.log('PDF uploaded to Drive:', uploaded);
+                            
+                            // Only delete after successful upload
+                            try {
+                                if (fs.existsSync(pdfPath)) {
+                                    fs.unlinkSync(pdfPath);
+                                    console.log(`[Cleanup] Deleted temp PDF: ${pdfPath}`);
+                                }
+                            } catch (e) {
+                                console.warn(`[Cleanup] Could not delete temp file ${pdfPath}:`, e.message);
                             }
-                        } catch (e) {
-                            console.warn(`Could not delete temp file ${pdfPath}:`, e.message);
+                        } catch (uploadErr) {
+                            // Upload failed - leave file for pm2 cleanup daemon
+                            console.error('Drive upload failed:', uploadErr.message || uploadErr);
                         }
                     }
                 } catch (err) {
@@ -221,24 +231,33 @@ exports.createCashPayment = async (req, res) => {
             console.log(`[PDF GENERATION] Success`);
             console.log(`[PDF GENERATION] File Path: ${pdfPath}\n`);
             
-            try {
-                console.log(`[GOOGLE DRIVE] Uploading PDF...`);
-                const uploaded = await drive.uploadPdf(pdfPath, request.referenceNumber, {
-                    type: templateKey,
-                    referenceNumber: request.referenceNumber,
-                    requestId: request._id,
-                });
-                console.log(`[GOOGLE DRIVE] Upload Success`);
-                console.log(`[GOOGLE DRIVE] File ID: ${uploaded.fileId || uploaded.id || 'N/A'}`);
-                console.log(`[GOOGLE DRIVE] View URL: ${uploaded.webViewLink || 'N/A'}\n`);
-            } finally {
+            // Only attempt upload if authenticated
+            if (!auth.isAuthenticated()) {
+                console.warn('[GOOGLE DRIVE] Not authenticated - skipping upload. File will be cleaned by pm2 daemon.');
+            } else {
                 try {
-                    if (fs.existsSync(pdfPath)) {
-                        fs.unlinkSync(pdfPath);
-                        console.log(`[CLEANUP] Temp PDF file deleted\n`);
+                    console.log(`[GOOGLE DRIVE] Uploading PDF...`);
+                    const uploaded = await drive.uploadPdf(pdfPath, request.referenceNumber, {
+                        type: templateKey,
+                        referenceNumber: request.referenceNumber,
+                        requestId: request._id,
+                    });
+                    console.log(`[GOOGLE DRIVE] Upload Success`);
+                    console.log(`[GOOGLE DRIVE] File ID: ${uploaded.fileId || uploaded.id || 'N/A'}`);
+                    console.log(`[GOOGLE DRIVE] View URL: ${uploaded.webViewLink || 'N/A'}\n`);
+                    
+                    // Only delete after successful upload
+                    try {
+                        if (fs.existsSync(pdfPath)) {
+                            fs.unlinkSync(pdfPath);
+                            console.log(`[CLEANUP] Temp PDF file deleted\n`);
+                        }
+                    } catch (e) {
+                        console.warn(`[CLEANUP] Could not delete temp file: ${e.message}`);
                     }
-                } catch (e) {
-                    console.warn(`⚠️  Could not delete temp file: ${e.message}`);
+                } catch (uploadErr) {
+                    // Upload failed - leave file for pm2 cleanup daemon
+                    console.error(`[GOOGLE DRIVE] Upload failed: ${uploadErr.message || uploadErr}`);
                 }
             }
         } catch (err) {
