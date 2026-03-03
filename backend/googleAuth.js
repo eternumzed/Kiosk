@@ -2,10 +2,12 @@
 const { google } = require("googleapis");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 
 const CREDENTIALS_PATH = path.join(__dirname, "oauth_credentials.json");
 const TOKEN_PATH = path.join(__dirname, "token.json");
+const SESSION_PATH = path.join(__dirname, "admin_session.json");
 const SCOPES = [
   "https://www.googleapis.com/auth/drive.file",
   "https://www.googleapis.com/auth/userinfo.email"  // Required to verify email
@@ -13,6 +15,22 @@ const SCOPES = [
 
 // ALLOWED ADMIN EMAIL - only this email can sign in
 const ALLOWED_ADMIN_EMAIL = "brgybiluso@gmail.com";
+
+// Session duration: 8 hours
+const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
+
+// Create admin session after successful login
+function createSession(email) {
+  const session = {
+    email,
+    sessionId: crypto.randomBytes(32).toString('hex'),
+    createdAt: Date.now(),
+    expiresAt: Date.now() + SESSION_DURATION_MS
+  };
+  fs.writeFileSync(SESSION_PATH, JSON.stringify(session, null, 2));
+  console.log(`✅ Admin session created for ${email} (expires in 8 hours)`);
+  return session.sessionId;
+}
 
 // Get Google OAuth credentials from environment variables or fallback to JSON file (dev only)
 function getCredentials() {
@@ -227,6 +245,9 @@ async function handleCallback(req, res) {
     fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokenData, null, 2));
     console.log('✅ Tokens saved for', userInfo.email, '(includes refresh token:', !!tokens.refresh_token, ')');
     
+    // Create admin UI session
+    createSession(userInfo.email);
+    
     // Redirect to admin dashboard on success
     res.redirect(`${adminUrl}?auth=success`);
   } catch (err) {
@@ -274,17 +295,29 @@ async function ensureValidToken() {
   }
 
   try {
-    const accessToken = oAuth2Client.credentials.access_token;
+    // If credentials aren't loaded in memory, load from file
+    if (!oAuth2Client.credentials || !oAuth2Client.credentials.access_token) {
+      console.log('⏳ Loading credentials from token.json...');
+      const savedTokens = JSON.parse(fs.readFileSync(TOKEN_PATH));
+      oAuth2Client.setCredentials(savedTokens);
+    }
+    
     const expiryDate = oAuth2Client.credentials.expiry_date;
     
     // Check if token is expired or expiring soon (within 5 minutes)
-    if (expiryDate && Date.now() >= expiryDate - 5 * 60 * 1000) {
+    if (!expiryDate || Date.now() >= expiryDate - 5 * 60 * 1000) {
       console.log('⏳ Token expired/expiring. Refreshing...');
       const { credentials } = await oAuth2Client.refreshAccessToken();
-      oAuth2Client.setCredentials(credentials);
       
-      // Save refreshed token
-      fs.writeFileSync(TOKEN_PATH, JSON.stringify(credentials, null, 2));
+      // Preserve email when saving refreshed token
+      const savedTokens = JSON.parse(fs.readFileSync(TOKEN_PATH));
+      const updatedTokens = {
+        ...credentials,
+        email: savedTokens.email
+      };
+      
+      oAuth2Client.setCredentials(updatedTokens);
+      fs.writeFileSync(TOKEN_PATH, JSON.stringify(updatedTokens, null, 2));
       console.log('✅ Token refreshed successfully');
     }
   } catch (err) {
@@ -296,12 +329,18 @@ async function ensureValidToken() {
 // Logout function - ends admin session but preserves Drive token
 // Standard practice: logging out of admin UI shouldn't break backend integrations
 function logout() {
-  // No-op for session logout. Token stays intact for backend operations.
-  console.log('Admin session ended (Drive token preserved)');
+  if (fs.existsSync(SESSION_PATH)) {
+    fs.unlinkSync(SESSION_PATH);
+    console.log('🚪 Admin session ended (Drive token preserved)');
+  }
 }
 
 // Disconnect Drive - actually revokes access and deletes token
 function disconnectDrive() {
+  // Clear session too
+  if (fs.existsSync(SESSION_PATH)) {
+    fs.unlinkSync(SESSION_PATH);
+  }
   if (fs.existsSync(TOKEN_PATH)) {
     fs.unlinkSync(TOKEN_PATH);
     oAuth2Client.setCredentials({});
