@@ -16,57 +16,79 @@ exports.initAuth = asyncHandler(async (req, res) => {
 exports.generatePdf = asyncHandler(async (req, res) => {
   let { type, data } = req.body;
   const Request = require('../models/requestSchema');
-
-  // 1) Generate the PDF locally
-  const pdfPath = await pdfService({ templateKey: type, rawData: data });
-
-   let namePrefix = type;
+  let pdfPath = null;
+  let namePrefix = type;
   let requestId = null;
   let referenceNumber = data.referenceNumber;
+  let uploaded = null;
+  let errorToReturn = null;
 
   try {
-     const request = await requestService.createRequestIfMissing(data);
-    namePrefix = request.referenceNumber;
-    requestId = request._id;
-    referenceNumber = request.referenceNumber;
-    
-     if (!type && request.documentCode) {
-      type = request.documentCode;
-      console.log(`[generatePdf] Type not in request body, using documentCode: ${type}`);
-    }
-    
-    console.log(`[generatePdf] PDF generation for request: ${referenceNumber} (ID: ${requestId}), type: ${type}`);
-  } catch (err) {
-    console.error('Failed to create/find request:', err.message || err);
-    return res.status(500).json({ error: 'Failed to create request record', details: err.message });
-  }
+    // 1) Generate the PDF locally
+    pdfPath = await pdfService({ templateKey: type, rawData: data });
 
-   if (auth.isAuthenticated()) {
+    // 2) Create/find request record
     try {
-      const uploaded = await drive.uploadPdf(pdfPath, namePrefix, { 
-        type,
-        referenceNumber,
-        requestId  // MongoDB _id
-      });
-
-       try {
-        if (fs.existsSync(pdfPath)) fs.unlinkSync(pdfPath);
-      } catch (err) {
-        console.warn('Failed to delete temp PDF:', err.message || err);
+      const request = await requestService.createRequestIfMissing(data);
+      namePrefix = request.referenceNumber;
+      requestId = request._id;
+      referenceNumber = request.referenceNumber;
+      if (!type && request.documentCode) {
+        type = request.documentCode;
+        console.log(`[generatePdf] Type not in request body, using documentCode: ${type}`);
       }
-
-      return res.json({ uploaded: true, file: uploaded });
+      console.log(`[generatePdf] PDF generation for request: ${referenceNumber} (ID: ${requestId}), type: ${type}`);
     } catch (err) {
-      console.error('Drive upload failed:', err.response?.data || err.message || err);
-      return res.status(500).json({ error: 'Drive upload failed', details: err.message || err });
+      console.error('Failed to create/find request:', err.message || err);
+      errorToReturn = { status: 500, body: { error: 'Failed to create request record', details: err.message } };
+      return;
+    }
+
+    // 3) Upload to Drive if authenticated
+    if (auth.isAuthenticated()) {
+      try {
+        uploaded = await drive.uploadPdf(pdfPath, namePrefix, {
+          type,
+          referenceNumber,
+          requestId
+        });
+      } catch (err) {
+        console.error('Drive upload failed:', err.response?.data || err.message || err);
+        errorToReturn = { status: 500, body: { error: 'Drive upload failed', details: err.message || err } };
+        return;
+      }
+    } else {
+      errorToReturn = {
+        status: 200,
+        body: {
+          authenticated: false,
+          authUrl: auth.generateAuthUrl(),
+          pdfPath,
+        }
+      };
+      return;
+    }
+  } catch (err) {
+    console.error('Document processing failed:', err);
+    errorToReturn = { status: 500, body: { error: 'Failed to process document' } };
+  } finally {
+    // 4. GUARANTEED CLEANUP: always try to delete temp file
+    if (pdfPath && fs.existsSync(pdfPath)) {
+      try {
+        fs.unlinkSync(pdfPath);
+        console.log(`[Cleanup] Deleted temporary file: ${pdfPath}`);
+      } catch (cleanupErr) {
+        console.error(`[Cleanup] Failed to delete ${pdfPath}:`, cleanupErr);
+      }
     }
   }
 
-   return res.status(200).json({
-    authenticated: false,
-    authUrl: auth.generateAuthUrl(),
-    pdfPath,
-  });
+  // Respond to client
+  if (uploaded) {
+    return res.json({ uploaded: true, file: uploaded });
+  } else if (errorToReturn) {
+    return res.status(errorToReturn.status).json(errorToReturn.body);
+  }
 });
 
 exports.oauthCallback = asyncHandler(async (req, res) => {
