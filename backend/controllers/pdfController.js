@@ -8,6 +8,92 @@ const fs = require('fs');
 const path = require('path');
 const requestService = require('../services/requestService');
 
+// Generate Access Denied HTML page with kiosk theme
+function getAccessDeniedPage(attemptedEmail, adminUrl) {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Access Denied - Barangay Biluso</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: 'Inter', system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 50%, #1e3a5f 100%);
+            padding: 20px;
+          }
+          .container { max-width: 480px; width: 100%; text-align: center; }
+          .logo {
+            width: 80px; height: 80px; margin: 0 auto 24px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3);
+          }
+          .logo svg { width: 40px; height: 40px; color: white; }
+          .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px; padding: 40px 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+          }
+          .icon-error {
+            width: 64px; height: 64px; margin: 0 auto 20px;
+            background: #fef2f2; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+          }
+          .icon-error svg { width: 32px; height: 32px; color: #dc2626; }
+          h1 { color: #dc2626; font-size: 24px; font-weight: 700; margin-bottom: 16px; }
+          .message { color: #4b5563; font-size: 15px; line-height: 1.6; margin-bottom: 16px; }
+          .email-badge {
+            display: inline-block; background: #fee2e2; color: #dc2626;
+            padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; margin: 8px 0 24px;
+          }
+          .warning {
+            background: #fefce8; border: 1px solid #fef08a; border-radius: 8px;
+            padding: 12px 16px; color: #854d0e; font-size: 13px; margin-bottom: 24px;
+          }
+          .btn {
+            display: inline-block; background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none;
+            font-weight: 600; font-size: 15px; transition: transform 0.2s, box-shadow 0.2s;
+          }
+          .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4); }
+          .footer { margin-top: 24px; color: rgba(255, 255, 255, 0.6); font-size: 13px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+          </div>
+          <div class="card">
+            <div class="icon-error">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h1>Access Denied</h1>
+            <p class="message">This admin dashboard is restricted to authorized Barangay Biluso personnel only.</p>
+            <div class="email-badge">${attemptedEmail}</div>
+            <div class="warning">
+              <strong>Note:</strong> Unauthorized access attempts are logged for security purposes.
+            </div>
+            <a href="${adminUrl}" class="btn">Return to Login</a>
+          </div>
+          <p class="footer">Barangay Biluso Kiosk System</p>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
 exports.initAuth = asyncHandler(async (req, res) => {
   const authUrl = auth.generateAuthUrl();
   res.json({ authUrl });
@@ -98,44 +184,18 @@ exports.oauthCallback = asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'No authorization code provided' });
   }
 
+  const adminUrl = process.env.VITE_ADMIN_URL || 'https://admin.brgybiluso.me';
+  
   try {
     await auth.handleOAuthCallback(code);
-    const adminUrl = process.env.VITE_ADMIN_URL || 'http://localhost:3000';
     res.redirect(`${adminUrl}?auth=success`);
   } catch (err) {
     console.error('OAuth callback error:', err.message);
     
     // Check if this is an access denied error
     if (err.message.startsWith('ACCESS_DENIED:')) {
-      const errorDetails = err.message.replace('ACCESS_DENIED:', '');
-      return res.status(403).send(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Access Denied</title>
-            <style>
-              body { font-family: 'Inter', system-ui, sans-serif; padding: 40px; text-align: center; background: #1f2937; min-height: 100vh; }
-              .card { max-width: 520px; margin: 60px auto; padding: 48px; background: #111827; border-radius: 8px; border: 1px solid #374151; }
-              h1 { color: #dc2626; margin-bottom: 24px; font-size: 28px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
-              .divider { width: 60px; height: 3px; background: #dc2626; margin: 0 auto 24px; }
-              p { color: #9ca3af; line-height: 1.8; margin: 16px 0; font-size: 15px; }
-              .warning { color: #fbbf24; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-top: 32px; }
-              a { display: inline-block; margin-top: 32px; padding: 14px 32px; background: #374151; color: #e5e7eb; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; border: 1px solid #4b5563; transition: all 0.2s; }
-              a:hover { background: #4b5563; color: #ffffff; }
-            </style>
-          </head>
-          <body>
-            <div class="card">
-              <h1>Access Denied</h1>
-              <div class="divider"></div>
-              <p>${errorDetails}</p>
-              <p>This system is restricted to authorized personnel only. Unauthorized access attempts are logged and may be subject to further action.</p>
-              <p class="warning">This incident has been recorded.</p>
-              <a href="${process.env.VITE_ADMIN_URL || 'http://localhost:3000'}">Return</a>
-            </div>
-          </body>
-        </html>
-      `);
+      const attemptedEmail = err.message.replace('ACCESS_DENIED:', '').split('You attempted with:')[1]?.trim() || 'Unknown';
+      return res.status(403).send(getAccessDeniedPage(attemptedEmail, adminUrl));
     }
     
     res.status(500).json({ error: 'Authentication failed', details: err.message });
