@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
 import KeyboardInput from './KeyboardInput';
 import { useKeyboard } from '../context/KeyboardContext';
+import { useTranslation } from "react-i18next";
+
 
 const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) => {
     const [currentStep, setCurrentStep] = useState(0);
     const [isReviewMode, setIsReviewMode] = useState(false);
     const { hideKeyboard } = useKeyboard();
 
+    const { t } = useTranslation();
+
     // Step 0: Full Name (required)
     // Step 1: Email & Contact Number (both optional - system email used for PayMongo if none provided)
     const totalSteps = 2;
-    
+
     // Fallback email for PayMongo when user doesn't have one
     const KIOSK_FALLBACK_EMAIL = 'walkin.kiosk@barangay.gov.ph';
 
@@ -64,7 +68,7 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
 
     const goPrevious = () => {
         hideKeyboard();
-        
+
         if (currentStep > 0) {
             setCurrentStep(currentStep - 1);
         } else {
@@ -86,9 +90,9 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
     // Review Mode
     if (isReviewMode) {
         const reviewFields = [
-            { label: 'Full Name', key: 'fullName', required: true },
-            { label: 'Email', key: 'email', required: false },
-            { label: 'Contact Number', key: 'contactNumber', required: false },
+            { label: t('full_name'), key: 'fullName', required: true },
+            { label: t('email'), key: 'email', required: false },
+            { label: t('contact_number'), key: 'contactNumber', required: false },
         ];
 
         // Check if using fallback email
@@ -97,8 +101,8 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
         return (
             <div className="w-full flex flex-col items-center justify-center p-4">
                 <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-2xl border border-gray-100">
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2 text-center">Review Your Information</h1>
-                    <p className="text-gray-500 text-center mb-8">Please verify all information is correct</p>
+                    <h1 className="text-3xl font-bold text-gray-800 mb-2 text-center">{t('review_title')}</h1>
+                    <p className="text-gray-500 text-center mb-8">{t('review_subtitle')}</p>
 
                     <div className="space-y-4 mb-8">
                         {reviewFields.map((field, index) => (
@@ -106,11 +110,11 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
                                 <div className="flex-1">
                                     <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
                                         {field.label}
-                                        {!field.required && <span className="text-gray-400 ml-1">(Optional)</span>}
+                                        {!field.required && <span className="text-gray-400 ml-1">{t('optional_tag')}</span>}
                                     </p>
                                     <p className="text-lg font-bold text-gray-800 mt-1">
-                                        {field.key === 'email' && isUsingFallbackEmail 
-                                            ? <span className="text-gray-400 italic">Not provided (using kiosk receipt)</span>
+                                        {field.key === 'email' && isUsingFallbackEmail
+                                            ? <span className="text-gray-400 italic">{t('fallback_email')}</span>
                                             : (formData[field.key] || '-')}
                                     </p>
                                 </div>
@@ -118,7 +122,7 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
                                     onClick={() => editField(field.key === 'fullName' ? 0 : 1)}
                                     className="ml-4 px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition-all duration-200 font-semibold"
                                 >
-                                    Edit
+                                    {t('edit_button')}
                                 </button>
                             </div>
                         ))}
@@ -129,13 +133,13 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
                             onClick={() => setIsReviewMode(false)}
                             className="w-1/2 bg-gray-100 text-gray-700 font-bold py-4 rounded-xl hover:bg-gray-200 active:scale-[0.98] transition-all duration-200 border border-gray-200"
                         >
-                            Back to Form
+                            {t('back_to_form_button')}
                         </button>
                         <button
                             onClick={submitForm}
                             className="w-1/2 bg-emerald-600 text-white font-bold py-4 rounded-xl hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200"
                         >
-                            Proceed to Next
+                            {t('next_button')}
                         </button>
                     </div>
                 </div>
@@ -150,17 +154,17 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
         return (
             <div className="w-full flex flex-col items-center justify-center p-4">
                 <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-xl border border-gray-100">
-                    
+
                     {/* Header */}
                     <div className="text-center mb-6">
-                        <h2 className="text-2xl font-bold text-gray-800">Personal Information</h2>
-                        <p className="text-gray-500 mt-1">Step {currentStep + 1} of {totalSteps}</p>
+                        <h2 className="text-2xl font-bold text-gray-800">{t('personal_info')}</h2>
+                        <p className="text-gray-500 mt-1">{t('step_label')} {currentStep + 1} {t('of')} {totalSteps}</p>
                     </div>
 
                     {/* Progress Bar */}
                     <div className="mb-8">
                         <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                            <div 
+                            <div
                                 className="bg-emerald-600 h-2.5 rounded-full transition-all duration-500 ease-out"
                                 style={{ width: `${progressPercent}%` }}
                             ></div>
@@ -168,14 +172,14 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
                     </div>
 
                     <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); goNext(); }}>
-                        
+
                         <div>
                             <label className="block text-lg font-semibold text-gray-700 mb-3">
-                                Full Name <span className="text-red-500">*</span>
+                                {t('full_name')} <span className="text-red-500">*</span>
                             </label>
                             <KeyboardInput
                                 type="text"
-                                placeholder="Enter your full name"
+                                placeholder={t('enter_full_name')}
                                 value={formData.fullName || ''}
                                 onChange={(value) => handleChange('fullName', value)}
                                 autoFocus={true}
@@ -188,13 +192,13 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
                                 onClick={goPrevious}
                                 className="w-1/2 bg-gray-100 text-gray-700 font-bold py-4 rounded-xl hover:bg-gray-200 active:scale-[0.98] transition-all duration-200 border border-gray-200"
                             >
-                                Back
+                                {t('back_button')}
                             </button>
                             <button
                                 type="submit"
                                 className="w-1/2 bg-emerald-600 text-white font-bold py-4 rounded-xl hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200"
                             >
-                                Next
+                                {t('next_button')}
                             </button>
                         </div>
                     </form>
@@ -207,18 +211,18 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
     return (
         <div className="w-full flex flex-col items-center justify-center p-4">
             <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-xl border border-gray-100">
-                
+
                 {/* Header */}
                 <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">Contact Information</h2>
-                    <p className="text-gray-500 mt-1">Step {currentStep + 1} of {totalSteps}</p>
-                    <p className="text-sm text-gray-400 mt-2">Optional for walk-in customers</p>
+                    <h2 className="text-2xl font-bold text-gray-800">{t('contact_info_title')}</h2>
+                    <p className="text-gray-500 mt-1">{t('step_label')} {currentStep + 1} {t('of')} {totalSteps}</p>
+                    <p className="text-sm text-gray-400 mt-2">{t('optional_walkin')}</p>
                 </div>
 
                 {/* Progress Bar */}
                 <div className="mb-8">
                     <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                        <div 
+                        <div
                             className="bg-emerald-600 h-2.5 rounded-full transition-all duration-500 ease-out"
                             style={{ width: `${progressPercent}%` }}
                         ></div>
@@ -226,28 +230,28 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
                 </div>
 
                 <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); goNext(); }}>
-                    
+
                     <div>
                         <label className="block text-lg font-semibold text-gray-700 mb-3">
-                            Email Address <span className="text-gray-400 text-sm font-normal">(Optional)</span>
+                            {t('email')} <span className="text-gray-400 text-sm font-normal">{t('optional_tag')}</span>
                         </label>
                         <KeyboardInput
                             type="email"
-                            placeholder="Enter your email (e.g., yourname)"
+                            placeholder={t('enter_email')}
                             value={formData.email || ''}
                             onChange={handleEmailChange}
                             autoFocus={true}
                         />
-                        <p className="text-sm text-gray-400 mt-2">Leave blank if you don't have email - you'll receive a printed receipt instead</p>
+                        <p className="text-sm text-gray-400 mt-2">{t('email_instruction')}</p>
                     </div>
 
                     <div>
                         <label className="block text-lg font-semibold text-gray-700 mb-3">
-                            Contact Number <span className="text-gray-400 text-sm font-normal">(Optional)</span>
+                            {t('contact_number')} <span className="text-gray-400 text-sm font-normal">{t('optional_tag')}</span>
                         </label>
                         <KeyboardInput
                             type="tel"
-                            placeholder="Enter your contact number"
+                            placeholder={t('enter_contact_number')}
                             value={formData.contactNumber || ''}
                             onChange={(value) => handleChange('contactNumber', value)}
                         />
@@ -259,13 +263,13 @@ const PersonalInfo = ({ formData, handleFormChange, handleNext, handleBack }) =>
                             onClick={goPrevious}
                             className="w-1/2 bg-gray-100 text-gray-700 font-bold py-4 rounded-xl hover:bg-gray-200 active:scale-[0.98] transition-all duration-200 border border-gray-200"
                         >
-                            Previous
+                            {t('previous_button')}
                         </button>
                         <button
                             type="submit"
                             className="w-1/2 bg-emerald-600 text-white font-bold py-4 rounded-xl hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200"
                         >
-                            Review
+                            {t('review_button')}
                         </button>
                     </div>
                 </form>

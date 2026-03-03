@@ -66,7 +66,7 @@ const TrackRequest = () => {
                             onClick={() => { hideKeyboard(); navigate('/'); }}
                             className="w-1/2 bg-gray-100 text-gray-700 font-bold py-4 rounded-xl hover:bg-gray-200 active:scale-[0.98] transition-all duration-200 border border-gray-200"
                         >
-                            Back
+                            {t('back_button')}k
                         </button>
                         <button
                             type="submit"

@@ -9,6 +9,7 @@ import Confirmation from "./components/Confirmation";
 import Home from "./components/Home";
 import TrackRequest from "./components/TrackRequest";
 import Help from "./components/Help";
+import LanguageSelect from "./components/LanguageSelect";
 
 const PageTransition = ({ children }) => (
   <motion.div
@@ -43,9 +44,13 @@ const AnimatedRoutes = ({
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        {/* HOME */}
+        {/* LANGUAGE SELECT */}
         <Route
           path="/"
+          element={<PageTransition><LanguageSelect /></PageTransition>} />
+        {/* HOME */}
+        <Route
+          path="/home"
           element={<PageTransition><Home /></PageTransition>} />
         {/* TRACK REQUEST */}
         <Route
@@ -57,7 +62,7 @@ const AnimatedRoutes = ({
           path="/help"
           element={<PageTransition>
             <Help
-              handleBack={() => navigate("/")}
+              handleBack={() => navigate("/home")}
             />
           </PageTransition>}></Route>
         {/* PERSONAL INFO */}
@@ -71,7 +76,7 @@ const AnimatedRoutes = ({
                   setFormData({ ...formData, [e.target.name]: e.target.value })
                 }
                 handleNext={() => navigate("/select-document")}
-                handleBack={() => navigate("/")}
+                handleBack={() => navigate("/home")}
               />
             </PageTransition>
           }
