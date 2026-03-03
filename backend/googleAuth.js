@@ -304,7 +304,17 @@ async function ensureValidToken() {
     if (!oAuth2Client.credentials || !oAuth2Client.credentials.access_token) {
       console.log('⏳ Loading credentials from token.json...');
       const savedTokens = JSON.parse(fs.readFileSync(TOKEN_PATH));
+      
+      // CRITICAL: Only load if email matches authorized admin
+      if (!savedTokens.email || savedTokens.email.toLowerCase() !== ALLOWED_ADMIN_EMAIL.toLowerCase()) {
+        console.error(`❌ Token belongs to wrong email: ${savedTokens.email || 'unknown'}`);
+        console.error(`   Expected: ${ALLOWED_ADMIN_EMAIL}`);
+        console.error(`   Please delete token.json and re-authenticate with the correct account.`);
+        throw new Error(`Token belongs to unauthorized email (${savedTokens.email}). Admin must re-authenticate with ${ALLOWED_ADMIN_EMAIL}.`);
+      }
+      
       oAuth2Client.setCredentials(savedTokens);
+      console.log(`✅ Credentials loaded for ${savedTokens.email}`);
     }
     
     const expiryDate = oAuth2Client.credentials.expiry_date;
