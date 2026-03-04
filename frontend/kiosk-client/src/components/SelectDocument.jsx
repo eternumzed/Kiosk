@@ -24,19 +24,19 @@ const SelectDocument = ({ filteredDocuments, selectedCategory, setSelectedCatego
                         onClick={() => setSelectedCategory('Clearance')}
                         className={`w-full font-semibold py-4 px-4 rounded-xl transition-all duration-200 ${selectedCategory === 'Clearance' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'}`}
                     >
-                        Clearance
+                        {t('category_clearance')}
                     </button>
                     <button
                         onClick={() => setSelectedCategory('Certification')}
                         className={`w-full font-semibold py-4 px-4 rounded-xl transition-all duration-200 ${selectedCategory === 'Certification' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'}`}
                     >
-                        Certification
+                        {t('category_certification')}
                     </button>
                     <button
                         onClick={() => setSelectedCategory('Permit')}
                         className={`w-full font-semibold py-4 px-4 rounded-xl transition-all duration-200 ${selectedCategory === 'Permit' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'}`}
                     >
-                        Permit
+                        {t('category_permit')}
                     </button>
                 </div>
 
@@ -65,7 +65,7 @@ const SelectDocument = ({ filteredDocuments, selectedCategory, setSelectedCatego
                                 </button>
                             ))
                         ) : (
-                            <p className="text-gray-500">No documents found.</p>
+                            <p className="text-gray-500">{t('no_documents')}</p>
                         )}
                     </div>
 

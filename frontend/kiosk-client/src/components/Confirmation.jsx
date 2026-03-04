@@ -1,7 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
 const Confirmation = ({ handleNext, resetUI }) => {
+  const { t } = useTranslation();
 
   const [request, setRequest] = useState(null);
   const [error, setError] = useState(null);
@@ -92,14 +94,13 @@ const Confirmation = ({ handleNext, resetUI }) => {
     return (
       <div className="w-full flex flex-col items-center justify-center p-4">
         <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-xl border border-gray-100 text-center">
-          <h2 className="text-2xl font-bold mb-4 text-red-600">Connection Error</h2>
+          <h2 className="text-2xl font-bold mb-4 text-red-600">{t('error_conn_title')}</h2>
           <p className="text-gray-700 mb-4">
-            Unable to load your request details. The server may be temporarily unavailable.
+            {t('error_conn_msg')}
           </p>
           <p className="text-sm text-gray-600 mb-6 font-mono bg-gray-50 p-3 rounded-xl border border-gray-200">
             {error}
           </p>
-          
           <div className="space-y-3">
             <button
               onClick={() => {
@@ -112,16 +113,15 @@ const Confirmation = ({ handleNext, resetUI }) => {
               disabled={retrying}
               className="w-full bg-emerald-600 text-white font-semibold py-4 rounded-xl hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
-              {retrying ? 'Retrying...' : 'Retry'}
+              {retrying ? t('btn_retrying') : t('btn_retry')}
             </button>
-            
             <button
               onClick={() => {
                 window.location.href = '/';
               }}
               className="w-full bg-gray-100 text-gray-700 font-semibold py-4 rounded-xl hover:bg-gray-200 active:scale-[0.98] transition-all duration-200 border border-gray-200"
             >
-              Return to Home
+              {t('btn_home')}
             </button>
           </div>
         </div>
@@ -138,8 +138,8 @@ const Confirmation = ({ handleNext, resetUI }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <p className="text-lg text-gray-700 font-semibold">Loading confirmation...</p>
-          <p className="text-sm text-gray-500 mt-2">Please wait while we retrieve your request details</p>
+          <p className="text-lg text-gray-700 font-semibold">{t('conf_loading')}</p>
+          <p className="text-sm text-gray-500 mt-2">{t('conf_loading_sub')}</p>
         </div>
       </div>
     );
@@ -148,36 +148,31 @@ const Confirmation = ({ handleNext, resetUI }) => {
   return (
     <div className="w-full flex flex-col items-center justify-center p-4">
       <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-xl border border-gray-100 text-center">
-        <h2 className="text-2xl font-bold mb-4 text-gray-800">Request Confirmed!</h2>
-        
+        <h2 className="text-2xl font-bold mb-4 text-gray-800">{t('conf_title')}</h2>
         {request.paymentMethod === "Cash" ? (
           <p className="text-gray-600 mb-4">
-            Please present this receipt to the barangay cashier to complete your payment.
+            {t('conf_cash_msg')}
           </p>
         ) : (
           <p className="text-gray-600 mb-4">
-            Your payment was successfully processed. Your document will be ready for pickup after validation.
+            {t('conf_wallet_msg')}
           </p>
         )}
-
         <div className="p-4 bg-emerald-50 rounded-xl mb-6 border border-emerald-200">
-          <p className="text-sm font-semibold text-emerald-700 uppercase tracking-wide">Reference No</p>
+          <p className="text-sm font-semibold text-emerald-700 uppercase tracking-wide">{t('conf_ref_label')}</p>
           <p className="text-xl font-bold text-emerald-800 break-words mt-1">{request.referenceNumber}</p>
         </div>
-
         <div className="space-y-3 text-gray-700 text-left bg-gray-50 p-4 rounded-xl border border-gray-200">
-          <p><span className="font-semibold text-gray-600">Full Name:</span> {request.fullName}</p>
-          <p><span className="font-semibold text-gray-600">Document:</span> {request.document}</p>
-          <p><span className="font-semibold text-gray-600">Amount:</span> ₱{request.amount}</p>
-          <p><span className="font-semibold text-gray-600">Payment Method:</span> {request.paymentMethod}</p>
-          <p><span className="font-semibold text-gray-600">Status:</span> {request.status}</p>
-          <p><span className="font-semibold text-gray-600">Payment Status:</span> {request.paymentStatus}</p>
-          <p><span className="font-semibold text-gray-600">Date:</span> {new Date(request.paidAt).toLocaleString("en-US", {
+          <p><span className="font-semibold text-gray-600">{t('label_name')}:</span> {request.fullName}</p>
+          <p><span className="font-semibold text-gray-600">{t('label_document') || 'Document'}:</span> {request.document}</p>
+          <p><span className="font-semibold text-gray-600">{t('label_amount')}:</span> ₱{request.amount}</p>
+          <p><span className="font-semibold text-gray-600">{t('label_pay_method')}:</span> {request.paymentMethod}</p>
+          <p><span className="font-semibold text-gray-600">{t('label_status') || 'Status'}:</span> {request.status}</p>
+          <p><span className="font-semibold text-gray-600">{t('label_payment_status') || 'Payment Status'}:</span> {request.paymentStatus}</p>
+          <p><span className="font-semibold text-gray-600">{t('label_date')}:</span> {new Date(request.paidAt).toLocaleString("en-US", {
             timeZone: "Asia/Manila"
           })}</p>
         </div>
-
-
         <div className="mt-6 flex gap-4">
           <button
             onClick={async () => {
@@ -200,9 +195,8 @@ const Confirmation = ({ handleNext, resetUI }) => {
             }}
             className="flex-1 bg-gray-100 text-gray-700 font-bold py-4 rounded-xl hover:bg-gray-200 active:scale-[0.98] transition-all duration-200 border border-gray-200"
           >
-            Print Receipt
+            {t('btn_print')}
           </button>
-
           <button
             onClick={() => {
               handleNext()
@@ -210,7 +204,7 @@ const Confirmation = ({ handleNext, resetUI }) => {
             }}
             className="flex-1 bg-emerald-600 text-white font-bold py-4 rounded-xl hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200"
           >
-            Done
+            {t('btn_done')}
           </button>
         </div>
       </div>

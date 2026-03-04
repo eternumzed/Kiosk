@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as faceapi from '@vladmandic/face-api';
 
 const CameraModal = ({ isOpen, onClose, onCapture }) => {
+    const { t } = useTranslation();
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -484,14 +486,14 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
                                     onClick={retakePhoto}
                                     className="flex-1 px-4 py-3 bg-amber-500 text-white font-semibold rounded-xl hover:bg-amber-600 active:scale-[0.98] transition-all duration-200"
                                 >
-                                    Retake
+                                    {t('cam_btn_retake')}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={confirmCapture}
                                     className="flex-1 px-4 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200"
                                 >
-                                    Confirm
+                                    {t('cam_btn_confirm')}
                                 </button>
                             </div>
                         </>
@@ -499,8 +501,8 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
                         <>
                             {isLoading && (
                                 <div className="text-center text-gray-600 py-8">
-                                    <div className="mb-4">Loading camera...</div>
-                                    <p className="text-sm text-gray-500">Please allow a moment for initialization</p>
+                                    <div className="mb-4">{t('cam_loading')}</div>
+                                    <p className="text-sm text-gray-500">{t('cam_loading_sub')}</p>
                                 </div>
                             )}
                             {error && (
@@ -550,8 +552,8 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
 
                                     {isLoading && (
                                         <div className="text-center text-white mt-4 text-sm">
-                                            <p>Initializing video stream...</p>
-                                            <p className="text-xs mt-2">Check browser console for details</p>
+                                            <p>{t('cam_initializing')}</p>
+                                            <p className="text-xs mt-2">{t('cam_console_hint')}</p>
                                         </div>
                                     )}
 
@@ -568,7 +570,7 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
                                                     )}
                                                 </svg>
                                                 <span className="text-sm font-medium">
-                                                    {faceDetected ? 'Face properly positioned - Ready to capture!' : 'Position face: center + facing forward'}
+                                                    {faceDetected ? t('cam_status_ready') : t('cam_status_adjust')}
                                                 </span>
                                             </div>
 
@@ -577,7 +579,7 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
                                                     <svg className="w-6 h-6 mr-2 animate-spin" fill="currentColor" viewBox="0 0 20 20">
                                                         <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 1119.414 5.414 1 1 0 01-1.414-1.414A5.002 5.002 0 005.659 4.1V3a1 1 0 011-1zm7.464 4.536a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L10 8.414l2.121 2.121a1 1 0 001.414-1.414l-3-3z" clipRule="evenodd" />
                                                     </svg>
-                                                    <span className="text-lg font-bold">Capturing in {captureCountdown}...</span>
+                                                    <span className="text-lg font-bold">{t('cam_capturing_in', { seconds: captureCountdown })}</span>
                                                 </div>
                                             )}
                                         </>
@@ -588,7 +590,7 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
                                             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2z" clipRule="evenodd" />
                                             </svg>
-                                            <span className="text-sm font-medium">Face detection unavailable - camera ready</span>
+                                            <span className="text-sm font-medium">{t('cam_detection_off')}</span>
                                         </div>
                                     )}
 
@@ -598,7 +600,7 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
                                             onClick={handleClose}
                                             className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl border border-gray-200 hover:bg-gray-200 active:scale-[0.98] transition-all duration-200"
                                         >
-                                            Cancel
+                                            {t('cam_btn_cancel')}
                                         </button>
                                         <button
                                             type="button"
@@ -610,7 +612,7 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
                                                     : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
                                             }`}
                                         >
-                                            {faceDetected ? 'Capture Photo' : 'Position Face to Capture'}
+                                            {faceDetected ? t('cam_btn_capture') : t('cam_btn_position')}
                                         </button>
                                     </div>
                                 </>
