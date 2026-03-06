@@ -26,6 +26,8 @@ const TrackRequest = () => {
         setRequest(null);
         setError(false);
 
+        console.log("Tracking reference number:", referenceNumber);
+
         const trackingNumber = referenceNumber.toUpperCase();
         setReferenceNumber(trackingNumber);
 
@@ -77,7 +79,18 @@ const TrackRequest = () => {
                             {loading ? t('tracking_loading') : t('track_button')}
                         </button>
                     </div>
+
+                    <h2 className="mt-6 text-2xl font-bold mb-6 text-center text-gray-800">Or use QR</h2>
+                    <button
+                        type="submit"
+                        className="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200 mx-auto block"
+                        onClick={() => {
+                            setReferenceNumber('BRGY-WP-2026-0118');
+                        }}
+                    >Scan QR </button>
+
                 </form>
+
 
                 {loading && (
                     <div className="mt-6 p-4 bg-gray-50 rounded-xl text-gray-800 text-center border border-gray-200">
