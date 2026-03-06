@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 
 const TRACK_URL = 'https://api.brgybiluso.me/api/request/track-request';
 
@@ -12,6 +13,7 @@ function statusColor(status = '') {
 }
 
 export default function RequestStatusPage() {
+  const { t } = useTranslation();
   const [referenceNumber, setReferenceNumber] = useState('');
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -32,13 +34,13 @@ export default function RequestStatusPage() {
       const found = Array.isArray(response.data) ? response.data[0] : null;
 
       if (!found) {
-        setError('No request found for this reference number.');
+        setError(t('status_not_found'));
         return;
       }
 
       setRequest(found);
     } catch (err) {
-      setError(err.response?.data?.error || 'Unable to fetch request status right now.');
+      setError(err.response?.data?.error || t('status_unavailable'));
     } finally {
       setLoading(false);
     }
@@ -55,9 +57,9 @@ export default function RequestStatusPage() {
   return (
     <div className="w-full min-h-screen px-4 py-8">
       <div className="mx-auto w-full max-w-2xl rounded-3xl border border-emerald-100 bg-white/95 p-6 shadow-xl md:p-8">
-        <h1 className="text-3xl font-black text-slate-800">Track Document Status</h1>
+        <h1 className="text-3xl font-black text-slate-800">{t('status_page_title')}</h1>
         <p className="mt-2 text-slate-600">
-          Scan QR from your receipt or enter your reference number below.
+          {t('status_page_subtitle')}
         </p>
 
         <form
@@ -70,7 +72,7 @@ export default function RequestStatusPage() {
           <input
             type="text"
             className="h-12 flex-1 rounded-xl border border-slate-300 px-4 text-base font-semibold uppercase tracking-wide outline-none focus:border-emerald-500"
-            placeholder="e.g. BRGY-CLR-2026-0001"
+            placeholder={t('status_page_placeholder')}
             value={referenceNumber}
             onChange={(e) => setReferenceNumber(e.target.value)}
           />
@@ -79,7 +81,7 @@ export default function RequestStatusPage() {
             className="h-12 rounded-xl bg-emerald-600 px-6 font-bold text-white hover:bg-emerald-700"
             disabled={loading}
           >
-            {loading ? 'Checking...' : 'Check Status'}
+            {loading ? t('status_page_checking') : t('status_page_check_button')}
           </button>
         </form>
 
@@ -89,7 +91,7 @@ export default function RequestStatusPage() {
 
         {request && (
           <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-sm font-semibold uppercase tracking-wider text-slate-500">Reference Number</p>
+            <p className="text-sm font-semibold uppercase tracking-wider text-slate-500">{t('status_page_reference')}</p>
             <p className="text-xl font-black text-slate-800">{request.referenceNumber}</p>
 
             <div className={`mt-4 inline-flex rounded-full border px-4 py-2 text-sm font-bold ${statusColor(request.status)}`}>
@@ -97,10 +99,10 @@ export default function RequestStatusPage() {
             </div>
 
             <div className="mt-5 space-y-2 text-slate-700">
-              <p><span className="font-semibold">Document:</span> {request.document || '-'}</p>
-              <p><span className="font-semibold">Requested by:</span> {request.fullName || '-'}</p>
-              <p><span className="font-semibold">Payment:</span> {request.paymentStatus || '-'}</p>
-              <p><span className="font-semibold">Last Update:</span> {new Date(request.updatedAt).toLocaleString('en-PH')}</p>
+              <p><span className="font-semibold">{t('status_page_document')}:</span> {request.document || '-'}</p>
+              <p><span className="font-semibold">{t('status_page_requested_by')}:</span> {request.fullName || '-'}</p>
+              <p><span className="font-semibold">{t('status_page_payment')}:</span> {request.paymentStatus || '-'}</p>
+              <p><span className="font-semibold">{t('status_page_last_update')}:</span> {new Date(request.updatedAt).toLocaleString('en-PH')}</p>
             </div>
           </div>
         )}

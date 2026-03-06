@@ -16,6 +16,8 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
+import { useTranslation } from 'react-i18next';
+import { userAPI } from '../services/api';
 
 // Documents that require a photo
 const TEMPLATES_REQUIRING_PHOTO = [
@@ -69,6 +71,7 @@ const personalInfoFields = [
 ];
 
 export default function RequestFormScreen({ navigation, route }) {
+  const { t } = useTranslation();
   const { document } = route.params;
   const docSpecificFields = documentFields[document.name] || [];
   const requiresPhoto = TEMPLATES_REQUIRING_PHOTO.includes(document.name);
@@ -132,13 +135,13 @@ export default function RequestFormScreen({ navigation, route }) {
       if (useCamera) {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert('Permission Required', 'Camera permission is needed to take a photo.');
+          Alert.alert(t('common_permission_required'), t('request_form_camera_permission_required'));
           return;
         }
       } else {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert('Permission Required', 'Media library permission is needed to select a photo.');
+          Alert.alert(t('common_permission_required'), t('request_form_media_permission_required'));
           return;
         }
       }
@@ -163,7 +166,7 @@ export default function RequestFormScreen({ navigation, route }) {
       }
     } catch (error) {
       console.error('Image picker error:', error);
-      Alert.alert('Error', 'Failed to pick image');
+      Alert.alert(t('common_error'), t('request_form_error_pick_image'));
     } finally {
       setImageLoading(false);
     }
@@ -173,11 +176,11 @@ export default function RequestFormScreen({ navigation, route }) {
     // Validate current field
     if (isPhotoStep) {
       if (!formData.photoId) {
-        Alert.alert('Required', 'Please take or select a photo');
+        Alert.alert(t('common_required'), t('request_form_required_photo'));
         return;
       }
     } else if (!formData[currentField.key]?.trim()) {
-      Alert.alert('Required', `Please enter ${currentField.label}`);
+      Alert.alert(t('common_required'), t('request_form_required_field', { field: currentField.label }));
       return;
     }
 
@@ -223,7 +226,7 @@ export default function RequestFormScreen({ navigation, route }) {
       return !formData[field.key]?.trim();
     });
     if (emptyFields.length > 0) {
-      Alert.alert('Incomplete', `Please fill all fields. Missing: ${emptyFields.map(f => f.label).join(', ')}`);
+      Alert.alert(t('request_form_incomplete_title'), t('request_form_incomplete_message', { fields: emptyFields.map(f => f.label).join(', ') }));
       return;
     }
     
@@ -244,13 +247,13 @@ export default function RequestFormScreen({ navigation, route }) {
             style={styles.retakeButton}
             onPress={() => handleChange('photoId', '')}
           >
-            <Text style={styles.retakeButtonText}>Remove Photo</Text>
+            <Text style={styles.retakeButtonText}>{t('request_form_remove_photo')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <View style={styles.photoPlaceholder}>
           <Feather name="camera" size={40} color={colors.gray[400]} />
-          <Text style={styles.photoPlaceholderText}>ID Photo Required</Text>
+          <Text style={styles.photoPlaceholderText}>{t('request_form_photo_required')}</Text>
         </View>
       )}
 
@@ -263,14 +266,14 @@ export default function RequestFormScreen({ navigation, route }) {
             onPress={() => pickImage(true)}
           >
             <Feather name="camera" size={20} color="#fff" />
-            <Text style={[styles.photoButtonText, styles.cameraButtonText]}>Take Photo</Text>
+            <Text style={[styles.photoButtonText, styles.cameraButtonText]}>{t('request_form_take_photo')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.photoButton, styles.galleryButton]}
             onPress={() => pickImage(false)}
           >
             <Feather name="image" size={20} color={colors.primary[600]} />
-            <Text style={[styles.photoButtonText, styles.galleryButtonText]}>Choose from Gallery</Text>
+            <Text style={[styles.photoButtonText, styles.galleryButtonText]}>{t('request_form_choose_gallery')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -292,13 +295,13 @@ export default function RequestFormScreen({ navigation, route }) {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{document.name}</Text>
-          <Text style={styles.headerSubtitle}>Step {currentStep + 1} of {totalSteps}</Text>
+          <Text style={styles.headerSubtitle}>{t('request_form_step_of', { current: currentStep + 1, total: totalSteps })}</Text>
         </View>
         <TouchableOpacity
           style={styles.skipButton}
           onPress={handleReview}
         >
-          <Text style={styles.skipButtonText}>Review</Text>
+          <Text style={styles.skipButtonText}>{t('common_review')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -338,7 +341,7 @@ export default function RequestFormScreen({ navigation, route }) {
                 style={styles.quickFill}
                 onPress={() => handleChange('fullName', user.fullName)}
               >
-                <Text style={styles.quickFillText}>Use: {user.fullName}</Text>
+                <Text style={styles.quickFillText}>{t('request_form_use_value', { value: user.fullName })}</Text>
               </TouchableOpacity>
             )}
             {user && currentField.key === 'email' && user.email && (
@@ -346,7 +349,7 @@ export default function RequestFormScreen({ navigation, route }) {
                 style={styles.quickFill}
                 onPress={() => handleChange('email', user.email)}
               >
-                <Text style={styles.quickFillText}>Use: {user.email}</Text>
+                <Text style={styles.quickFillText}>{t('request_form_use_value', { value: user.email })}</Text>
               </TouchableOpacity>
             )}
           </>
@@ -361,7 +364,7 @@ export default function RequestFormScreen({ navigation, route }) {
           activeOpacity={0.8}
         >
           <Text style={styles.nextButtonText}>
-            {currentStep < totalSteps - 1 ? 'Next' : 'Review & Pay'}
+            {currentStep < totalSteps - 1 ? t('common_next') : t('request_form_review_pay')}
           </Text>
         </TouchableOpacity>
 

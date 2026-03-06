@@ -17,8 +17,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { userAPI } from '../services/api';
 import { colors } from '../theme/colors';
 import NotificationService from '../services/notificationService';
+import { useTranslation } from 'react-i18next';
+import i18n, { saveLanguage } from '../i18n';
 
 export default function ProfileScreen({ navigation, user, dispatch }) {
+  const { t } = useTranslation();
   // Compute initial fullName from firstName/lastName if fullName not present
   const initialFullName = user?.fullName || 
     (user?.firstName || user?.lastName 
@@ -46,13 +49,24 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
   const [verificationType, setVerificationType] = useState(''); // 'email' or 'phone'
   const [pendingValue, setPendingValue] = useState('');
 
+  const handleLanguageChange = async (lang) => {
+    if (!lang || i18n.language === lang) return;
+
+    try {
+      await i18n.changeLanguage(lang);
+      await saveLanguage(lang);
+    } catch (error) {
+      Alert.alert(t('common_error'), t('profile_error_change_language'));
+    }
+  };
+
   const handleNotificationToggle = async (value) => {
     // Check if push notifications are available
     if (!NotificationService.isPushNotificationAvailable()) {
       Alert.alert(
-        'Not Available',
-        'Push notifications require a development build. They are not supported in Expo Go.',
-        [{ text: 'OK' }]
+        t('common_not_available'),
+        t('profile_notifications_not_available'),
+        [{ text: t('common_ok') }]
       );
       return;
     }
@@ -65,8 +79,8 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
         if (!hasPermission) {
           setNotificationsEnabled(false);
           Alert.alert(
-            'Permissions Required',
-            'Please enable notifications in your device settings to receive updates.'
+            t('profile_permissions_required'),
+            t('profile_enable_notifications_settings')
           );
           return;
         }
@@ -88,7 +102,7 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
     } catch (error) {
       // Revert toggle if update fails
       setNotificationsEnabled(!value);
-      Alert.alert('Error', 'Failed to update notification settings');
+      Alert.alert(t('common_error'), t('profile_error_notification_settings'));
     }
   };
 
@@ -139,9 +153,9 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
       setEmail(updatedUser.email || '');
       setAddress(updatedUser.address || '');
       setBarangay(updatedUser.barangay || '');
-      Alert.alert('Success', 'Profile updated successfully');
+      Alert.alert(t('common_success'), t('profile_updated_success'));
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || error.error || 'Failed to update profile');
+      Alert.alert(t('common_error'), error.response?.data?.error || error.error || t('profile_error_update'));
     } finally {
       setLoading(false);
     }
@@ -154,9 +168,9 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
       setVerificationType('email');
       setPendingValue(email.trim());
       setShowOtpModal(true);
-      Alert.alert('Verification Required', 'An OTP has been sent to your new email address.');
+      Alert.alert(t('profile_verification_required'), t('profile_email_otp_sent'));
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || error.error || 'Failed to send verification email');
+      Alert.alert(t('common_error'), error.response?.data?.error || error.error || t('profile_error_send_verification_email'));
     } finally {
       setLoading(false);
     }
@@ -169,9 +183,9 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
       setVerificationType('phone');
       setPendingValue(phone.trim());
       setShowOtpModal(true);
-      Alert.alert('Verification Required', 'An OTP has been sent to your new phone number.');
+      Alert.alert(t('profile_verification_required'), t('profile_phone_otp_sent'));
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || error.error || 'Failed to send verification SMS');
+      Alert.alert(t('common_error'), error.response?.data?.error || error.error || t('profile_error_send_verification_sms'));
     } finally {
       setLoading(false);
     }
@@ -179,7 +193,7 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
 
   const handleVerifyOtp = async () => {
     if (!otpValue || otpValue.length !== 6) {
-      Alert.alert('Error', 'Please enter a valid 6-digit OTP');
+      Alert.alert(t('common_error'), t('profile_error_invalid_otp'));
       return;
     }
     
@@ -215,19 +229,22 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
       setPendingValue('');
       setEditing(false);
       
-      Alert.alert('Success', `${verificationType === 'email' ? 'Email' : 'Phone number'} updated successfully`);
+      Alert.alert(
+        t('common_success'),
+        verificationType === 'email' ? t('profile_email_updated_success') : t('profile_phone_updated_success')
+      );
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || error.error || 'Invalid OTP');
+      Alert.alert(t('common_error'), error.response?.data?.error || error.error || t('profile_error_invalid_otp_server'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = async () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('profile_logout'), t('profile_logout_confirm'), [
+      { text: t('profile_cancel'), style: 'cancel' },
       {
-        text: 'Logout',
+        text: t('profile_logout'),
         style: 'destructive',
         onPress: async () => {
           await SecureStore.deleteItemAsync('userToken');
@@ -265,15 +282,15 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Personal Information</Text>
+          <Text style={styles.sectionTitle}>{t('profile_title_personal')}</Text>
           {!editing && (
             <TouchableOpacity onPress={() => setEditing(true)}>
-              <Text style={styles.editButton}>Edit</Text>
+              <Text style={styles.editButton}>{t('profile_edit')}</Text>
             </TouchableOpacity>
           )}
         </View>
 
-        <Text style={styles.label}>Full Name</Text>
+        <Text style={styles.label}>{t('profile_full_name')}</Text>
         <TextInput
           style={[
             styles.input,
@@ -287,7 +304,7 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
         />
 
 
-        <Text style={styles.label}>Phone Number</Text>
+        <Text style={styles.label}>{t('profile_phone')}</Text>
         <TextInput
           style={[styles.input, editing && styles.inputEditing]}
           value={phone}
@@ -297,7 +314,7 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
           placeholderTextColor={colors.text.placeholder}
         />
 
-        <Text style={styles.label}>Email Address</Text>
+        <Text style={styles.label}>{t('profile_email')}</Text>
         <TextInput
           style={[
             styles.input,
@@ -312,7 +329,7 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
           placeholderTextColor={colors.text.placeholder}
         />
 
-        <Text style={styles.label}>Address</Text>
+        <Text style={styles.label}>{t('profile_address')}</Text>
         <TextInput
           style={[
             styles.input,
@@ -325,7 +342,7 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
           placeholderTextColor={colors.text.placeholder}
         />
 
-        <Text style={styles.label}>Barangay</Text>
+        <Text style={styles.label}>{t('profile_barangay')}</Text>
         <TextInput
           style={[
             styles.input,
@@ -349,7 +366,7 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.buttonText}>Save Changes</Text>
+                <Text style={styles.buttonText}>{t('profile_save_changes')}</Text>
               )}
             </TouchableOpacity>
             <TouchableOpacity
@@ -364,22 +381,44 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
               }}
               activeOpacity={0.8}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.cancelButtonText}>{t('profile_cancel')}</Text>
             </TouchableOpacity>
           </View>
         )}
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Preferences</Text>
+        <Text style={styles.sectionTitle}>{t('profile_title_preferences')}</Text>
         <View style={styles.settingItem}>
-          <Text style={styles.settingText}>Enable Notifications</Text>
+          <Text style={styles.settingText}>{t('profile_notifications')}</Text>
           <Switch
             value={notificationsEnabled}
             onValueChange={handleNotificationToggle}
             trackColor={{ false: '#767577', true: colors.primary[600] }}
             thumbColor={notificationsEnabled ? colors.primary[700] : '#f4f3f4'}
           />
+        </View>
+
+        <View style={styles.languageBlock}>
+          <Text style={styles.settingText}>{t('profile_language')}</Text>
+          <View style={styles.languageButtons}>
+            <TouchableOpacity
+              style={[styles.languageButton, i18n.language === 'en' && styles.languageButtonActive]}
+              onPress={() => handleLanguageChange('en')}
+            >
+              <Text style={[styles.languageButtonText, i18n.language === 'en' && styles.languageButtonTextActive]}>
+                {t('profile_language_en')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.languageButton, i18n.language === 'fil' && styles.languageButtonActive]}
+              onPress={() => handleLanguageChange('fil')}
+            >
+              <Text style={[styles.languageButtonText, i18n.language === 'fil' && styles.languageButtonTextActive]}>
+                {t('profile_language_fil')}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -389,7 +428,7 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
           onPress={handleLogout}
           activeOpacity={0.8}
         >
-          <Text style={styles.logoutButtonText}>Logout</Text>
+          <Text style={styles.logoutButtonText}>{t('profile_logout')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -407,17 +446,17 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
-              Verify {verificationType === 'email' ? 'Email' : 'Phone Number'}
+              {verificationType === 'email' ? t('profile_verify_email') : t('profile_verify_phone')}
             </Text>
             <Text style={styles.modalSubtitle}>
-              Enter the 6-digit OTP sent to {pendingValue}
+              {t('profile_enter_otp', { value: pendingValue })}
             </Text>
             
             <TextInput
               style={styles.otpInput}
               value={otpValue}
               onChangeText={setOtpValue}
-              placeholder="Enter OTP"
+              placeholder={t('profile_otp_placeholder')}
               keyboardType="number-pad"
               maxLength={6}
               autoFocus={true}
@@ -438,7 +477,7 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
                   }
                 }}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>{t('profile_cancel')}</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
@@ -449,7 +488,7 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.buttonText}>Verify</Text>
+                  <Text style={styles.buttonText}>{t('profile_verify')}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -601,6 +640,35 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.text.primary,
     fontWeight: '500',
+  },
+  languageBlock: {
+    paddingTop: 16,
+  },
+  languageButtons: {
+    marginTop: 12,
+    flexDirection: 'row',
+    gap: 10,
+  },
+  languageButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.gray[300],
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    backgroundColor: colors.gray[50],
+  },
+  languageButtonActive: {
+    borderColor: colors.primary[600],
+    backgroundColor: colors.primary[600],
+  },
+  languageButtonText: {
+    color: colors.text.secondary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  languageButtonTextActive: {
+    color: '#fff',
   },
   settingArrow: {
     fontSize: 22,

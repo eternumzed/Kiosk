@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
+import { useTranslation } from 'react-i18next';
 
 const documents = [
   { name: 'Barangay Clearance', fee: 50, category: 'Clearance' },
@@ -23,8 +24,32 @@ const documents = [
 const categories = ['All', 'Clearance', 'Certification', 'Permit'];
 
 export default function SelectDocumentScreen({ navigation, route }) {
+  const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const user = route.params?.user;
+
+  const getDocumentLabel = (name) => {
+    const keyMap = {
+      'Barangay Clearance': 'doc_barangay_clearance',
+      'Barangay Indigency Certificate': 'doc_barangay_indigency',
+      'First Time Job Seeker Certificate': 'doc_first_time_job_seeker',
+      'Barangay Work Permit': 'doc_barangay_work_permit',
+      'Barangay Residency Certificate': 'doc_barangay_residency',
+      'Certificate of Good Moral Character': 'doc_good_moral',
+      'Barangay Business Permit': 'doc_barangay_business_permit',
+      'Barangay Building Clearance': 'doc_barangay_building_clearance',
+    };
+    const key = keyMap[name];
+    return key ? t(key) : name;
+  };
+
+  const getCategoryLabel = (category) => {
+    if (category === 'All') return t('common_all');
+    if (category === 'Clearance') return t('category_clearance');
+    if (category === 'Certification') return t('category_certification');
+    if (category === 'Permit') return t('category_permit');
+    return category;
+  };
 
   const filteredDocuments = selectedCategory === 'All'
     ? documents
@@ -46,7 +71,7 @@ export default function SelectDocumentScreen({ navigation, route }) {
         >
           <Feather name="arrow-left" size={20} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Select Document</Text>
+        <Text style={styles.headerTitle}>{t('select_document_title')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -72,7 +97,7 @@ export default function SelectDocumentScreen({ navigation, route }) {
                 selectedCategory === category && styles.categoryTextActive,
               ]}
             >
-              {category}
+              {getCategoryLabel(category)}
             </Text>
           </TouchableOpacity>
         ))}
@@ -91,11 +116,11 @@ export default function SelectDocumentScreen({ navigation, route }) {
             activeOpacity={0.7}
           >
             <View style={styles.documentInfo}>
-              <Text style={styles.documentName}>{doc.name}</Text>
-              <Text style={styles.documentCategory}>{doc.category}</Text>
+              <Text style={styles.documentName}>{getDocumentLabel(doc.name)}</Text>
+              <Text style={styles.documentCategory}>{getCategoryLabel(doc.category)}</Text>
             </View>
             <View style={styles.documentFee}>
-              <Text style={styles.feeLabel}>Fee</Text>
+              <Text style={styles.feeLabel}>{t('common_fee')}</Text>
               <Text style={styles.feeAmount}>₱{doc.fee}</Text>
             </View>
           </TouchableOpacity>

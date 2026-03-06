@@ -853,6 +853,18 @@ input[type="checkbox"]:indeterminate {
   gap: 10px;
 }
 
+.queue-list-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.queue-sublist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .queue-card {
   background: #ffffff;
   border: 1px solid var(--gray-200);
@@ -870,9 +882,16 @@ input[type="checkbox"]:indeterminate {
   color: var(--gray-600);
 }
 
+.queue-card-head span {
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
 .queue-card-head strong {
   color: var(--gray-800);
   font-size: 14px;
+  overflow-wrap: anywhere;
 }
 
 .queue-card-row {
@@ -880,6 +899,12 @@ input[type="checkbox"]:indeterminate {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+@media (max-width: 1180px) {
+  .queue-list-columns {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Trash Section */

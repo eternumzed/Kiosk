@@ -17,10 +17,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { AntDesign } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { authAPI } from '../services/api';
 import { colors } from '../theme/colors';
 
 export default function SignupScreen({ navigation, dispatch }) {
+  const { t } = useTranslation();
   const [step, setStep] = useState('phone'); // 'phone' | 'otp' | 'details'
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
@@ -30,27 +32,27 @@ export default function SignupScreen({ navigation, dispatch }) {
   const [otpToken, setOtpToken] = useState('');
   const [countdown, setCountdown] = useState(0);
 
-  // Countdown timer for resend OTP
   useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [countdown]);
 
   const handleGoogleSignup = async () => {
     setGoogleLoading(true);
     try {
       await WebBrowser.dismissBrowser();
-      
+
       const apiUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'https://api.brgybiluso.me';
       const redirectUrl = Linking.createURL('google-auth-callback');
-      
+
       const result = await WebBrowser.openAuthSessionAsync(
         `${apiUrl}/api/auth/google/mobile?redirectUrl=${encodeURIComponent(redirectUrl)}`,
         redirectUrl
       );
-      
+
       if (result.type === 'success' && result.url) {
         const url = result.url;
         const queryStart = url.indexOf('?');
@@ -59,27 +61,27 @@ export default function SignupScreen({ navigation, dispatch }) {
           const token = params.get('token');
           const userJson = params.get('user');
           const error = params.get('error');
-          
+
           if (error) {
-            Alert.alert('Google Sign Up', decodeURIComponent(error));
+            Alert.alert(t('signup_google_sign_up'), decodeURIComponent(error));
           } else if (token) {
             await SecureStore.setItemAsync('userToken', token);
             const refreshToken = params.get('refreshToken');
             if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
             const user = userJson ? JSON.parse(decodeURIComponent(userJson)) : null;
             if (user) await AsyncStorage.setItem('user', JSON.stringify(user));
-            
+
             dispatch({
               type: 'LOGIN',
               payload: { user, token },
             });
           } else {
-            Alert.alert('Google Sign Up', 'No token received');
+            Alert.alert(t('signup_google_sign_up'), t('login_error_no_token'));
           }
         }
       }
     } catch (error) {
-      Alert.alert('Google Sign Up', error.message || 'Failed to sign up');
+      Alert.alert(t('signup_google_sign_up'), error.message || t('signup_error_failed'));
     } finally {
       setGoogleLoading(false);
     }
@@ -92,7 +94,7 @@ export default function SignupScreen({ navigation, dispatch }) {
 
   const handleRequestOTP = async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
-      Alert.alert('Error', 'Please enter a valid phone number');
+      Alert.alert(t('common_error'), t('login_error_invalid_phone'));
       return;
     }
 
@@ -102,9 +104,9 @@ export default function SignupScreen({ navigation, dispatch }) {
       setOtpToken(response?.otpToken ?? response?.data?.otpToken);
       setStep('otp');
       setCountdown(60);
-      Alert.alert('OTP Sent', 'A verification code has been sent to your phone via SMS');
+      Alert.alert(t('login_otp_sent_title'), t('login_otp_sent_message'));
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || error.error || 'Failed to send OTP');
+      Alert.alert(t('common_error'), error.response?.data?.error || error.error || t('login_error_send_otp'));
     } finally {
       setLoading(false);
     }
@@ -112,38 +114,37 @@ export default function SignupScreen({ navigation, dispatch }) {
 
   const handleVerifyOTP = async () => {
     if (!otp || otp.length < 6) {
-      Alert.alert('Error', 'Please enter the 6-digit OTP');
+      Alert.alert(t('common_error'), t('login_error_invalid_otp'));
       return;
     }
 
-    // Move to details step to collect name before completing signup
     setStep('details');
   };
 
   const handleSignup = async () => {
     if (!fullName || fullName.trim().length < 2) {
-      Alert.alert('Error', 'Please enter your full name');
+      Alert.alert(t('common_error'), t('signup_error_full_name_required'));
       return;
     }
 
     setLoading(true);
     try {
       const response = await authAPI.verifyOTP(phoneNumber, otp, fullName.trim(), otpToken);
-      
+
       const token = response?.token ?? response?.data?.token;
       const refreshToken = response?.refreshToken ?? response?.data?.refreshToken;
       const user = response?.user ?? response?.data?.user;
-      
+
       if (token) await SecureStore.setItemAsync('userToken', token);
       if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
       if (user) await AsyncStorage.setItem('user', JSON.stringify(user));
-      
+
       dispatch({
         type: 'LOGIN',
         payload: { user, token },
       });
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || error.error || 'Signup failed');
+      Alert.alert(t('common_error'), error.response?.data?.error || error.error || t('signup_error_failed'));
     } finally {
       setLoading(false);
     }
@@ -157,37 +158,36 @@ export default function SignupScreen({ navigation, dispatch }) {
   const getStepTitle = () => {
     switch (step) {
       case 'phone':
-        return 'Create Account';
+        return t('signup_title_create_account');
       case 'otp':
-        return 'Verify OTP';
+        return t('signup_title_verify_otp');
       case 'details':
-        return 'Complete Profile';
+        return t('signup_title_complete_profile');
       default:
-        return 'Sign Up';
+        return t('signup_title_sign_up');
     }
   };
 
   const getStepSubtitle = () => {
     switch (step) {
       case 'phone':
-        return 'Enter your phone number to get started';
+        return t('signup_subtitle_phone');
       case 'otp':
-        return `Enter the code sent to ${phoneNumber}`;
+        return t('login_subtitle_enter_code', { phoneNumber });
       case 'details':
-        return 'Tell us your name to complete registration';
+        return t('signup_subtitle_details');
       default:
         return '';
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <View style={styles.headerSection}>
-          {/* Backdrop Seal */}
           <Image
             source={require('../../assets/BRGY_BILUSO_SEAL-modified.png')}
             style={styles.backdropSeal}
@@ -206,10 +206,10 @@ export default function SignupScreen({ navigation, dispatch }) {
         <View style={styles.formSection}>
           {step === 'phone' && (
             <>
-              <Text style={styles.inputLabel}>Mobile Number</Text>
+              <Text style={styles.inputLabel}>{t('common_mobile_number')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="09XX XXX XXXX"
+                placeholder={t('login_phone_placeholder')}
                 value={phoneNumber}
                 onChangeText={formatPhoneNumber}
                 placeholderTextColor={colors.text.placeholder}
@@ -217,7 +217,7 @@ export default function SignupScreen({ navigation, dispatch }) {
                 autoComplete="tel"
                 maxLength={15}
               />
-              
+
               <TouchableOpacity
                 style={styles.button}
                 onPress={handleRequestOTP}
@@ -227,13 +227,13 @@ export default function SignupScreen({ navigation, dispatch }) {
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.buttonText}>Send OTP</Text>
+                  <Text style={styles.buttonText}>{t('common_send_otp')}</Text>
                 )}
               </TouchableOpacity>
 
               <View style={styles.dividerContainer}>
                 <View style={styles.divider} />
-                <Text style={styles.dividerText}>OR</Text>
+                <Text style={styles.dividerText}>{t('common_or')}</Text>
                 <View style={styles.divider} />
               </View>
 
@@ -248,7 +248,7 @@ export default function SignupScreen({ navigation, dispatch }) {
                 ) : (
                   <>
                     <AntDesign name="google" size={20} color="#4285F4" style={styles.googleIcon} />
-                    <Text style={styles.googleButtonText}>Continue with Google</Text>
+                    <Text style={styles.googleButtonText}>{t('login_continue_google')}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -257,7 +257,7 @@ export default function SignupScreen({ navigation, dispatch }) {
 
           {step === 'otp' && (
             <>
-              <Text style={styles.inputLabel}>Verification Code</Text>
+              <Text style={styles.inputLabel}>{t('common_verification_code')}</Text>
               <TextInput
                 style={[styles.input, styles.otpInput]}
                 placeholder="000000"
@@ -277,37 +277,39 @@ export default function SignupScreen({ navigation, dispatch }) {
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.buttonText}>Verify OTP</Text>
+                  <Text style={styles.buttonText}>{t('signup_verify_otp')}</Text>
                 )}
               </TouchableOpacity>
 
               <View style={styles.resendRow}>
-                <Text style={styles.resendText}>Didn't receive the code? </Text>
-                <TouchableOpacity 
-                  onPress={handleResendOTP} 
+                <Text style={styles.resendText}>{t('login_didnt_receive')} </Text>
+                <TouchableOpacity
+                  onPress={handleResendOTP}
                   disabled={countdown > 0}
                 >
-                  <Text style={[
-                    styles.resendLink, 
-                    countdown > 0 && styles.resendDisabled
-                  ]}>
-                    {countdown > 0 ? `Resend in ${countdown}s` : 'Resend OTP'}
+                  <Text
+                    style={[
+                      styles.resendLink,
+                      countdown > 0 && styles.resendDisabled,
+                    ]}
+                  >
+                    {countdown > 0 ? t('login_resend_in', { seconds: countdown }) : t('login_resend_otp')}
                   </Text>
                 </TouchableOpacity>
               </View>
 
               <TouchableOpacity onPress={() => { setStep('phone'); setOtp(''); }}>
-                <Text style={styles.backLink}>← Change phone number</Text>
+                <Text style={styles.backLink}>← {t('login_change_phone')}</Text>
               </TouchableOpacity>
             </>
           )}
 
           {step === 'details' && (
             <>
-              <Text style={styles.inputLabel}>Full Name</Text>
+              <Text style={styles.inputLabel}>{t('common_full_name')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Juan Dela Cruz"
+                placeholder={t('signup_full_name_placeholder')}
                 value={fullName}
                 onChangeText={setFullName}
                 placeholderTextColor={colors.text.placeholder}
@@ -322,18 +324,18 @@ export default function SignupScreen({ navigation, dispatch }) {
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.buttonText}>Create Account</Text>
+                  <Text style={styles.buttonText}>{t('signup_complete_signup')}</Text>
                 )}
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setStep('otp')}>
-                <Text style={styles.backLink}>← Back to OTP</Text>
+                <Text style={styles.backLink}>← {t('signup_back_to_otp')}</Text>
               </TouchableOpacity>
             </>
           )}
 
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
             <Text style={styles.linkText}>
-              Already have an account? <Text style={styles.linkBold}>Login</Text>
+              {t('signup_already_have_account')} <Text style={styles.linkBold}>{t('signup_login')}</Text>
             </Text>
           </TouchableOpacity>
         </View>

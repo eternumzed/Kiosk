@@ -256,14 +256,12 @@ function App() {
     items.sort((a, b) => {
       let cmp = 0;
       if (sortBy === 'date') {
-        // FIFO: oldest first regardless of sortDir in date mode.
         cmp = new Date(a.createdTime) - new Date(b.createdTime);
       } else if (sortBy === 'name') {
         cmp = (a.name || '').localeCompare(b.name || '');
       } else if (sortBy === 'size') {
         cmp = (a.size || 0) - (b.size || 0);
       }
-      if (sortBy === 'date') return cmp;
       return sortDir === 'asc' ? cmp : -cmp;
     });
 
@@ -309,6 +307,64 @@ function App() {
       return String(a.referenceNumber || '').localeCompare(String(b.referenceNumber || ''));
     });
   }, [queueSnapshot.forPickup]);
+
+  const splitIntoTwoColumns = (items) => {
+    const midpoint = Math.ceil(items.length / 2);
+    return [items.slice(0, midpoint), items.slice(midpoint)];
+  };
+
+  const renderQueueCards = (items, prefix) => {
+    const shouldSplit = items.length >= 10;
+    const [leftItems, rightItems] = splitIntoTwoColumns(items);
+    return (
+      <div className={`queue-list ${shouldSplit ? 'queue-list-columns' : ''}`}>
+        <div className="queue-sublist">
+          {leftItems.map((item) => (
+            <div className="queue-card" key={`${prefix}-${item.referenceNumber}`}>
+              <div className="queue-card-head">
+                <strong>{item.referenceNumber}</strong>
+                <span>{item.document || '-'}</span>
+              </div>
+              <div className="queue-card-row">
+                <span>{item.fullName || '-'}</span>
+                <select
+                  className="status-select"
+                  value={item.status}
+                  onChange={(e) => updateQueueStatus(item.referenceNumber, e.target.value)}
+                  disabled={updatingStatusId === `ref-${item.referenceNumber}`}
+                >
+                  {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
+                </select>
+              </div>
+            </div>
+          ))}
+        </div>
+        {shouldSplit && (
+          <div className="queue-sublist">
+            {rightItems.map((item) => (
+              <div className="queue-card" key={`${prefix}-2-${item.referenceNumber}`}>
+                <div className="queue-card-head">
+                  <strong>{item.referenceNumber}</strong>
+                  <span>{item.document || '-'}</span>
+                </div>
+                <div className="queue-card-row">
+                  <span>{item.fullName || '-'}</span>
+                  <select
+                    className="status-select"
+                    value={item.status}
+                    onChange={(e) => updateQueueStatus(item.referenceNumber, e.target.value)}
+                    disabled={updatingStatusId === `ref-${item.referenceNumber}`}
+                  >
+                    {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const initiateAuth = async () => {
     try {
@@ -841,27 +897,7 @@ function App() {
                   {orderedNowServing.length === 0 ? (
                     <div className="empty-state"><p>No document currently in Processing.</p></div>
                   ) : (
-                    <div className="queue-list">
-                      {orderedNowServing.map((item) => (
-                        <div className="queue-card" key={item.referenceNumber}>
-                          <div className="queue-card-head">
-                            <strong>{item.referenceNumber}</strong>
-                            <span>{item.document || '-'}</span>
-                          </div>
-                          <div className="queue-card-row">
-                            <span>{item.fullName || '-'}</span>
-                            <select
-                              className="status-select"
-                              value={item.status}
-                              onChange={(e) => updateQueueStatus(item.referenceNumber, e.target.value)}
-                              disabled={updatingStatusId === `ref-${item.referenceNumber}`}
-                            >
-                              {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
-                            </select>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    renderQueueCards(orderedNowServing, 'now-serving')
                   )}
                 </div>
 
@@ -870,27 +906,7 @@ function App() {
                   {orderedForPickup.length === 0 ? (
                     <div className="empty-state"><p>No document waiting for pickup.</p></div>
                   ) : (
-                    <div className="queue-list">
-                      {orderedForPickup.map((item) => (
-                        <div className="queue-card" key={item.referenceNumber}>
-                          <div className="queue-card-head">
-                            <strong>{item.referenceNumber}</strong>
-                            <span>{item.document || '-'}</span>
-                          </div>
-                          <div className="queue-card-row">
-                            <span>{item.fullName || '-'}</span>
-                            <select
-                              className="status-select"
-                              value={item.status}
-                              onChange={(e) => updateQueueStatus(item.referenceNumber, e.target.value)}
-                              disabled={updatingStatusId === `ref-${item.referenceNumber}`}
-                            >
-                              {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
-                            </select>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    renderQueueCards(orderedForPickup, 'for-pickup')
                   )}
                 </div>
               </div>

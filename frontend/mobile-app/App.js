@@ -9,6 +9,8 @@ import AuthStackNavigator from './src/navigation/AuthStackNavigator';
 import AppTabNavigator from './src/navigation/AppTabNavigator';
 import SplashScreen from './src/screens/SplashScreen';
 import NotificationService from './src/services/notificationService';
+import './src/i18n';
+import { loadSavedLanguage } from './src/i18n';
 
 const Stack = createNativeStackNavigator();
 
@@ -63,6 +65,7 @@ export default function App() {
       let userToken;
       let user;
       try {
+        await loadSavedLanguage();
         userToken = await SecureStore.getItemAsync('userToken');
         const storedUser = await AsyncStorage.getItem('user');
         user = storedUser ? JSON.parse(storedUser) : null;

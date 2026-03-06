@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, Image } from 'react-native';
 import { colors } from '../theme/colors';
+import { useTranslation } from 'react-i18next';
 
 export default function SplashScreen() {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
       {/* Backdrop Seal */}
@@ -15,8 +17,8 @@ export default function SplashScreen() {
         source={require('../../assets/BRGY_BILUSO_SEAL-modified.png')}
         style={styles.logo}
       />
-      <Text style={styles.title}>Barangay Kiosk</Text>
-      <Text style={styles.subtitle}>Your Digital Service Hub</Text>
+      <Text style={styles.title}>{t('splash_title')}</Text>
+      <Text style={styles.subtitle}>{t('splash_subtitle')}</Text>
       <ActivityIndicator size="large" color="#fff" style={styles.loader} />
     </View>
   );

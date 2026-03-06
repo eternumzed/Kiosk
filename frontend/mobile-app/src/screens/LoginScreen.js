@@ -18,8 +18,10 @@ import * as Linking from 'expo-linking';
 import { AntDesign } from '@expo/vector-icons';
 import { authAPI } from '../services/api';
 import { colors } from '../theme/colors';
+import { useTranslation } from 'react-i18next';
 
 export default function LoginScreen({ navigation, dispatch }) {
+  const { t } = useTranslation();
   const [step, setStep] = useState('phone'); // 'phone' | 'otp'
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
@@ -58,7 +60,7 @@ export default function LoginScreen({ navigation, dispatch }) {
               payload: { user, token },
             });
           } catch (e) {
-            Alert.alert('Error', 'Failed to process login');
+            Alert.alert(t('common_error'), t('login_error_process'));
           }
         }
         setGoogleLoading(false);
@@ -94,7 +96,7 @@ export default function LoginScreen({ navigation, dispatch }) {
           const error = params.get('error');
           
           if (error) {
-            Alert.alert('Google Sign In', decodeURIComponent(error));
+            Alert.alert(t('login_google_sign_in'), decodeURIComponent(error));
           } else if (token) {
             await SecureStore.setItemAsync('userToken', token);
             const refreshToken = params.get('refreshToken');
@@ -107,12 +109,12 @@ export default function LoginScreen({ navigation, dispatch }) {
               payload: { user, token },
             });
           } else {
-            Alert.alert('Google Sign In', 'No token received');
+            Alert.alert(t('login_google_sign_in'), t('login_error_no_token'));
           }
         }
       }
     } catch (error) {
-      Alert.alert('Google Sign In', error.message || 'Failed to sign in');
+      Alert.alert(t('login_google_sign_in'), error.message || t('login_error_signin_failed'));
     } finally {
       setGoogleLoading(false);
     }
@@ -126,7 +128,7 @@ export default function LoginScreen({ navigation, dispatch }) {
 
   const handleRequestOTP = async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
-      Alert.alert('Error', 'Please enter a valid phone number');
+      Alert.alert(t('common_error'), t('login_error_invalid_phone'));
       return;
     }
 
@@ -136,9 +138,9 @@ export default function LoginScreen({ navigation, dispatch }) {
       setOtpToken(response?.otpToken ?? response?.data?.otpToken);
       setStep('otp');
       setCountdown(60); // 60 second cooldown for resend
-      Alert.alert('OTP Sent', 'A verification code has been sent to your phone via SMS');
+      Alert.alert(t('login_otp_sent_title'), t('login_otp_sent_message'));
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || error.error || 'Failed to send OTP');
+      Alert.alert(t('common_error'), error.response?.data?.error || error.error || t('login_error_send_otp'));
     } finally {
       setLoading(false);
     }
@@ -146,7 +148,7 @@ export default function LoginScreen({ navigation, dispatch }) {
 
   const handleVerifyOTP = async () => {
     if (!otp || otp.length < 6) {
-      Alert.alert('Error', 'Please enter the 6-digit OTP');
+      Alert.alert(t('common_error'), t('login_error_invalid_otp'));
       return;
     }
 
@@ -167,7 +169,7 @@ export default function LoginScreen({ navigation, dispatch }) {
         payload: { user, token },
       });
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || error.error || 'Invalid OTP');
+      Alert.alert(t('common_error'), error.response?.data?.error || error.error || t('login_error_invalid_otp_server'));
     } finally {
       setLoading(false);
     }
@@ -202,22 +204,22 @@ export default function LoginScreen({ navigation, dispatch }) {
           />
         </View>
         <Text style={styles.title}>
-          {step === 'phone' ? 'Welcome Back' : 'Enter OTP'}
+          {step === 'phone' ? t('login_title_welcome_back') : t('login_title_enter_otp')}
         </Text>
         <Text style={styles.subtitle}>
           {step === 'phone' 
-            ? 'Login with your mobile number' 
-            : `Enter the code sent to ${phoneNumber}`}
+            ? t('login_subtitle_phone')
+            : t('login_subtitle_enter_code', { phoneNumber })}
         </Text>
       </View>
 
       <View style={styles.formSection}>
         {step === 'phone' ? (
           <>
-            <Text style={styles.inputLabel}>Mobile Number</Text>
+            <Text style={styles.inputLabel}>{t('common_mobile_number')}</Text>
             <TextInput
               style={styles.input}
-              placeholder="09XX XXX XXXX"
+              placeholder={t('login_phone_placeholder')}
               value={phoneNumber}
               onChangeText={formatPhoneNumber}
               placeholderTextColor={colors.text.placeholder}
@@ -235,13 +237,13 @@ export default function LoginScreen({ navigation, dispatch }) {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.buttonText}>Send OTP</Text>
+                <Text style={styles.buttonText}>{t('common_send_otp')}</Text>
               )}
             </TouchableOpacity>
           </>
         ) : (
           <>
-            <Text style={styles.inputLabel}>Verification Code</Text>
+            <Text style={styles.inputLabel}>{t('common_verification_code')}</Text>
             <TextInput
               style={[styles.input, styles.otpInput]}
               placeholder="000000"
@@ -262,12 +264,12 @@ export default function LoginScreen({ navigation, dispatch }) {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.buttonText}>Verify & Login</Text>
+                <Text style={styles.buttonText}>{t('login_verify_and_login')}</Text>
               )}
             </TouchableOpacity>
 
             <View style={styles.resendRow}>
-              <Text style={styles.resendText}>Didn't receive the code? </Text>
+              <Text style={styles.resendText}>{t('login_didnt_receive')} </Text>
               <TouchableOpacity 
                 onPress={handleResendOTP} 
                 disabled={countdown > 0}
@@ -276,20 +278,20 @@ export default function LoginScreen({ navigation, dispatch }) {
                   styles.resendLink, 
                   countdown > 0 && styles.resendDisabled
                 ]}>
-                  {countdown > 0 ? `Resend in ${countdown}s` : 'Resend OTP'}
+                  {countdown > 0 ? t('login_resend_in', { seconds: countdown }) : t('login_resend_otp')}
                 </Text>
               </TouchableOpacity>
             </View>
 
             <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-              <Text style={styles.backText}>← Change phone number</Text>
+              <Text style={styles.backText}>← {t('login_change_phone')}</Text>
             </TouchableOpacity>
           </>
         )}
 
         <View style={styles.dividerContainer}>
           <View style={styles.divider} />
-          <Text style={styles.dividerText}>OR</Text>
+          <Text style={styles.dividerText}>{t('common_or')}</Text>
           <View style={styles.divider} />
         </View>
 
@@ -304,7 +306,7 @@ export default function LoginScreen({ navigation, dispatch }) {
           ) : (
             <>
               <AntDesign name="google" size={20} color="#4285F4" style={styles.googleIcon} />
-              <Text style={styles.googleButtonText}>Continue with Google</Text>
+              <Text style={styles.googleButtonText}>{t('login_continue_google')}</Text>
             </>
           )}
         </TouchableOpacity>

@@ -22,6 +22,11 @@ const TrackRequest = () => {
     const streamRef = useRef(null);
     const scanTimerRef = useRef(null);
 
+    const statusKey = (status) => {
+        const normalized = String(status || '').toLowerCase().replace(/[^a-z]/g, '');
+        return `status_${normalized}`;
+    };
+
     useEffect(() => {
         return () => {
             hideKeyboard();
@@ -227,12 +232,12 @@ const TrackRequest = () => {
                         </button>
                     </div>
 
-                    <h2 className="mt-6 text-2xl font-bold mb-6 text-center text-gray-800">Or use QR</h2>
+                    <h2 className="mt-6 text-2xl font-bold mb-6 text-center text-gray-800">{t('track_or_qr')}</h2>
                     <button
                         type="button"
                         className="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200 mx-auto block"
                         onClick={openScanner}
-                    >Scan QR </button>
+                    >{t('scan_qr')}</button>
 
                 </form>
 
@@ -249,17 +254,17 @@ const TrackRequest = () => {
                         <h3 className="font-bold text-lg text-gray-800 mb-3">{t('request_details')}</h3>
                         <p className="text-xl font-bold text-emerald-800 break-words">{request.referenceNumber}</p>
                         <p className="mt-3 text-gray-700">{t('label_document')}: <span className="font-semibold">{request.document}</span></p>
-                        <p className={`mt-3 text-xl font-bold ${request.status === t('status_pending') ? 'text-amber-600' :
-                            request.status === t('status_processing') ? 'text-blue-600' :
-                                request.status === t('status_completed') ? 'text-emerald-600' :
+                        <p className={`mt-3 text-xl font-bold ${request.status === 'Pending' ? 'text-amber-600' :
+                            request.status === 'Processing' ? 'text-blue-600' :
+                                request.status === 'Completed' ? 'text-emerald-600' :
                                     'text-red-600'
                             }`}>
-                            {t('label_status')}: {t(`status_${request.status.toLowerCase().replace(/ /g, '')}`)}
+                            {t('label_status')}: {t(statusKey(request.status), { defaultValue: request.status })}
                         </p>
-                        {request.status === t('status_completed') && (
+                        {request.status === 'Completed' && (
                             <p className="mt-3 text-sm text-gray-600 bg-emerald-100 py-2 px-4 rounded-lg inline-block">{t('status_completed_note')}</p>
                         )}
-                        {request.status === t('status_cancelled') && (
+                        {request.status === 'Cancelled' && (
                             <p className="mt-3 text-sm text-gray-600">{t('status_cancelled_note')}</p>
                         )}
                     </div>
@@ -276,8 +281,8 @@ const TrackRequest = () => {
             {scannerOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
                     <div className="w-full max-w-xl rounded-2xl bg-white p-4 shadow-2xl">
-                        <h3 className="text-lg font-bold text-gray-800">Scan Receipt QR</h3>
-                        <p className="mt-1 text-sm text-gray-600">Point the camera at the QR code printed on your receipt.</p>
+                        <h3 className="text-lg font-bold text-gray-800">{t('scan_receipt_qr')}</h3>
+                        <p className="mt-1 text-sm text-gray-600">{t('scan_receipt_qr_hint')}</p>
 
                         <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-black">
                             <video ref={videoRef} className="h-[340px] w-full object-cover" muted playsInline autoPlay />
@@ -285,7 +290,7 @@ const TrackRequest = () => {
                         </div>
 
                         {scannerBusy && !scannerError && (
-                            <p className="mt-3 text-sm text-emerald-700">Scanning for QR code...</p>
+                            <p className="mt-3 text-sm text-emerald-700">{t('scanning_qr')}</p>
                         )}
 
                         {scannerError && (
@@ -298,7 +303,7 @@ const TrackRequest = () => {
                                 onClick={closeScanner}
                                 className="rounded-lg bg-gray-100 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-200"
                             >
-                                Close
+                                {t('close')}
                             </button>
                         </div>
                     </div>

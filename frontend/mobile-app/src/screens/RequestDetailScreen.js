@@ -12,8 +12,10 @@ import {
 import { requestAPI } from '../services/api';
 import { colors } from '../theme/colors';
 import { Feather } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 export default function RequestDetailScreen({ route, navigation }) {
+  const { t } = useTranslation();
   const { requestId, referenceNumber } = route.params;
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -45,7 +47,7 @@ export default function RequestDetailScreen({ route, navigation }) {
       setRequest(data);
     } catch (error) {
       console.error('Failed to load request:', error);
-      Alert.alert('Error', 'Failed to load request details');
+      Alert.alert(t('common_error'), t('request_detail_error_load'));
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -57,22 +59,22 @@ export default function RequestDetailScreen({ route, navigation }) {
       try {
         await Linking.openURL(request.pdfUrl);
       } catch (error) {
-        Alert.alert('Error', 'Could not open document');
+        Alert.alert(t('common_error'), t('request_detail_error_open_document'));
       }
     } else if (request?.pdfDownloadUrl) {
       try {
         await Linking.openURL(request.pdfDownloadUrl);
       } catch (error) {
-        Alert.alert('Error', 'Could not download document');
+        Alert.alert(t('common_error'), t('request_detail_error_download_document'));
       }
     } else {
-      Alert.alert('Not Available', 'Document is not yet available for download');
+      Alert.alert(t('common_not_available'), t('request_detail_document_not_ready'));
     }
   };
 
   const handleToggleHidden = async () => {
     if (!request?._id && !request?.referenceNumber) {
-      Alert.alert('Error', 'Request identifier is missing');
+      Alert.alert(t('common_error'), t('request_detail_error_identifier_missing'));
       return;
     }
 
@@ -89,7 +91,7 @@ export default function RequestDetailScreen({ route, navigation }) {
     } catch (error) {
       console.error('Toggle hide state failed:', error);
       const apiMessage = error?.response?.data?.error || error?.response?.data?.message;
-      Alert.alert('Error', apiMessage || 'Failed to update request visibility');
+      Alert.alert(t('common_error'), apiMessage || t('request_detail_error_visibility'));
     } finally {
       setHiding(false);
     }
@@ -122,7 +124,7 @@ export default function RequestDetailScreen({ route, navigation }) {
   if (!request) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.notFoundText}>Request not found</Text>
+        <Text style={styles.notFoundText}>{t('request_detail_not_found')}</Text>
       </View>
     );
   }
@@ -142,29 +144,29 @@ export default function RequestDetailScreen({ route, navigation }) {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Request Information</Text>
+        <Text style={styles.sectionTitle}>{t('request_detail_request_information')}</Text>
         <View style={styles.infoRow}>
-          <Text style={styles.label}>Reference Number</Text>
+          <Text style={styles.label}>{t('common_reference_number')}</Text>
           <Text style={styles.value}>{request.referenceNumber}</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.label}>Date Submitted</Text>
+          <Text style={styles.label}>{t('request_detail_date_submitted')}</Text>
           <Text style={styles.value}>
             {new Date(request.createdAt).toLocaleDateString()}
           </Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.label}>Amount</Text>
+          <Text style={styles.label}>{t('common_amount')}</Text>
           <Text style={styles.value}>₱{request.amount}</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.label}>Payment Status</Text>
+          <Text style={styles.label}>{t('common_payment_status')}</Text>
           <Text style={[styles.value, { color: request.paymentStatus === 'Paid' ? colors.status.success : colors.status.warning }]}>
-            {request.paymentStatus || 'Pending'}
+            {request.paymentStatus || t('status_pending')}
           </Text>
         </View>
         <View style={[styles.infoRow, styles.infoRowLast]}>
-          <Text style={styles.label}>Status</Text>
+          <Text style={styles.label}>{t('common_status')}</Text>
           <Text style={[styles.value, { color: getStatusColor(request.status) }]}>
             {request.status}
           </Text>
@@ -172,28 +174,28 @@ export default function RequestDetailScreen({ route, navigation }) {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Personal Information</Text>
+        <Text style={styles.sectionTitle}>{t('common_personal_information')}</Text>
         <View style={styles.infoRow}>
-          <Text style={styles.label}>Full Name</Text>
-          <Text style={styles.value}>{request.fullName || 'N/A'}</Text>
+          <Text style={styles.label}>{t('common_full_name')}</Text>
+          <Text style={styles.value}>{request.fullName || t('common_na')}</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.label}>Email</Text>
-          <Text style={styles.value}>{request.email || 'N/A'}</Text>
+          <Text style={styles.label}>{t('common_email')}</Text>
+          <Text style={styles.value}>{request.email || t('common_na')}</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.label}>Address</Text>
-          <Text style={styles.value}>{request.address || 'N/A'}</Text>
+          <Text style={styles.label}>{t('common_address')}</Text>
+          <Text style={styles.value}>{request.address || t('common_na')}</Text>
         </View>
         <View style={[styles.infoRow, styles.infoRowLast]}>
-          <Text style={styles.label}>Contact Number</Text>
-          <Text style={styles.value}>{request.contactNumber || 'N/A'}</Text>
+          <Text style={styles.label}>{t('common_contact_number')}</Text>
+          <Text style={styles.value}>{request.contactNumber || t('common_na')}</Text>
         </View>
       </View>
 
       {request.remarks && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Remarks</Text>
+          <Text style={styles.sectionTitle}>{t('common_remarks')}</Text>
           <Text style={styles.remarksText}>{request.remarks}</Text>
         </View>
       )}
@@ -207,7 +209,7 @@ export default function RequestDetailScreen({ route, navigation }) {
             activeOpacity={0.8}
           >
             <Text style={styles.downloadButtonText}>
-              <Feather name="download" size={25} color="#0000" /> Download Document</Text>
+              <Feather name="download" size={25} color="#0000" /> {t('request_detail_download_document')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -221,16 +223,16 @@ export default function RequestDetailScreen({ route, navigation }) {
         >
           <Text style={styles.visibilityButtonText}>
             {hiding
-              ? 'Updating...'
+              ? t('common_updating')
               : request.hiddenByUser
-                ? 'Unhide from My Requests'
-                : 'Hide from My Requests'}
+                ? t('request_detail_unhide')
+                : t('request_detail_hide')}
           </Text>
         </TouchableOpacity>
       </View>
 
       <View style={[styles.section, styles.helpSection]}>
-        <Text style={styles.sectionTitle}>Next Steps</Text>
+        <Text style={styles.sectionTitle}>{t('request_detail_next_steps')}</Text>
         <View style={styles.helpCard}>
           <Text style={styles.helpIcon}>
             {request.status === 'Pending' ? <Feather name="clock" size={25} color="green"  /> :
@@ -242,14 +244,14 @@ export default function RequestDetailScreen({ route, navigation }) {
 
           <Text style={styles.helpText}>
             {request.status === 'Pending'
-              ? 'Your request is being processed. We will notify you once it is ready.'
+              ? t('request_detail_help_pending')
               : request.status === 'Processing'
-                ? 'Your document is currently being prepared.'
+                ? t('request_detail_help_processing')
                 : request.status === 'For Pick-up'
-                  ? 'Your document is ready! Visit the barangay hall to collect it.'
+                  ? t('request_detail_help_for_pickup')
                   : request.status === 'Completed'
-                    ? 'Your request has been completed. Thank you!'
-                    : 'Please check the remarks above or visit the barangay hall for more information.'}
+                    ? t('request_detail_help_completed')
+                    : t('request_detail_help_default')}
           </Text>
         </View>
       </View>

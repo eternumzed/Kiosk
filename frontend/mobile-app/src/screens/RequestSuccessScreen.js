@@ -10,8 +10,10 @@ import {
 import { requestAPI } from '../services/api';
 import { colors } from '../theme/colors';
 import { Feather } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 export default function RequestSuccessScreen({ navigation, route }) {
+  const { t } = useTranslation();
   const { referenceNumber, document, paymentMethod } = route.params;
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -42,7 +44,7 @@ export default function RequestSuccessScreen({ navigation, route }) {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `My document request has been submitted!\n\nReference Number: ${referenceNumber}\nDocument: ${document}\n\nYou can use this reference number to track your request status.`,
+        message: t('request_success_share_message', { referenceNumber, document }),
       });
     } catch (error) {
       console.error('Share error:', error);
@@ -68,7 +70,7 @@ export default function RequestSuccessScreen({ navigation, route }) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary[600]} />
-        <Text style={styles.loadingText}>Loading your request...</Text>
+        <Text style={styles.loadingText}>{t('request_success_loading')}</Text>
       </View>
     );
   }
@@ -81,21 +83,21 @@ export default function RequestSuccessScreen({ navigation, route }) {
           <Feather name="check" size={40} color="#fff" />
         </View>
 
-        <Text style={styles.title}>Request Submitted!</Text>
+        <Text style={styles.title}>{t('request_success_title')}</Text>
 
         {paymentMethod === 'Cash' ? (
           <Text style={styles.subtitle}>
-            Please visit the barangay hall to complete your payment and claim your document.
+            {t('request_success_subtitle_cash')}
           </Text>
         ) : (
           <Text style={styles.subtitle}>
-            Your payment was successful. Your document will be ready for pickup after validation.
+            {t('request_success_subtitle_online')}
           </Text>
         )}
 
         {/* Reference Number Card */}
         <View style={styles.referenceCard}>
-          <Text style={styles.referenceLabel}>Reference Number</Text>
+          <Text style={styles.referenceLabel}>{t('common_reference_number')}</Text>
           <Text style={styles.referenceNumber}>{referenceNumber}</Text>
           <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
             <Feather name="share" size={25} color="#0000" />
@@ -105,24 +107,24 @@ export default function RequestSuccessScreen({ navigation, route }) {
         {/* Request Details */}
         <View style={styles.detailsCard}>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Document</Text>
+            <Text style={styles.detailLabel}>{t('common_document')}</Text>
             <Text style={styles.detailValue}>{document}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Payment Method</Text>
+            <Text style={styles.detailLabel}>{t('common_payment_method')}</Text>
             <Text style={styles.detailValue}>{paymentMethod}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Status</Text>
+            <Text style={styles.detailLabel}>{t('common_status')}</Text>
             <View style={styles.statusBadge}>
               <Text style={styles.statusText}>
-                {paymentMethod === 'Cash' ? 'AWAITING PAYMENT' : 'PROCESSING'}
+                {paymentMethod === 'Cash' ? t('request_success_awaiting_payment') : t('status_processing').toUpperCase()}
               </Text>
             </View>
           </View>
           {request?.fullName && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Name</Text>
+              <Text style={styles.detailLabel}>{t('common_name')}</Text>
               <Text style={styles.detailValue}>{request.fullName}</Text>
             </View>
           )}
@@ -136,7 +138,7 @@ export default function RequestSuccessScreen({ navigation, route }) {
           onPress={handleTrackRequest}
           activeOpacity={0.8}
         >
-          <Text style={styles.secondaryButtonText}>Track Request</Text>
+          <Text style={styles.secondaryButtonText}>{t('common_track_request')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -144,7 +146,7 @@ export default function RequestSuccessScreen({ navigation, route }) {
           onPress={handleGoHome}
           activeOpacity={0.8}
         >
-          <Text style={styles.primaryButtonText}>Go to Home</Text>
+          <Text style={styles.primaryButtonText}>{t('common_go_home')}</Text>
         </TouchableOpacity>
       </View>
     </View>

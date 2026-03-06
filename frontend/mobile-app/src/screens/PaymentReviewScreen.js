@@ -16,8 +16,10 @@ import * as ExpoLinking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { requestAPI } from '../services/api';
 import { colors } from '../theme/colors';
+import { useTranslation } from 'react-i18next';
 
 export default function PaymentReviewScreen({ navigation, route }) {
+  const { t } = useTranslation();
   const { document, formData, user } = route.params;
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('online'); // 'online' | 'cash'
@@ -90,19 +92,19 @@ export default function PaymentReviewScreen({ navigation, route }) {
           } else if (result.type === 'cancel' || result.type === 'dismiss') {
             // User cancelled or closed browser
             Alert.alert(
-              'Payment Status',
-              'If you completed your payment, your request has been submitted. You can check your request history for status updates.',
+              t('payment_review_payment_status'),
+              t('payment_review_payment_status_message'),
               [
-                { text: 'Go to Dashboard', onPress: async () => {
+                { text: t('payment_review_go_dashboard'), onPress: async () => {
                   await AsyncStorage.removeItem('tempPhotoId');
                   navigation.navigate('Dashboard');
                 }},
-                { text: 'Stay Here', style: 'cancel' },
+                { text: t('payment_review_stay_here'), style: 'cancel' },
               ]
             );
           }
         } else {
-          Alert.alert('Error', 'Could not create payment session');
+          Alert.alert(t('common_error'), t('payment_review_error_create_session'));
         }
       } else {
         // Cash payment - create request without checkout
@@ -119,8 +121,8 @@ export default function PaymentReviewScreen({ navigation, route }) {
     } catch (error) {
       console.error('Submit error:', error);
       Alert.alert(
-        'Error',
-        error.response?.data?.error || error.message || 'Failed to submit request'
+        t('common_error'),
+        error.response?.data?.error || error.message || t('payment_review_error_submit')
       );
     } finally {
       setLoading(false);
@@ -149,7 +151,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
         >
           <Feather name="arrow-left" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Review & Pay</Text>
+        <Text style={styles.headerTitle}>{t('payment_review_title')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -158,7 +160,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
         <View style={styles.documentCard}>
           <Text style={styles.documentName}>{document.name}</Text>
           <View style={styles.feeRow}>
-            <Text style={styles.feeLabel}>Processing Fee</Text>
+            <Text style={styles.feeLabel}>{t('payment_review_processing_fee')}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <MaterialCommunityIcons name="currency-php" size={20} color="#fff" style={{ marginRight: 4 }} />
               <Text style={styles.feeAmount}>{document.fee}</Text>
@@ -168,7 +170,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
 
         {/* Personal Info */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Personal Information</Text>
+          <Text style={styles.sectionTitle}>{t('common_personal_information')}</Text>
           {infoItems.map((item) => (
             <View key={item.label} style={styles.infoRow}>
               <Text style={styles.infoLabel}>{item.label}</Text>
@@ -180,7 +182,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
         {/* Document-specific fields */}
         {docFields.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Additional Information</Text>
+            <Text style={styles.sectionTitle}>{t('payment_review_additional_info')}</Text>
             {docFields.map(([key, value]) => (
               <View key={key} style={styles.infoRow}>
                 <Text style={styles.infoLabel}>
@@ -194,7 +196,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
 
         {/* Payment Method */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Method</Text>
+          <Text style={styles.sectionTitle}>{t('common_payment_method')}</Text>
           
           <TouchableOpacity
             style={[
@@ -207,9 +209,9 @@ export default function PaymentReviewScreen({ navigation, route }) {
               {paymentMethod === 'online' && <View style={styles.paymentRadioInner} />}
             </View>
             <View style={styles.paymentInfo}>
-              <Text style={styles.paymentTitle}>Pay Online</Text>
+              <Text style={styles.paymentTitle}>{t('payment_review_pay_online')}</Text>
               <Text style={styles.paymentDesc}>
-                Pay securely via GCash, Maya, or Card
+                {t('payment_review_pay_online_desc')}
               </Text>
             </View>
           </TouchableOpacity>
@@ -225,9 +227,9 @@ export default function PaymentReviewScreen({ navigation, route }) {
               {paymentMethod === 'cash' && <View style={styles.paymentRadioInner} />}
             </View>
             <View style={styles.paymentInfo}>
-              <Text style={styles.paymentTitle}>Pay in Cash</Text>
+              <Text style={styles.paymentTitle}>{t('payment_review_pay_cash')}</Text>
               <Text style={styles.paymentDesc}>
-                Pay at the barangay hall when you pick up
+                {t('payment_review_pay_cash_desc')}
               </Text>
             </View>
           </TouchableOpacity>
@@ -237,7 +239,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
       {/* Submit Button */}
       <View style={styles.footer}>
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total Amount</Text>
+          <Text style={styles.totalLabel}>{t('common_total_amount')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <MaterialCommunityIcons name="currency-php" size={20} color={colors.primary[600]} style={{ marginRight: 4 }} />
             <Text style={styles.totalAmount}>{document.fee}</Text>
@@ -253,7 +255,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.submitButtonText}>
-              {paymentMethod === 'online' ? 'Proceed to Payment' : 'Submit Request'}
+              {paymentMethod === 'online' ? t('payment_review_proceed_payment') : t('payment_review_submit_request')}
             </Text>
           )}
         </TouchableOpacity>

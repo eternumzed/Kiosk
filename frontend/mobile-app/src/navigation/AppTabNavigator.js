@@ -12,11 +12,12 @@ import RequestSuccessScreen from '../screens/RequestSuccessScreen';
 import { colors } from '../theme/colors';
 import { Feather } from '@expo/vector-icons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { useTranslation } from 'react-i18next';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const DashboardStack = ({ user, dispatch }) => {
+const DashboardStack = ({ user, dispatch, t }) => {
   return (
     <Stack.Navigator
       screenOptions={{
@@ -33,7 +34,7 @@ const DashboardStack = ({ user, dispatch }) => {
         component={RequestDetailScreen}
         options={{
           headerShown: true,
-          headerTitle: 'Request Details',
+          headerTitle: t('request_detail_header_title'),
           headerTintColor: colors.primary[600],
           headerStyle: {
             backgroundColor: '#fff',
@@ -62,6 +63,7 @@ const DashboardStack = ({ user, dispatch }) => {
 };
 
 export default function AppTabNavigator({ user, dispatch }) {
+  const { t } = useTranslation();
   return (
     <Tab.Navigator
       screenOptions={{
@@ -85,20 +87,20 @@ export default function AppTabNavigator({ user, dispatch }) {
       <Tab.Screen
         name="Dashboard"
         options={{
-          tabBarLabel: 'Home',
+          tabBarLabel: t('common_home'),
           tabBarIcon: ({ color, focused }) => (
                <Feather name="home" size={25} color={color} />
           ),
         }}
       >
         {(props) => (
-          <DashboardStack {...props} user={user} dispatch={dispatch} />
+          <DashboardStack {...props} user={user} dispatch={dispatch} t={t} />
         )}
       </Tab.Screen>
       <Tab.Screen
         name="Profile"
         options={{
-          tabBarLabel: 'Profile',
+          tabBarLabel: t('common_profile'),
           tabBarIcon: ({ color, focused }) => (
             user?.profilePicture ? (
               <View style={[

@@ -16,14 +16,16 @@ import { requestAPI } from '../services/api';
 import { colors } from '../theme/colors';
 import { Feather } from '@expo/vector-icons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { useTranslation } from 'react-i18next';
 
 const STATUS_OPTIONS = ['All', 'Pending', 'Processing', 'For Pick-up', 'Completed', 'Cancelled'];
 const SORT_OPTIONS = [
-  { label: 'Newest First', value: 'desc' },
-  { label: 'Oldest First', value: 'asc' },
+  { value: 'desc' },
+  { value: 'asc' },
 ];
 
 export default function DashboardScreen({ navigation, user, dispatch }) {
+  const { t } = useTranslation();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -52,7 +54,7 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
       setRequests(data?.requests || data || []);
     } catch (error) {
       console.error('Load requests error:', error);
-      Alert.alert('Error', 'Failed to load requests');
+      Alert.alert(t('common_error'), t('dashboard_error_load_requests'));
     } finally {
       setLoading(false);
     }
@@ -124,6 +126,20 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
     setDateSort('desc');
   };
 
+  const getStatusLabel = (status) => {
+    if (status === 'All') return t('common_all');
+    if (status === 'Pending') return t('status_pending');
+    if (status === 'Processing') return t('status_processing');
+    if (status === 'For Pick-up') return t('status_for_pickup');
+    if (status === 'Completed') return t('status_completed');
+    if (status === 'Cancelled') return t('status_cancelled');
+    return status;
+  };
+
+  const getSortLabel = (value) => {
+    return value === 'desc' ? t('dashboard_newest_first') : t('dashboard_oldest_first');
+  };
+
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -188,7 +204,7 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
           style={styles.backdropSeal}
         />
         <View>
-          <Text style={styles.greeting}>Welcome back!</Text>
+          <Text style={styles.greeting}>{t('dashboard_welcome_back')}</Text>
           <Text style={styles.userName}>{displayName}</Text>
         </View>
         <TouchableOpacity
@@ -211,20 +227,20 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
         onPress={() => navigation.navigate('NewRequest', { user })}
         activeOpacity={0.8}
       >
-        <Text style={styles.newRequestText}>+ New Request</Text>
+        <Text style={styles.newRequestText}>+ {t('dashboard_new_request')}</Text>
       </TouchableOpacity>
 
       {/* Filter Section */}
       {requests.length > 0 && (
         <View style={styles.filterSection}>
           <View style={styles.filterHeader}>
-            <Text style={styles.filterTitle}>My Requests</Text>
+            <Text style={styles.filterTitle}>{t('dashboard_my_requests')}</Text>
             <TouchableOpacity 
               style={styles.filterButton}
               onPress={() => setShowFilterModal(true)}
             >
               <Feather name="filter" size={18} color={colors.primary[600]} />
-              <Text style={styles.filterButtonText}>Filter</Text>
+              <Text style={styles.filterButtonText}>{t('dashboard_filter')}</Text>
               {hasActiveFilters && <View style={styles.filterBadge} />}
             </TouchableOpacity>
           </View>
@@ -249,7 +265,7 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
                   styles.statusChipText,
                   statusFilter === status && styles.statusChipTextActive,
                 ]}>
-                  {status}
+                  {getStatusLabel(status)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -266,7 +282,7 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
               color={colors.text.secondary} 
             />
             <Text style={styles.sortText}>
-              {dateSort === 'desc' ? 'Newest' : 'Oldest'} first
+              {dateSort === 'desc' ? t('dashboard_newest') : t('dashboard_oldest')} {t('dashboard_first')}
             </Text>
           </TouchableOpacity>
 
@@ -276,7 +292,7 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
               onPress={() => setRequestTab('active')}
             >
               <Text style={[styles.tabButtonText, requestTab === 'active' && styles.tabButtonTextActive]}>
-                Active ({activeRequests.length})
+                {t('dashboard_active')} ({activeRequests.length})
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -284,7 +300,7 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
               onPress={() => setRequestTab('hidden')}
             >
               <Text style={[styles.tabButtonText, requestTab === 'hidden' && styles.tabButtonTextActive]}>
-                Hidden ({hiddenRequests.length})
+                {t('dashboard_hidden')} ({hiddenRequests.length})
               </Text>
             </TouchableOpacity>
           </View>
@@ -301,14 +317,14 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Filter Requests</Text>
+              <Text style={styles.modalTitle}>{t('dashboard_filter_requests')}</Text>
               <TouchableOpacity onPress={() => setShowFilterModal(false)}>
                 <Feather name="x" size={24} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
 
             {/* Document Type Filter */}
-            <Text style={styles.modalSectionTitle}>Document Type</Text>
+            <Text style={styles.modalSectionTitle}>{t('dashboard_document_type')}</Text>
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false}
@@ -334,7 +350,7 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
             </ScrollView>
 
             {/* Status Filter */}
-            <Text style={styles.modalSectionTitle}>Status</Text>
+            <Text style={styles.modalSectionTitle}>{t('common_status')}</Text>
             <View style={styles.modalChipsWrap}>
               {STATUS_OPTIONS.map((status) => (
                 <TouchableOpacity
@@ -349,14 +365,14 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
                     styles.modalChipText,
                     statusFilter === status && styles.modalChipTextActive,
                   ]}>
-                    {status}
+                    {getStatusLabel(status)}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
             {/* Sort Order */}
-            <Text style={styles.modalSectionTitle}>Sort By Date</Text>
+            <Text style={styles.modalSectionTitle}>{t('dashboard_sort_by_date')}</Text>
             <View style={styles.sortOptions}>
               {SORT_OPTIONS.map((option) => (
                 <TouchableOpacity
@@ -376,7 +392,7 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
                     styles.sortOptionText,
                     dateSort === option.value && styles.sortOptionTextActive,
                   ]}>
-                    {option.label}
+                    {getSortLabel(option.value)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -388,13 +404,13 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
                 style={styles.clearButton}
                 onPress={clearFilters}
               >
-                <Text style={styles.clearButtonText}>Clear All</Text>
+                <Text style={styles.clearButtonText}>{t('dashboard_clear_all')}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.applyButton}
                 onPress={() => setShowFilterModal(false)}
               >
-                <Text style={styles.applyButtonText}>Apply</Text>
+                <Text style={styles.applyButtonText}>{t('dashboard_apply')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -406,18 +422,18 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
           <View style={styles.emptyIconContainer}>
             <Feather name="clipboard" size={48} color={colors.gray[400]} />
           </View>
-          <Text style={styles.emptyText}>No requests yet</Text>
-          <Text style={styles.emptySubtext}>Create your first request to get started</Text>
+          <Text style={styles.emptyText}>{t('dashboard_no_requests')}</Text>
+          <Text style={styles.emptySubtext}>{t('dashboard_no_requests_sub')}</Text>
         </View>
       ) : filteredRequests.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconContainer}>
             <Feather name="search" size={48} color={colors.gray[400]} />
           </View>
-          <Text style={styles.emptyText}>No matching requests</Text>
-          <Text style={styles.emptySubtext}>Try adjusting your filters</Text>
+          <Text style={styles.emptyText}>{t('dashboard_no_matching_requests')}</Text>
+          <Text style={styles.emptySubtext}>{t('dashboard_adjust_filters')}</Text>
           <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
-            <Text style={styles.clearFiltersText}>Clear Filters</Text>
+            <Text style={styles.clearFiltersText}>{t('dashboard_clear_filters')}</Text>
           </TouchableOpacity>
         </View>
       ) : visibleRequests.length === 0 ? (
@@ -426,12 +442,12 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
             <Feather name={requestTab === 'hidden' ? 'archive' : 'inbox'} size={48} color={colors.gray[400]} />
           </View>
           <Text style={styles.emptyText}>
-            {requestTab === 'hidden' ? 'No hidden requests' : 'No active requests'}
+            {requestTab === 'hidden' ? t('dashboard_no_hidden_requests') : t('dashboard_no_active_requests')}
           </Text>
           <Text style={styles.emptySubtext}>
             {requestTab === 'hidden'
-              ? 'Requests you hide from details will appear here.'
-              : 'Try changing filters or create a new request.'}
+              ? t('dashboard_hidden_requests_sub')
+              : t('dashboard_no_active_sub')}
           </Text>
         </View>
       ) : (

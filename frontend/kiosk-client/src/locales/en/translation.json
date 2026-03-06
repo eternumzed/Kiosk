@@ -54,6 +54,7 @@
     "status_completed": "Completed",
     "status_cancelled": "Cancelled",
     "status_forpick-up": "For Pick-up",
+    "status_forpickup": "For Pick-up",
     "category_clearance": "Clearance",
     "category_certification": "Certification",
     "category_permit": "Permit",
@@ -126,5 +127,35 @@
     "cam_detection_off": "Face detection unavailable - camera ready",
     "cam_btn_cancel": "Cancel",
     "cam_btn_capture": "Capture Photo",
-    "cam_btn_position": "Position Face to Capture"
+    "cam_btn_position": "Position Face to Capture",
+    "track_or_qr": "Or use QR",
+    "scan_qr": "Scan QR",
+    "scan_receipt_qr": "Scan Receipt QR",
+    "scan_receipt_qr_hint": "Point the camera at the QR code printed on your receipt.",
+    "scanning_qr": "Scanning for QR code...",
+    "close": "Close",
+    "status_page_title": "Track Document Status",
+    "status_page_subtitle": "Scan QR from your receipt or enter your reference number below.",
+    "status_page_placeholder": "e.g. BRGY-CLR-2026-0001",
+    "status_page_checking": "Checking...",
+    "status_page_check_button": "Check Status",
+    "status_page_reference": "Reference Number",
+    "status_page_document": "Document",
+    "status_page_requested_by": "Requested by",
+    "status_page_payment": "Payment",
+    "status_page_last_update": "Last Update",
+    "status_not_found": "No request found for this reference number.",
+    "status_unavailable": "Unable to fetch request status right now."
+    ,"queue_waiting_updates": "Waiting for updates..."
+    ,"queue_more_count": "+{{count}} more in queue"
+    ,"queue_total_in_queue": "Total in Queue"
+    ,"queue_realtime_online": "Realtime Online"
+    ,"queue_reconnecting": "Reconnecting..."
+    ,"queue_now_serving": "Now Serving"
+    ,"queue_status_processing": "Status: Processing"
+    ,"queue_for_pickup": "For Pick-up"
+    ,"queue_status_for_pickup": "Status: For Pick-up"
+    ,"help_go_back": "Go Back"
+    ,"help_how_to_use": "How to Use the Kiosk"
+    ,"help_video_not_supported": "Your browser does not support the video tag. Please check the help manual."
 }

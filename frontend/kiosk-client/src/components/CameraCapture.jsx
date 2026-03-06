@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import * as faceapi from '@vladmandic/face-api';
+import { useTranslation } from 'react-i18next';
 
 const CameraCapture = ({ onCapture, capturedImage }) => {
+    const { t } = useTranslation();
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -41,7 +43,7 @@ const CameraCapture = ({ onCapture, capturedImage }) => {
             setModelsLoaded(true);
         } catch (err) {
             console.error('Error loading face detection models:', err);
-            setError('Failed to load face detection. Camera will still work.');
+            setError(t('cam_detection_off'));
             setModelsLoaded(false);
         }
     };
@@ -72,7 +74,7 @@ const CameraCapture = ({ onCapture, capturedImage }) => {
             }
         } catch (err) {
             console.error('Error accessing camera:', err);
-            setError('Unable to access camera. Please ensure camera permissions are granted.');
+            setError(t('cam_loading_sub'));
             setIsLoading(false);
         }
     };
@@ -208,7 +210,7 @@ const CameraCapture = ({ onCapture, capturedImage }) => {
                     onClick={retakePhoto}
                     className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200"
                 >
-                    Retake Photo
+                    {t('cam_btn_retake')}
                 </button>
             </div>
         );
@@ -224,7 +226,7 @@ const CameraCapture = ({ onCapture, capturedImage }) => {
                         className="rounded-lg shadow-lg w-full"
                     />
                     <div className="absolute top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Preview
+                        {t('cam_preview_label')}
                     </div>
                 </div>
                 
@@ -234,7 +236,7 @@ const CameraCapture = ({ onCapture, capturedImage }) => {
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
                     </svg>
                     <span className="text-lg font-semibold text-gray-700">
-                        Auto-confirming in {confirmTimer}s
+                        {t('cam_auto_confirm', { seconds: confirmTimer })}
                     </span>
                 </div>
 
@@ -244,14 +246,14 @@ const CameraCapture = ({ onCapture, capturedImage }) => {
                         onClick={retakePhoto}
                         className="px-6 py-3 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-all duration-200"
                     >
-                        Retake
+                        {t('cam_btn_retake')}
                     </button>
                     <button
                         type="button"
                         onClick={confirmCapture}
                         className="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-all duration-200"
                     >
-                        Confirm
+                        {t('cam_btn_confirm')}
                     </button>
                 </div>
             </div>
@@ -273,13 +275,13 @@ const CameraCapture = ({ onCapture, capturedImage }) => {
                         onClick={startCamera}
                         className="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-all duration-200"
                     >
-                        Start Camera
+                        {t('capture_photo')}
                     </button>
                 </div>
             ) : (
                 <div className="flex flex-col items-center space-y-4">
                     {isLoading && (
-                        <div className="text-gray-600">Loading camera...</div>
+                        <div className="text-gray-600">{t('cam_loading')}</div>
                     )}
                     {error && (
                         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
@@ -315,7 +317,7 @@ const CameraCapture = ({ onCapture, capturedImage }) => {
                                 )}
                             </svg>
                             <span className="text-sm font-medium">
-                                {faceDetected ? 'Face detected - Ready!' : 'Please face the camera'}
+                                {faceDetected ? t('cam_status_ready') : t('cam_status_adjust')}
                             </span>
                         </div>
                     )}
@@ -326,7 +328,7 @@ const CameraCapture = ({ onCapture, capturedImage }) => {
                             onClick={stopCamera}
                             className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-all duration-200"
                         >
-                            Cancel
+                            {t('cam_btn_cancel')}
                         </button>
                         <button
                             type="button"
@@ -338,7 +340,7 @@ const CameraCapture = ({ onCapture, capturedImage }) => {
                                     : 'bg-blue-600 text-white hover:bg-blue-700'
                             }`}
                         >
-                            Capture Photo
+                            {t('cam_btn_capture')}
                         </button>
                     </div>
                 </div>

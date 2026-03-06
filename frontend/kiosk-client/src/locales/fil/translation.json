@@ -55,6 +55,7 @@
     "status_completed": "Tapos na",
     "status_cancelled": "Na-cancel",
     "status_forpick-up": "Para Kunin",
+    "status_forpickup": "Para Kunin",
     "category_clearance": "Clearance",
     "category_certification": "Certification",
     "category_permit": "Permit",
@@ -127,5 +128,35 @@
     "cam_detection_off": "Hindi available ang face detection - ready ang camera",
     "cam_btn_cancel": "Kanselahin",
     "cam_btn_capture": "Kunan ng Litrato",
-    "cam_btn_position": "I-posisyon ang Mukha para Makunan"
+    "cam_btn_position": "I-posisyon ang Mukha para Makunan",
+    "track_or_qr": "O gumamit ng QR",
+    "scan_qr": "I-scan ang QR",
+    "scan_receipt_qr": "I-scan ang QR ng Resibo",
+    "scan_receipt_qr_hint": "Itapat ang camera sa QR code na naka-print sa resibo.",
+    "scanning_qr": "Hinahanap ang QR code...",
+    "close": "Isara",
+    "status_page_title": "I-track ang Status ng Dokumento",
+    "status_page_subtitle": "I-scan ang QR sa iyong resibo o ilagay ang reference number sa ibaba.",
+    "status_page_placeholder": "hal. BRGY-CLR-2026-0001",
+    "status_page_checking": "Sinusuri...",
+    "status_page_check_button": "Suriin ang Status",
+    "status_page_reference": "Reference Number",
+    "status_page_document": "Dokumento",
+    "status_page_requested_by": "Hiniling ni",
+    "status_page_payment": "Pagbabayad",
+    "status_page_last_update": "Huling Update",
+    "status_not_found": "Walang request na nahanap para sa reference number na ito.",
+    "status_unavailable": "Hindi makuha ang status ng request ngayon."
+    ,"queue_waiting_updates": "Waiting for updates..."
+    ,"queue_more_count": "+{{count}} more in queue"
+    ,"queue_total_in_queue": "Total in Queue"
+    ,"queue_realtime_online": "Realtime Online"
+    ,"queue_reconnecting": "Reconnecting..."
+    ,"queue_now_serving": "Now Serving"
+    ,"queue_status_processing": "Status: Processing"
+    ,"queue_for_pickup": "For Pick-up"
+    ,"queue_status_for_pickup": "Status: For Pick-up"
+    ,"help_go_back": "Bumalik"
+    ,"help_how_to_use": "Paano Gamitin ang Kiosk"
+    ,"help_video_not_supported": "Hindi suportado ng browser mo ang video tag. Pakitingnan ang help manual."
 }
