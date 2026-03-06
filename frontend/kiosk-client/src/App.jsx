@@ -1,4 +1,4 @@
-import { BrowserRouter as Router } from "react-router-dom";
+import { BrowserRouter as Router, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
@@ -164,19 +164,23 @@ const AppContent = ({
   handleCashPayment,
   resetUI,
 }) => {
+  const location = useLocation();
   const { isVisible, handleKeyPress, handleBackspace, handleEnter, hideKeyboard } = useKeyboard();
+  const isPublicStatusView = location.pathname.startsWith('/queue') || location.pathname.startsWith('/request-status');
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 font-sans text-gray-800 flex flex-col overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-0">
-        <img
-          src={brgyBilusoSeal}
-          alt="BRGY Biluso Seal"
-          className="w-[150vmin] max-w-[700px] opacity-10"
-          draggable={false}
-        />
-      </div>
-      <div className={`relative z-10 flex-grow flex flex-col justify-center items-center p-6 ${isVisible ? 'pb-80' : ''}`}>
+      {!isPublicStatusView && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-0">
+          <img
+            src={brgyBilusoSeal}
+            alt="BRGY Biluso Seal"
+            className="w-[150vmin] max-w-[700px] opacity-10"
+            draggable={false}
+          />
+        </div>
+      )}
+      <div className={`relative z-10 flex-grow ${isPublicStatusView ? '' : `flex flex-col justify-center items-center p-6 ${isVisible ? 'pb-80' : ''}`}`}>
         <AnimatedRoutes
           documents={documents}
           formData={formData}
@@ -193,13 +197,15 @@ const AppContent = ({
           resetUI={resetUI}
         />
       </div>
-      <VirtualKeyboard
-        visible={isVisible}
-        onKeyPress={handleKeyPress}
-        onBackspace={handleBackspace}
-        onEnter={handleEnter}
-        onClose={hideKeyboard}
-      />
+      {!isPublicStatusView && (
+        <VirtualKeyboard
+          visible={isVisible}
+          onKeyPress={handleKeyPress}
+          onBackspace={handleBackspace}
+          onEnter={handleEnter}
+          onClose={hideKeyboard}
+        />
+      )}
     </div>
   );
 };

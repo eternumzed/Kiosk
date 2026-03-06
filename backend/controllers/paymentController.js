@@ -7,6 +7,8 @@ const pdfService = require('../services/pdf/generatePdf.js');
 const drive = require('../services/google/Drive.js');
 const auth = require('../services/google/Auth.js');
 const requestService = require('../services/requestService.js');
+const PushNotificationService = require('../services/notifications/pushNotification');
+const websocketHandler = require('../services/websocketHandler');
 
 const kioskUrl = process.env.KIOSK_URL || "http://localhost:4000";
 
@@ -119,6 +121,21 @@ exports.handleWebhook = async (req, res) => {
 
             if (updatedRequest) {
                 console.log(`Updated record for ${refNum}:`, updatedRequest);
+
+                if (updatedRequest.userId) {
+                    try {
+                        await PushNotificationService.sendRequestStatusNotification(
+                            updatedRequest.userId,
+                            updatedRequest.referenceNumber,
+                            updatedRequest.document || updatedRequest.documentCode || 'Document Request',
+                            updatedRequest.status
+                        );
+                    } catch (notifErr) {
+                        console.error('Failed to send processing notification:', notifErr.message);
+                    }
+                }
+
+                await websocketHandler.broadcastQueueUpdate();
 
                 try {
                     const templateKey = requestService.getDocCode(updatedRequest.document);

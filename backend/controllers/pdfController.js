@@ -3,6 +3,7 @@ const pdfService = require('../services/pdf/generatePdf');
 const auth = require('../services/google/Auth');
 const drive = require('../services/google/Drive');
 const PushNotificationService = require('../services/notifications/pushNotification');
+const websocketHandler = require('../services/websocketHandler');
 
 const fs = require('fs');
 const path = require('path');
@@ -270,19 +271,21 @@ exports.updateStatus = asyncHandler(async (req, res) => {
     const updated = await drive.updateStatus(identifier, status);
     
     // Send push notification to the user if they have a userId
-    if (updated && updated.userId) {
+    if (updated && updated.userId && status !== 'Pending') {
       try {
         await PushNotificationService.sendRequestStatusNotification(
           updated.userId,
           updated.referenceNumber,
-          status,
-          updated.document || updated.documentCode
+          updated.document || updated.documentCode || 'Document Request',
+          status
         );
       } catch (notifError) {
         // Don't fail the request if notification fails
         console.error('Failed to send push notification:', notifError.message);
       }
     }
+
+    await websocketHandler.broadcastQueueUpdate();
     
     res.json({ success: true, data: updated });
   } catch (err) {

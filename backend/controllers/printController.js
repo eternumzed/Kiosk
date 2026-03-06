@@ -107,6 +107,26 @@ function buildPayload(data) {
     return `PHP ${num.toFixed(2)}`;
   };
 
+  // ESC/POS QR Code commands (Model 2)
+  const buildQrCommands = (text) => {
+    const qrPayload = Buffer.from(String(text || ''), 'ascii');
+    const storeLength = qrPayload.length + 3;
+    const pL = storeLength % 256;
+    const pH = Math.floor(storeLength / 256);
+
+    return Buffer.concat([
+      Buffer.from([0x1d, 0x28, 0x6b, 0x04, 0x00, 0x31, 0x41, 0x32, 0x00]), // Select model 2
+      Buffer.from([0x1d, 0x28, 0x6b, 0x03, 0x00, 0x31, 0x43, 0x06]),       // Module size
+      Buffer.from([0x1d, 0x28, 0x6b, 0x03, 0x00, 0x31, 0x45, 0x31]),       // Error correction M
+      Buffer.from([0x1d, 0x28, 0x6b, pL, pH, 0x31, 0x50, 0x30]),           // Store data
+      qrPayload,
+      Buffer.from([0x1d, 0x28, 0x6b, 0x03, 0x00, 0x31, 0x51, 0x30]),       // Print QR
+    ]);
+  };
+
+  const trackingBaseUrl = process.env.TRACKING_URL_BASE || 'https://kiosk.brgybiluso.me/request-status';
+  const qrTrackingUrl = `${trackingBaseUrl}?referenceNumber=${encodeURIComponent(data.referenceNumber || '')}&status=${encodeURIComponent(data.status || 'Pending')}`;
+
   // Build receipt sections
   let receipt = "";
 
@@ -114,6 +134,11 @@ function buildPayload(data) {
   receipt += init;                           // Initialize printer
   receipt += lineSpacingDefault;
   receipt += alignCenter;
+  receipt += boldOn + "SCAN TO TRACK STATUS" + boldOff + LF;
+  receipt += buildQrCommands(qrTrackingUrl).toString('latin1');
+  receipt += LF;
+  receipt += `Ref: ${data.referenceNumber || 'N/A'}` + LF;
+  receipt += singleLine + LF;
   receipt += LF;
   receipt += textDouble + boldOn;
   receipt += "BARANGAY BILUSO" + LF;

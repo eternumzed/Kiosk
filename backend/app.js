@@ -31,6 +31,7 @@ const PRODUCTION_DOMAINS = [
     'https://api.brgybiluso.me',
     'https://kiosk.brgybiluso.me',
     'https://admin.brgybiluso.me',
+    'https://queue.brgybiluso.me',
 ];
 
 // Allowed origins for CORS

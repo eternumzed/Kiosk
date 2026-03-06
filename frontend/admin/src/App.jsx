@@ -3,7 +3,8 @@ import axios from 'axios';
 import './App.css';
 
 const API_URL = 'https://api.brgybiluso.me/api/pdf';
-
+const QUEUE_API_URL = 'https://api.brgybiluso.me/api/queue';
+const QUEUE_WS_URL = 'wss://api.brgybiluso.me';
 
 const TYPE_LABELS = {
   'BRGY-CLR': 'Barangay Clearance',
@@ -30,24 +31,31 @@ function App() {
   const [query, setQuery] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [sortBy, setSortBy] = useState('date'); // 'date' | 'name' | 'size'
-  const [sortDir, setSortDir] = useState('desc'); // 'asc' | 'desc'
+  const [sortBy, setSortBy] = useState('date');
+  const [sortDir, setSortDir] = useState('desc');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all'); // status filter
-  const [userFilter, setUserFilter] = useState('all'); // placeholder for future mobile users
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [userFilter, setUserFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
-  const [viewTrash, setViewTrash] = useState(false);
+  const [activeTab, setActiveTab] = useState('documents');
   const [trashSelectedIds, setTrashSelectedIds] = useState(new Set());
+
+  const [queueSnapshot, setQueueSnapshot] = useState({ nowServing: [], forPickup: [] });
+  const [queueLoading, setQueueLoading] = useState(false);
+  const [queueConnected, setQueueConnected] = useState(false);
+
   const selectAllCheckbox = useRef(null);
   const trashSelectAllCheckbox = useRef(null);
+  const queueSocketRef = useRef(null);
+  const queueReconnectTimerRef = useRef(null);
 
-   useEffect(() => {
+  useEffect(() => {
     checkAuthStatus();
-    
-     const params = new URLSearchParams(window.location.search);
+
+    const params = new URLSearchParams(window.location.search);
     if (params.get('auth') === 'success') {
       setSuccessMessage('Authentication successful!');
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -55,13 +63,84 @@ function App() {
     }
   }, []);
 
-  // Load PDFs when authenticated
   useEffect(() => {
     if (authenticated) {
       loadPdfs();
       loadTrash();
+      loadQueueSnapshot();
     }
   }, [authenticated]);
+
+  useEffect(() => {
+    if (!authenticated) {
+      disconnectQueueSocket();
+      return;
+    }
+
+    connectQueueSocket();
+    return () => disconnectQueueSocket();
+  }, [authenticated]);
+
+  const connectQueueSocket = () => {
+    disconnectQueueSocket();
+
+    try {
+      const ws = new WebSocket(QUEUE_WS_URL);
+      queueSocketRef.current = ws;
+
+      ws.onopen = () => {
+        setQueueConnected(true);
+        ws.send(JSON.stringify({ type: 'subscribe-queue' }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'queue-update' && msg.payload) {
+            setQueueSnapshot({
+              nowServing: msg.payload.nowServing || [],
+              forPickup: msg.payload.forPickup || [],
+            });
+          }
+        } catch (parseErr) {
+          console.error('Queue WS parse error:', parseErr);
+        }
+      };
+
+      ws.onclose = () => {
+        setQueueConnected(false);
+        if (authenticated) {
+          queueReconnectTimerRef.current = setTimeout(() => {
+            connectQueueSocket();
+          }, 3000);
+        }
+      };
+
+      ws.onerror = (wsErr) => {
+        console.error('Queue WS error:', wsErr);
+      };
+    } catch (err) {
+      console.error('Failed to initialize queue socket:', err);
+    }
+  };
+
+  const disconnectQueueSocket = () => {
+    if (queueReconnectTimerRef.current) {
+      clearTimeout(queueReconnectTimerRef.current);
+      queueReconnectTimerRef.current = null;
+    }
+
+    if (queueSocketRef.current) {
+      try {
+        queueSocketRef.current.close();
+      } catch (err) {
+        console.error('Error closing queue socket:', err);
+      }
+      queueSocketRef.current = null;
+    }
+
+    setQueueConnected(false);
+  };
 
   const checkAuthStatus = async () => {
     try {
@@ -105,29 +184,43 @@ function App() {
     }
   };
 
+  const loadQueueSnapshot = async () => {
+    try {
+      setQueueLoading(true);
+      const response = await axios.get(QUEUE_API_URL);
+      setQueueSnapshot({
+        nowServing: response.data?.nowServing || [],
+        forPickup: response.data?.forPickup || [],
+      });
+    } catch (err) {
+      console.error('Failed to load queue snapshot:', err);
+      setQueueSnapshot({ nowServing: [], forPickup: [] });
+    } finally {
+      setQueueLoading(false);
+    }
+  };
+
   const availableTypes = useMemo(() => {
     const set = new Set();
-    (pdfs || []).forEach(p => {
+    (pdfs || []).forEach((p) => {
       const code = p.appProperties?.type;
       if (code) set.add(code);
     });
     return Array.from(set).sort();
   }, [pdfs]);
 
-  // Count PDFs per type for badges
   const typeCount = useMemo(() => {
     const counts = {};
-    (pdfs || []).forEach(p => {
+    (pdfs || []).forEach((p) => {
       const code = p.appProperties?.type;
       if (code) counts[code] = (counts[code] || 0) + 1;
     });
     return counts;
   }, [pdfs]);
 
-  // Count PDFs per status for badges
   const statusCount = useMemo(() => {
     const counts = {};
-    (pdfs || []).forEach(p => {
+    (pdfs || []).forEach((p) => {
       const status = p.appProperties?.status || 'Pending';
       counts[status] = (counts[status] || 0) + 1;
     });
@@ -137,35 +230,29 @@ function App() {
   const visiblePdfs = useMemo(() => {
     let items = Array.isArray(pdfs) ? [...pdfs] : [];
 
-    // Filter by type
     if (typeFilter !== 'all') {
-      items = items.filter(p => (p.appProperties?.type || '') === typeFilter);
+      items = items.filter((p) => (p.appProperties?.type || '') === typeFilter);
     }
 
-    // Filter by status
     if (statusFilter !== 'all') {
-      items = items.filter(p => (p.appProperties?.status || 'Pending') === statusFilter);
+      items = items.filter((p) => (p.appProperties?.status || 'Pending') === statusFilter);
     }
 
-    // Future: Filter by user
     if (userFilter !== 'all') {
-      // Placeholder for when user metadata is added
       items = items.filter(() => true);
     }
 
-    // Filter by date range
     if (dateFrom) {
       const from = new Date(dateFrom);
-      items = items.filter(p => new Date(p.createdTime) >= from);
-    }
-    if (dateTo) {
-      const to = new Date(dateTo);
-      // Include the whole day by setting time to end of day
-      to.setHours(23, 59, 59, 999);
-      items = items.filter(p => new Date(p.createdTime) <= to);
+      items = items.filter((p) => new Date(p.createdTime) >= from);
     }
 
-    // Sort
+    if (dateTo) {
+      const to = new Date(dateTo);
+      to.setHours(23, 59, 59, 999);
+      items = items.filter((p) => new Date(p.createdTime) <= to);
+    }
+
     items.sort((a, b) => {
       let cmp = 0;
       if (sortBy === 'date') {
@@ -177,20 +264,21 @@ function App() {
       }
       return sortDir === 'asc' ? cmp : -cmp;
     });
-    // Search by name or type label
+
     const q = query.trim().toLowerCase();
     if (q) {
-      items = items.filter(p => {
+      items = items.filter((p) => {
         const name = (p.name || '').toLowerCase();
         const code = p.appProperties?.type || '';
         const label = (TYPE_LABELS[code] || code).toLowerCase();
-        return name.includes(q) || label.includes(q);
+        const referenceNumber = (p.appProperties?.referenceNumber || '').toLowerCase();
+        return name.includes(q) || label.includes(q) || referenceNumber.includes(q);
       });
     }
+
     return items;
   }, [pdfs, typeFilter, statusFilter, userFilter, dateFrom, dateTo, sortBy, sortDir, query]);
 
-  // Reset to first page on filter changes
   useEffect(() => {
     setPage(1);
   }, [typeFilter, statusFilter, dateFrom, dateTo, sortBy, sortDir, query]);
@@ -220,6 +308,7 @@ function App() {
       await axios.post(`${API_URL}/auth/logout`);
       setAuthenticated(false);
       setPdfs([]);
+      setQueueSnapshot({ nowServing: [], forPickup: [] });
       setSuccessMessage('Logged out successfully');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
@@ -227,21 +316,106 @@ function App() {
     }
   };
 
-  const downloadPdf = async (fileId, fileName) => {
+  const updateStatusByFileId = async (fileId, newStatus) => {
+    setUpdatingStatusId(fileId);
+    const response = await axios.patch(`${API_URL}/status/${fileId}`, { status: newStatus });
+
+    setPdfs((prev) => prev.map((pdf) => {
+      if (pdf.id !== fileId) return pdf;
+      return {
+        ...pdf,
+        appProperties: {
+          ...pdf.appProperties,
+          status: newStatus,
+        },
+      };
+    }));
+
+    return response.data;
+  };
+
+  const updateStatusByReference = async (referenceNumber, newStatus) => {
+    const key = `ref-${referenceNumber}`;
+    setUpdatingStatusId(key);
+
+    const response = await axios.patch(`${API_URL}/status/ref/${referenceNumber}`, { status: newStatus });
+
+    setPdfs((prev) => prev.map((pdf) => {
+      if (pdf.appProperties?.referenceNumber !== referenceNumber) return pdf;
+      return {
+        ...pdf,
+        appProperties: {
+          ...pdf.appProperties,
+          status: newStatus,
+        },
+      };
+    }));
+
+    return response.data;
+  };
+
+  const updateStatus = async (fileId, newStatus) => {
     try {
-      const response = await axios.get(`${API_URL}/download/${fileId}`, {
+      setError('');
+      await updateStatusByFileId(fileId, newStatus);
+      setSuccessMessage('Status updated successfully');
+      setTimeout(() => setSuccessMessage(''), 2000);
+    } catch (err) {
+      setError('Failed to update status: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setUpdatingStatusId(null);
+    }
+  };
+
+  const updateQueueStatus = async (referenceNumber, newStatus) => {
+    try {
+      setError('');
+      await updateStatusByReference(referenceNumber, newStatus);
+      setSuccessMessage(`Queue item ${referenceNumber} updated to ${newStatus}`);
+      setTimeout(() => setSuccessMessage(''), 2000);
+      loadQueueSnapshot();
+    } catch (err) {
+      setError('Failed to update queue status: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setUpdatingStatusId(null);
+    }
+  };
+
+  const markAsProcessingIfNeeded = async (pdf) => {
+    const currentStatus = pdf.appProperties?.status || 'Pending';
+    if (currentStatus === 'Processing') return;
+    await updateStatusByFileId(pdf.id, 'Processing');
+  };
+
+  const handleViewPdf = async (pdf) => {
+    try {
+      setError('');
+      await markAsProcessingIfNeeded(pdf);
+    } catch (err) {
+      console.error('Failed to auto-set processing on view:', err.message);
+    } finally {
+      window.open(pdf.webViewLink, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const downloadPdf = async (pdf) => {
+    try {
+      setError('');
+      await markAsProcessingIfNeeded(pdf);
+
+      const response = await axios.get(`${API_URL}/download/${pdf.id}`, {
         responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', fileName || 'document.pdf');
+      link.setAttribute('download', pdf.name || 'document.pdf');
       document.body.appendChild(link);
       link.click();
       link.parentElement.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      setError('Failed to download PDF: ' + err.message);
+      setError('Failed to download PDF: ' + (err.response?.data?.error || err.message));
     }
   };
 
@@ -254,7 +428,7 @@ function App() {
       setError('');
       setDeletingId(fileId);
       await axios.delete(`${API_URL}/delete/${fileId}`);
-      setPdfs(pdfs.filter(pdf => pdf.id !== fileId));
+      setPdfs((prev) => prev.filter((pdf) => pdf.id !== fileId));
       setSuccessMessage('PDF deleted successfully');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
@@ -276,16 +450,12 @@ function App() {
 
   const selectAllVisible = () => {
     if (selectedIds.size === pagedPdfs.length && pagedPdfs.length > 0) {
-      // Deselect all
       setSelectedIds(new Set());
     } else {
-      // Select all on current page
-      const ids = new Set(pagedPdfs.map(p => p.id));
-      setSelectedIds(ids);
+      setSelectedIds(new Set(pagedPdfs.map((p) => p.id)));
     }
   };
 
-  // Update indeterminate state for checkbox
   useEffect(() => {
     if (selectAllCheckbox.current) {
       selectAllCheckbox.current.indeterminate = selectedIds.size > 0 && selectedIds.size < pagedPdfs.length;
@@ -307,9 +477,9 @@ function App() {
       setDeletingId('multi');
       const fileIds = Array.from(selectedIds);
       await axios.delete(`${API_URL}/delete-multiple`, { data: { fileIds } });
-      setPdfs(pdfs.filter(pdf => !selectedIds.has(pdf.id)));
+      setPdfs((prev) => prev.filter((pdf) => !selectedIds.has(pdf.id)));
       setSelectedIds(new Set());
-      setSuccessMessage(`${selectedIds.size} PDF(s) deleted successfully`);
+      setSuccessMessage(`${fileIds.length} PDF(s) deleted successfully`);
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
       setError('Failed to delete PDFs: ' + (err.response?.data?.error || err.message));
@@ -327,7 +497,7 @@ function App() {
       setError('');
       setDeletingId(fileId);
       await axios.delete(`${API_URL}/trash/${fileId}`);
-      setTrash(trash.filter(item => item.id !== fileId));
+      setTrash((prev) => prev.filter((item) => item.id !== fileId));
       setSuccessMessage('File permanently deleted');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
@@ -352,9 +522,9 @@ function App() {
       setDeletingId('trash-multi');
       const fileIds = Array.from(trashSelectedIds);
       await axios.delete(`${API_URL}/trash-multiple`, { data: { fileIds } });
-      setTrash(trash.filter(item => !trashSelectedIds.has(item.id)));
+      setTrash((prev) => prev.filter((item) => !trashSelectedIds.has(item.id)));
       setTrashSelectedIds(new Set());
-      setSuccessMessage(`${trashSelectedIds.size} file(s) permanently deleted`);
+      setSuccessMessage(`${fileIds.length} file(s) permanently deleted`);
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
       setError('Failed to permanently delete files: ' + (err.response?.data?.error || err.message));
@@ -372,10 +542,10 @@ function App() {
       setError('');
       setDeletingId(fileId);
       await axios.post(`${API_URL}/restore/${fileId}`);
-      setTrash(trash.filter(item => item.id !== fileId));
+      setTrash((prev) => prev.filter((item) => item.id !== fileId));
       setSuccessMessage('Document restored successfully');
       setTimeout(() => setSuccessMessage(''), 3000);
-      loadPdfs(); // Reload documents list to show restored item
+      loadPdfs();
     } catch (err) {
       setError('Failed to restore document: ' + (err.response?.data?.error || err.message));
     } finally {
@@ -394,47 +564,15 @@ function App() {
       setDeletingId('trash-restore-multi');
       const fileIds = Array.from(trashSelectedIds);
       await axios.post(`${API_URL}/restore-multiple`, { fileIds });
-      setTrash(trash.filter(item => !trashSelectedIds.has(item.id)));
+      setTrash((prev) => prev.filter((item) => !trashSelectedIds.has(item.id)));
       setTrashSelectedIds(new Set());
-      setSuccessMessage(`${trashSelectedIds.size} document(s) restored successfully`);
+      setSuccessMessage(`${fileIds.length} document(s) restored successfully`);
       setTimeout(() => setSuccessMessage(''), 3000);
-      loadPdfs(); // Reload documents list to show restored items
+      loadPdfs();
     } catch (err) {
       setError('Failed to restore documents: ' + (err.response?.data?.error || err.message));
     } finally {
       setDeletingId(null);
-    }
-  };
-
-  const updateStatus = async (fileId, newStatus) => {
-    try {
-      setError('');
-      setUpdatingStatusId(fileId);
-      console.log('Updating status for fileId:', fileId, 'to:', newStatus);
-      
-      const response = await axios.patch(`${API_URL}/status/${fileId}`, { status: newStatus });
-      console.log('Status update response:', response.data);
-      
-      // Update the PDF in state with new status
-      setPdfs(pdfs.map(pdf => {
-        if (pdf.id === fileId) {
-          return {
-            ...pdf,
-            appProperties: {
-              ...pdf.appProperties,
-              status: newStatus
-            }
-          };
-        }
-        return pdf;
-      }));
-      setSuccessMessage('Status updated successfully');
-      setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (err) {
-      console.error('Status update failed:', err.response?.data || err.message);
-      setError('Failed to update status: ' + (err.response?.data?.error || err.message));
-    } finally {
-      setUpdatingStatusId(null);
     }
   };
 
@@ -456,13 +594,9 @@ function App() {
         </div>
         <div className="auth-status">
           {authenticated ? (
-            <button onClick={logout} className="btn btn-logout">
-              Logout
-            </button>
+            <button onClick={logout} className="btn btn-logout">Logout</button>
           ) : (
-            <button onClick={initiateAuth} className="btn btn-primary">
-              Authenticate with Google Drive
-            </button>
+            <button onClick={initiateAuth} className="btn btn-primary">Authenticate with Google Drive</button>
           )}
         </div>
       </header>
@@ -472,269 +606,278 @@ function App() {
 
       {authenticated ? (
         <main className="admin-main">
-          {/* Tabs for Documents and Trash */}
           <div className="admin-tabs">
-            <button
-              className={`tab-btn ${!viewTrash ? 'active' : ''}`}
-              onClick={() => setViewTrash(false)}
-            >
-              Documents
+            <button className={`tab-btn ${activeTab === 'documents' ? 'active' : ''}`} onClick={() => setActiveTab('documents')}>Documents</button>
+            <button className={`tab-btn ${activeTab === 'queue' ? 'active' : ''}`} onClick={() => { setActiveTab('queue'); loadQueueSnapshot(); }}>
+              Queue ({queueSnapshot.nowServing.length + queueSnapshot.forPickup.length})
             </button>
-            <button
-              className={`tab-btn ${viewTrash ? 'active' : ''}`}
-              onClick={() => { setViewTrash(true); loadTrash(); }}
-            >
+            <button className={`tab-btn ${activeTab === 'trash' ? 'active' : ''}`} onClick={() => { setActiveTab('trash'); loadTrash(); }}>
               Trash ({trash.length})
             </button>
           </div>
 
-          {!viewTrash ? (
-            // DOCUMENTS VIEW
-          <section className="pdfs-section">
-            <div className="section-header">
-              <h2>Generated Documents</h2>
-            </div>
+          {activeTab === 'documents' && (
+            <section className="pdfs-section">
+              <div className="section-header">
+                <h2>Generated Documents</h2>
+              </div>
 
-            <div className="doc-types-section">
-              <div className="doc-types-label">Filter by Document Type</div>
-              <div className="doc-types-buttons">
-                <button
-                  className={`doc-type-btn ${typeFilter === 'all' ? 'active' : ''}`}
-                  onClick={() => setTypeFilter('all')}
-                >
-                  All ({totalItems})
-                </button>
-                {availableTypes.map(code => (
-                  <button
-                    key={code}
-                    className={`doc-type-btn ${typeFilter === code ? 'active' : ''}`}
-                    onClick={() => setTypeFilter(code)}
-                  >
-                    {TYPE_LABELS[code] || code} ({typeCount[code] || 0})
+              <div className="doc-types-section">
+                <div className="doc-types-label">Filter by Document Type</div>
+                <div className="doc-types-buttons">
+                  <button className={`doc-type-btn ${typeFilter === 'all' ? 'active' : ''}`} onClick={() => setTypeFilter('all')}>
+                    All ({totalItems})
                   </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="filters-section-header">Advanced Filters</div>
-            <div className="filters-bar">
-              <div className="filter-group filter-search">
-                <label className="filter-label">Search</label>
-                <input
-                  type="text"
-                  className="filter-input"
-                  placeholder="Search by name"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-              </div>
-              <div className="filter-group">
-                <label className="filter-label">Status</label>
-                <select
-                  className="filter-select"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <option value="all">All Statuses</option>
-                  {STATUS_OPTIONS.map(status => (
-                    <option key={status} value={status}>
-                      {status} ({statusCount[status] || 0})
-                    </option>
+                  {availableTypes.map((code) => (
+                    <button key={code} className={`doc-type-btn ${typeFilter === code ? 'active' : ''}`} onClick={() => setTypeFilter(code)}>
+                      {TYPE_LABELS[code] || code} ({typeCount[code] || 0})
+                    </button>
                   ))}
-                </select>
-              </div>
-              <div className="filter-group">
-                <label className="filter-label">From</label>
-                <input
-                  type="date"
-                  className="filter-input"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                />
-              </div>
-              <div className="filter-group">
-                <label className="filter-label">To</label>
-                <input
-                  type="date"
-                  className="filter-input"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                />
-              </div>
-              <div className="filter-group">
-                <label className="filter-label">Sort by</label>
-                <div className="filter-row">
-                  <select
-                    className="filter-select"
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                  >
-                    <option value="date">Date</option>
-                    <option value="name">Name</option>
-                    <option value="size">Size</option>
-                  </select>
-                  <select
-                    className="filter-select"
-                    value={sortDir}
-                    onChange={(e) => setSortDir(e.target.value)}
-                  >
-                    <option value="asc">Ascending</option>
-                    <option value="desc">Descending</option>
-                  </select>
                 </div>
               </div>
-              <button
-                onClick={loadPdfs}
-                disabled={loadingPdfs}
-                className="btn btn-secondary btn-small"
-              >
-                {loadingPdfs ? 'Refreshing...' : 'Refresh'}
-              </button>
-              <button
-                onClick={() => {
-                  setQuery('');
-                  setDateFrom('');
-                  setDateTo('');
-                  setSortBy('date');
-                  setSortDir('desc');
-                  setTypeFilter('all');
-                  setStatusFilter('all');
-                  setPage(1);
-                }}
-                className="btn btn-tertiary btn-small"
-                title="Clear all filters and search"
-              >
-                Clear Filters
-              </button>
-            </div>
 
-            {loadingPdfs && pdfs.length === 0 ? (
-              <div className="loading-state">
-                <div className="spinner"></div>
-                <p>Loading documents...</p>
+              <div className="filters-section-header">Advanced Filters</div>
+              <div className="filters-bar">
+                <div className="filter-group filter-search">
+                  <label className="filter-label">Search</label>
+                  <input type="text" className="filter-input" placeholder="Search by name or reference number" value={query} onChange={(e) => setQuery(e.target.value)} />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">Status</label>
+                  <select className="filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    <option value="all">All Statuses</option>
+                    {STATUS_OPTIONS.map((status) => (
+                      <option key={status} value={status}>{status} ({statusCount[status] || 0})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">From</label>
+                  <input type="date" className="filter-input" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">To</label>
+                  <input type="date" className="filter-input" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">Sort by</label>
+                  <div className="filter-row">
+                    <select className="filter-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                      <option value="date">Date</option>
+                      <option value="name">Name</option>
+                      <option value="size">Size</option>
+                    </select>
+                    <select className="filter-select" value={sortDir} onChange={(e) => setSortDir(e.target.value)}>
+                      <option value="asc">Ascending</option>
+                      <option value="desc">Descending</option>
+                    </select>
+                  </div>
+                </div>
+                <button onClick={loadPdfs} disabled={loadingPdfs} className="btn btn-secondary btn-small">{loadingPdfs ? 'Refreshing...' : 'Refresh'}</button>
+                <button
+                  onClick={() => {
+                    setQuery('');
+                    setDateFrom('');
+                    setDateTo('');
+                    setSortBy('date');
+                    setSortDir('desc');
+                    setTypeFilter('all');
+                    setStatusFilter('all');
+                    setPage(1);
+                  }}
+                  className="btn btn-tertiary btn-small"
+                  title="Clear all filters and search"
+                >
+                  Clear Filters
+                </button>
               </div>
-            ) : pdfs.length === 0 ? (
-              <div className="empty-state">
-                <p>📭 No documents found</p>
-                <p className="text-muted">Documents will appear here once they are generated.</p>
-              </div>
-            ) : (
-              <>
-              {selectedIds.size > 0 && (
-                <div className="selection-bar">
-                  <span className="selection-info">{selectedIds.size} document(s) selected</span>
-                  <button
-                    onClick={deleteMultiple}
-                    disabled={deletingId === 'multi'}
-                    className="btn btn-danger"
-                  >
-                    {deletingId === 'multi' ? 'Deleting...' : 'Delete Selected'}
+
+              {loadingPdfs && pdfs.length === 0 ? (
+                <div className="loading-state">
+                  <div className="spinner"></div>
+                  <p>Loading documents...</p>
+                </div>
+              ) : pdfs.length === 0 ? (
+                <div className="empty-state">
+                  <p>No documents found</p>
+                  <p className="text-muted">Documents will appear here once they are generated.</p>
+                </div>
+              ) : (
+                <>
+                  {selectedIds.size > 0 && (
+                    <div className="selection-bar">
+                      <span className="selection-info">{selectedIds.size} document(s) selected</span>
+                      <button onClick={deleteMultiple} disabled={deletingId === 'multi'} className="btn btn-danger">
+                        {deletingId === 'multi' ? 'Deleting...' : 'Delete Selected'}
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="table-wrapper">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th className="cell-checkbox">
+                            <input
+                              ref={selectAllCheckbox}
+                              type="checkbox"
+                              checked={selectedIds.size > 0 && selectedIds.size === pagedPdfs.length}
+                              onChange={selectAllVisible}
+                              title="Select/deselect all on this page"
+                            />
+                          </th>
+                          <th>Name</th>
+                          <th>Type</th>
+                          <th>Status</th>
+                          <th>Date</th>
+                          <th>Size</th>
+                          <th className="actions-col">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pagedPdfs.map((pdf) => (
+                          <tr key={pdf.id} className={selectedIds.has(pdf.id) ? 'selected' : ''}>
+                            <td className="cell-checkbox">
+                              <input type="checkbox" checked={selectedIds.has(pdf.id)} onChange={() => toggleSelectPdf(pdf.id)} />
+                            </td>
+                            <td className="cell-name" title={pdf.name}>{pdf.name}</td>
+                            <td className="cell-type">{TYPE_LABELS[pdf.appProperties?.type] || pdf.appProperties?.type || '-'}</td>
+                            <td className="cell-status">
+                              <select
+                                value={pdf.appProperties?.status || 'Pending'}
+                                onChange={(e) => updateStatus(pdf.id, e.target.value)}
+                                disabled={updatingStatusId === pdf.id}
+                                className="status-select"
+                              >
+                                {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
+                              </select>
+                            </td>
+                            <td className="cell-date">
+                              {new Date(pdf.createdTime).toLocaleDateString()} {new Date(pdf.createdTime).toLocaleTimeString()}
+                            </td>
+                            <td className="cell-size">{(pdf.size / 1024).toFixed(2)} KB</td>
+                            <td className="cell-actions">
+                              <button onClick={() => handleViewPdf(pdf)} className="btn btn-tertiary btn-small" title="Open in Google Drive">
+                                View
+                              </button>
+                              <button onClick={() => downloadPdf(pdf)} className="btn btn-secondary btn-small" title="Download to local device">
+                                Download
+                              </button>
+                              <button
+                                onClick={() => deletePdf(pdf.id, pdf.name)}
+                                disabled={deletingId === pdf.id}
+                                className="btn btn-danger btn-small"
+                                title="Delete from Google Drive"
+                              >
+                                {deletingId === pdf.id ? 'Deleting...' : 'Delete'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="pagination">
+                    <div className="pagination-left">
+                      <span className="text-muted">{totalItems} items</span>
+                    </div>
+                    <div className="pagination-center">
+                      <button className="btn btn-tertiary btn-small" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Prev</button>
+                      <span className="page-indicator">Page {page} of {totalPages}</span>
+                      <button className="btn btn-tertiary btn-small" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Next</button>
+                    </div>
+                    <div className="pagination-right">
+                      <label className="filter-label">Rows per page</label>
+                      <select className="filter-select" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
+            </section>
+          )}
+
+          {activeTab === 'queue' && (
+            <section className="pdfs-section">
+              <div className="section-header">
+                <h2>Live Queue Monitor</h2>
+                <div className="auth-status">
+                  <span className={`queue-pill ${queueConnected ? 'online' : 'offline'}`}>
+                    {queueConnected ? 'Realtime Connected' : 'Realtime Disconnected'}
+                  </span>
+                  <button onClick={loadQueueSnapshot} className="btn btn-secondary btn-small" disabled={queueLoading}>
+                    {queueLoading ? 'Refreshing...' : 'Refresh'}
                   </button>
                 </div>
-              )}
-              <div className="table-wrapper">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th className="cell-checkbox">
-                        <input
-                          ref={selectAllCheckbox}
-                          type="checkbox"
-                          checked={selectedIds.size > 0 && selectedIds.size === pagedPdfs.length}
-                          onChange={selectAllVisible}
-                          title="Select/deselect all on this page"
-                        />
-                      </th>
-                      <th>Name</th>
-                      <th>Type</th>
-                      <th>Status</th>
-                      <th>Date</th>
-                      <th>Size</th>
-                      <th className="actions-col">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagedPdfs.map(pdf => (
-                      <tr key={pdf.id} className={selectedIds.has(pdf.id) ? 'selected' : ''}>
-                        <td className="cell-checkbox">
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.has(pdf.id)}
-                            onChange={() => toggleSelectPdf(pdf.id)}
-                          />
-                        </td>
-                        <td className="cell-name" title={pdf.name}>{pdf.name}</td>
-                        <td className="cell-type">{TYPE_LABELS[pdf.appProperties?.type] || pdf.appProperties?.type || '-'}</td>
-                        <td className="cell-status">
-                          <select
-                            value={pdf.appProperties?.status || 'Pending'}
-                            onChange={(e) => updateStatus(pdf.id, e.target.value)}
-                            disabled={updatingStatusId === pdf.id}
-                            className="status-select"
-                          >
-                            {STATUS_OPTIONS.map(status => (
-                              <option key={status} value={status}>{status}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="cell-date">
-                          {new Date(pdf.createdTime).toLocaleDateString()} {new Date(pdf.createdTime).toLocaleTimeString()}
-                        </td>
-                        <td className="cell-size">{(pdf.size / 1024).toFixed(2)} KB</td>
-                        <td className="cell-actions">
-                          <a
-                            href={pdf.webViewLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn btn-tertiary btn-small"
-                            title="Open in Google Drive"
-                          >
-                            View
-                          </a>
-                          <button
-                            onClick={() => downloadPdf(pdf.id, pdf.name)}
-                            className="btn btn-secondary btn-small"
-                            title="Download to local device"
-                          >
-                            Download
-                          </button>
-                          <button
-                            onClick={() => deletePdf(pdf.id, pdf.name)}
-                            disabled={deletingId === pdf.id}
-                            className="btn btn-danger btn-small"
-                            title="Delete from Google Drive"
-                          >
-                            {deletingId === pdf.id ? 'Deleting...' : 'Delete'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               </div>
-              <div className="pagination">
-                <div className="pagination-left">
-                  <span className="text-muted">{totalItems} items</span>
+
+              <div className="queue-grid">
+                <div className="queue-column">
+                  <h3>Now Serving ({queueSnapshot.nowServing.length})</h3>
+                  {queueSnapshot.nowServing.length === 0 ? (
+                    <div className="empty-state"><p>No document currently in Processing.</p></div>
+                  ) : (
+                    <div className="queue-list">
+                      {queueSnapshot.nowServing.map((item) => (
+                        <div className="queue-card" key={item.referenceNumber}>
+                          <div className="queue-card-head">
+                            <strong>{item.referenceNumber}</strong>
+                            <span>{item.document || '-'}</span>
+                          </div>
+                          <div className="queue-card-row">
+                            <span>{item.fullName || '-'}</span>
+                            <select
+                              className="status-select"
+                              value={item.status}
+                              onChange={(e) => updateQueueStatus(item.referenceNumber, e.target.value)}
+                              disabled={updatingStatusId === `ref-${item.referenceNumber}`}
+                            >
+                              {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="pagination-center">
-                  <button className="btn btn-tertiary btn-small" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Prev</button>
-                  <span className="page-indicator">Page {page} of {totalPages}</span>
-                  <button className="btn btn-tertiary btn-small" disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</button>
-                </div>
-                <div className="pagination-right">
-                  <label className="filter-label">Rows per page</label>
-                  <select className="filter-select" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                  </select>
+
+                <div className="queue-column">
+                  <h3>For Pick-up ({queueSnapshot.forPickup.length})</h3>
+                  {queueSnapshot.forPickup.length === 0 ? (
+                    <div className="empty-state"><p>No document waiting for pickup.</p></div>
+                  ) : (
+                    <div className="queue-list">
+                      {queueSnapshot.forPickup.map((item) => (
+                        <div className="queue-card" key={item.referenceNumber}>
+                          <div className="queue-card-head">
+                            <strong>{item.referenceNumber}</strong>
+                            <span>{item.document || '-'}</span>
+                          </div>
+                          <div className="queue-card-row">
+                            <span>{item.fullName || '-'}</span>
+                            <select
+                              className="status-select"
+                              value={item.status}
+                              onChange={(e) => updateQueueStatus(item.referenceNumber, e.target.value)}
+                              disabled={updatingStatusId === `ref-${item.referenceNumber}`}
+                            >
+                              {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
-              </>
-            )}
-          </section>
-          ) : (
-            // TRASH VIEW
+            </section>
+          )}
+
+          {activeTab === 'trash' && (
             <section className="trash-section">
               <div className="section-header">
                 <h2>Recycle Bin</h2>
@@ -742,9 +885,7 @@ function App() {
               </div>
 
               {trash.length === 0 ? (
-                <div className="empty-state">
-                  <p>🗑️ Trash is empty</p>
-                </div>
+                <div className="empty-state"><p>Trash is empty</p></div>
               ) : (
                 <>
                   <div className="toolbar">
@@ -757,7 +898,7 @@ function App() {
                           if (trashSelectedIds.size === trash.length) {
                             setTrashSelectedIds(new Set());
                           } else {
-                            setTrashSelectedIds(new Set(trash.map(item => item.id)));
+                            setTrashSelectedIds(new Set(trash.map((item) => item.id)));
                           }
                         }}
                       />
@@ -765,18 +906,10 @@ function App() {
                     </label>
                     {trashSelectedIds.size > 0 && (
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          onClick={restoreMultipleFromTrash}
-                          className="btn btn-success"
-                          disabled={deletingId === 'trash-restore-multi'}
-                        >
+                        <button onClick={restoreMultipleFromTrash} className="btn btn-success" disabled={deletingId === 'trash-restore-multi'}>
                           {deletingId === 'trash-restore-multi' ? 'Restoring...' : `Restore (${trashSelectedIds.size})`}
                         </button>
-                        <button
-                          onClick={permanentlyDeleteMultipleFromTrash}
-                          className="btn btn-danger"
-                          disabled={deletingId === 'trash-multi'}
-                        >
+                        <button onClick={permanentlyDeleteMultipleFromTrash} className="btn btn-danger" disabled={deletingId === 'trash-multi'}>
                           {deletingId === 'trash-multi' ? 'Deleting...' : `Permanently Delete (${trashSelectedIds.size})`}
                         </button>
                       </div>
@@ -795,7 +928,7 @@ function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {trash.map(item => (
+                      {trash.map((item) => (
                         <tr key={item.id}>
                           <td>
                             <label className="checkbox-label">
@@ -851,15 +984,10 @@ function App() {
             <div className="auth-card">
               <h2>Authentication Required</h2>
               <p>
-                To access the admin dashboard and manage documents, you need to authenticate 
-                with your Google Drive account.
+                To access the admin dashboard and manage documents, you need to authenticate with your Google Drive account.
               </p>
-              <button onClick={initiateAuth} className="btn btn-primary btn-large">
-                Sign in with Google Drive
-              </button>
-              <p className="text-muted text-small">
-                We use your Google Drive to securely store and manage generated documents.
-              </p>
+              <button onClick={initiateAuth} className="btn btn-primary btn-large">Sign in with Google Drive</button>
+              <p className="text-muted text-small">We use your Google Drive to securely store and manage generated documents.</p>
             </div>
           </section>
         </main>

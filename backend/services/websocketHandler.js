@@ -7,12 +7,14 @@
 
 const WebSocket = require("ws");
 const crypto = require("crypto");
+const queueService = require("./queueService");
 
 // Configuration
 const AGENT_SECRET = process.env.PRINT_AGENT_SECRET || "your-secure-agent-secret";
 
 // Store connected print agents
 const printAgents = new Map();
+const queueClients = new Set();
 
 // Store pending print jobs
 const pendingJobs = new Map();
@@ -40,10 +42,15 @@ function initWebSocket(server) {
 
     ws.isAuthenticated = false;
     ws.agentId = null;
+    ws.isAlive = true;
+    ws.isQueueSubscriber = false;
 
     ws.on("message", (data) => handleMessage(ws, data));
     ws.on("close", () => handleDisconnect(ws));
     ws.on("error", (err) => console.error("[WS] Error:", err.message));
+    ws.on("pong", () => {
+      ws.isAlive = true;
+    });
 
 
   });
@@ -94,11 +101,70 @@ function handleMessage(ws, data) {
         ws.send(JSON.stringify({ type: "pong" }));
         break;
 
+      case "subscribe-queue":
+        handleQueueSubscribe(ws);
+        break;
+
+      case "unsubscribe-queue":
+        handleQueueUnsubscribe(ws);
+        break;
+
       default:
         console.log(`[WS] Unknown message type: ${message.type}`);
     }
   } catch (err) {
     console.error("[WS] Failed to parse message:", err.message);
+  }
+}
+
+async function handleQueueSubscribe(ws) {
+  ws.isQueueSubscriber = true;
+  queueClients.add(ws);
+
+  ws.send(JSON.stringify({
+    type: "queue-subscribed",
+    ok: true,
+  }));
+
+  await sendQueueSnapshot(ws);
+}
+
+function handleQueueUnsubscribe(ws) {
+  ws.isQueueSubscriber = false;
+  queueClients.delete(ws);
+}
+
+async function sendQueueSnapshot(ws) {
+  try {
+    const snapshot = await queueService.getQueueSnapshot();
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: "queue-update",
+        payload: snapshot,
+      }));
+    }
+  } catch (err) {
+    console.error("[WS] Failed to send queue snapshot:", err.message);
+  }
+}
+
+async function broadcastQueueUpdate() {
+  if (!queueClients.size) return;
+
+  try {
+    const snapshot = await queueService.getQueueSnapshot();
+    const message = JSON.stringify({
+      type: "queue-update",
+      payload: snapshot,
+    });
+
+    queueClients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  } catch (err) {
+    console.error("[WS] Failed to broadcast queue update:", err.message);
   }
 }
 
@@ -171,6 +237,10 @@ function handlePrintersList(message) {
  * Handle agent disconnect
  */
 function handleDisconnect(ws) {
+  if (ws.isQueueSubscriber) {
+    queueClients.delete(ws);
+  }
+
   if (ws.agentId) {
     printAgents.delete(ws.agentId);
     console.log(`[WS] Print agent disconnected: ${ws.agentId}`);
@@ -284,5 +354,6 @@ module.exports = {
   requestTestPrint,
   requestPrinterList,
   getConnectedAgentsCount,
-  isPrintAgentAvailable
+  isPrintAgentAvailable,
+  broadcastQueueUpdate,
 };

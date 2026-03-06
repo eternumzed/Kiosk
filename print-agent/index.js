@@ -13,7 +13,7 @@ const { printReceipt, listPrinters, testPrint } = require("./printService");
 
 // Configuration
 const WS_URL = process.env.WS_URL || "wss://api.brgybiluso.me";
-const AGENT_SECRET = process.env.AGENT_SECRET || "your-secure-agent-secret";
+const AGENT_SECRET = process.env.AGENT_SECRET || process.env.PRINT_AGENT_SECRET || "your-secure-agent-secret";
 const RECONNECT_INTERVAL = 5000; // 5 seconds
 const HEARTBEAT_INTERVAL = 30000; // 30 seconds
 
@@ -272,6 +272,10 @@ async function main() {
   }
 
   console.log("\n");
+
+  if (AGENT_SECRET === "your-secure-agent-secret") {
+    log.warn("Using default AGENT_SECRET placeholder. Set AGENT_SECRET or PRINT_AGENT_SECRET in .env to match backend PRINT_AGENT_SECRET.");
+  }
   
   // Connect to backend
   connect();

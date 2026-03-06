@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 
 import PersonalInfo from "./components/PersonalInfo";
@@ -10,6 +10,8 @@ import Home from "./components/Home";
 import TrackRequest from "./components/TrackRequest";
 import Help from "./components/Help";
 import LanguageSelect from "./components/LanguageSelect";
+import QueueDisplay from "./components/QueueDisplay";
+import RequestStatusPage from "./components/RequestStatusPage";
 
 const PageTransition = ({ children }) => (
   <motion.div
@@ -40,6 +42,7 @@ const AnimatedRoutes = ({
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const isQueueHost = typeof window !== 'undefined' && window.location.hostname.startsWith('queue.');
 
   return (
     <AnimatePresence mode="wait">
@@ -47,7 +50,15 @@ const AnimatedRoutes = ({
         {/* LANGUAGE SELECT */}
         <Route
           path="/"
-          element={<PageTransition><LanguageSelect /></PageTransition>} />
+          element={<PageTransition>{isQueueHost ? <Navigate to="/queue" replace /> : <LanguageSelect />}</PageTransition>} />
+        <Route
+          path="/queue"
+          element={<PageTransition><QueueDisplay /></PageTransition>}
+        />
+        <Route
+          path="/request-status"
+          element={<PageTransition><RequestStatusPage /></PageTransition>}
+        />
         {/* HOME */}
         <Route
           path="/home"

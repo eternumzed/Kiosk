@@ -159,6 +159,10 @@ class PushNotificationService {
         title: 'Ready for Pickup',
         body: `Your ${documentType} (${referenceNumber}) is ready for pickup at the barangay hall.`,
       },
+      'for pick-up': {
+        title: 'Ready for Pickup',
+        body: `Your ${documentType} (${referenceNumber}) is ready for pickup at the barangay hall.`,
+      },
       'completed': {
         title: 'Request Completed',
         body: `Your ${documentType} request (${referenceNumber}) has been completed. Thank you!`,
