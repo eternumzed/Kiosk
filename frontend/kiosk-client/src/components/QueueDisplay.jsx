@@ -15,9 +15,9 @@ function QueueColumn({ title, subtitle, items, accent, t }) {
   const visibleItems = orderedItems.slice(0, 10);
   const hiddenCount = Math.max(0, orderedItems.length - visibleItems.length);
   const shouldSplit = visibleItems.length >= 10;
-  const splitIndex = Math.ceil(visibleItems.length / 2);
+  const splitIndex = shouldSplit ? Math.ceil(visibleItems.length / 2) : visibleItems.length;
   const leftItems = visibleItems.slice(0, splitIndex);
-  const rightItems = visibleItems.slice(splitIndex);
+  const rightItems = shouldSplit ? visibleItems.slice(splitIndex) : [];
 
   const maxReferenceLength = visibleItems.reduce(
     (maxLen, item) => Math.max(maxLen, String(item.referenceNumber || '').length),
@@ -34,19 +34,39 @@ function QueueColumn({ title, subtitle, items, accent, t }) {
       : maxReferenceLength > 16
         ? 'text-[clamp(1.3rem,2.4vw,2.2rem)]'
         : 'text-[clamp(1.7rem,3.2vw,3rem)]'
-    : maxReferenceLength > 20
-      ? 'text-[clamp(1.5rem,2.8vw,2.5rem)]'
-      : maxReferenceLength > 16
-        ? 'text-[clamp(1.8rem,3.6vw,3.2rem)]'
-        : 'text-[clamp(2.2rem,4.6vw,4rem)]';
+    : visibleItems.length <= 4
+      ? (maxReferenceLength > 20
+        ? 'text-[clamp(2rem,4.1vw,3.6rem)]'
+        : maxReferenceLength > 16
+          ? 'text-[clamp(2.2rem,4.5vw,3.9rem)]'
+          : 'text-[clamp(2.5rem,5.1vw,4.2rem)]')
+      : visibleItems.length <= 7
+        ? (maxReferenceLength > 20
+          ? 'text-[clamp(1.7rem,3.4vw,3rem)]'
+          : maxReferenceLength > 16
+            ? 'text-[clamp(1.9rem,3.8vw,3.3rem)]'
+            : 'text-[clamp(2.2rem,4.2vw,3.6rem)]')
+        : maxReferenceLength > 20
+          ? 'text-[clamp(1.4rem,2.6vw,2.3rem)]'
+          : maxReferenceLength > 16
+            ? 'text-[clamp(1.7rem,3.1vw,2.8rem)]'
+            : 'text-[clamp(1.95rem,3.5vw,3.1rem)]';
 
   const documentSizeClass = shouldSplit
     ? (maxDocumentLength > 26
       ? 'text-[clamp(0.78rem,1.05vw,1rem)]'
       : 'text-[clamp(0.95rem,1.35vw,1.25rem)]')
-    : (maxDocumentLength > 26
-      ? 'text-[clamp(1rem,1.45vw,1.35rem)]'
-      : 'text-[clamp(1.2rem,1.85vw,1.7rem)]');
+    : visibleItems.length <= 4
+      ? (maxDocumentLength > 26
+        ? 'text-[clamp(1.15rem,1.8vw,1.6rem)]'
+        : 'text-[clamp(1.35rem,2.2vw,1.9rem)]')
+      : visibleItems.length <= 7
+        ? (maxDocumentLength > 26
+          ? 'text-[clamp(1.02rem,1.5vw,1.4rem)]'
+          : 'text-[clamp(1.2rem,1.9vw,1.65rem)]')
+        : (maxDocumentLength > 26
+          ? 'text-[clamp(0.92rem,1.3vw,1.2rem)]'
+          : 'text-[clamp(1.08rem,1.55vw,1.4rem)]');
 
   const renderCard = (item, idx) => (
     <article

@@ -872,6 +872,38 @@ input[type="checkbox"]:indeterminate {
   padding: 10px;
 }
 
+.queue-card--hero .queue-card-head strong {
+  font-size: clamp(1.7rem, 2.8vw, 2.7rem);
+}
+
+.queue-card--hero .queue-card-head span {
+  font-size: clamp(1.1rem, 1.7vw, 1.45rem);
+}
+
+.queue-card--roomy .queue-card-head strong {
+  font-size: clamp(1.35rem, 2.1vw, 2.1rem);
+}
+
+.queue-card--roomy .queue-card-head span {
+  font-size: clamp(0.95rem, 1.4vw, 1.2rem);
+}
+
+.queue-card--normal .queue-card-head strong {
+  font-size: clamp(1.1rem, 1.6vw, 1.6rem);
+}
+
+.queue-card--normal .queue-card-head span {
+  font-size: clamp(0.86rem, 1.2vw, 1.05rem);
+}
+
+.queue-card--dense .queue-card-head strong {
+  font-size: clamp(0.98rem, 1.3vw, 1.25rem);
+}
+
+.queue-card--dense .queue-card-head span {
+  font-size: clamp(0.78rem, 0.98vw, 0.94rem);
+}
+
 .queue-card-head {
   display: flex;
   align-items: center;
@@ -890,7 +922,7 @@ input[type="checkbox"]:indeterminate {
 
 .queue-card-head strong {
   color: var(--gray-800);
-  font-size: 14px;
+  font-size: clamp(1.1rem, 1.6vw, 1.6rem);
   overflow-wrap: anywhere;
 }
 

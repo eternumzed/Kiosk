@@ -316,11 +316,13 @@ function App() {
   const renderQueueCards = (items, prefix) => {
     const shouldSplit = items.length >= 10;
     const [leftItems, rightItems] = splitIntoTwoColumns(items);
+    const visibleLeftItems = shouldSplit ? leftItems : items;
+    const densityClass = shouldSplit ? 'queue-card--dense' : items.length <= 4 ? 'queue-card--hero' : items.length <= 7 ? 'queue-card--roomy' : 'queue-card--normal';
     return (
       <div className={`queue-list ${shouldSplit ? 'queue-list-columns' : ''}`}>
         <div className="queue-sublist">
-          {leftItems.map((item) => (
-            <div className="queue-card" key={`${prefix}-${item.referenceNumber}`}>
+          {visibleLeftItems.map((item) => (
+            <div className={`queue-card ${densityClass}`} key={`${prefix}-${item.referenceNumber}`}>
               <div className="queue-card-head">
                 <strong>{item.referenceNumber}</strong>
                 <span>{item.document || '-'}</span>
@@ -342,7 +344,7 @@ function App() {
         {shouldSplit && (
           <div className="queue-sublist">
             {rightItems.map((item) => (
-              <div className="queue-card" key={`${prefix}-2-${item.referenceNumber}`}>
+              <div className={`queue-card ${densityClass}`} key={`${prefix}-2-${item.referenceNumber}`}>
                 <div className="queue-card-head">
                   <strong>{item.referenceNumber}</strong>
                   <span>{item.document || '-'}</span>
