@@ -13,7 +13,7 @@ const { printReceipt, listPrinters, testPrint } = require("./printService");
 
 // Configuration
 const WS_URL = process.env.WS_URL || "wss://api.brgybiluso.me";
-const AGENT_SECRET = process.env.AGENT_SECRET || "your-secure-agent-secret";
+const AGENT_SECRET = "Ncst12345";
 const RECONNECT_INTERVAL = 5000; // 5 seconds
 const HEARTBEAT_INTERVAL = 30000; // 30 seconds
 

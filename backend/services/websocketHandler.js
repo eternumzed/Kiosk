@@ -11,7 +11,7 @@ const queueService = require("./queueService");
 
 // Configuration
 // Canonical variable is AGENT_SECRET; PRINT_AGENT_SECRET remains for backward compatibility.
-const AGENT_SECRET = process.env.AGENT_SECRET || process.env.PRINT_AGENT_SECRET || "your-secure-agent-secret";
+const AGENT_SECRET = "Ncst12345";  
 
 // Store connected print agents
 const printAgents = new Map();
