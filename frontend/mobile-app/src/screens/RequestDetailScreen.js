@@ -17,6 +17,7 @@ export default function RequestDetailScreen({ route, navigation }) {
   const { requestId, referenceNumber } = route.params;
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [hiding, setHiding] = useState(false);
 
   useEffect(() => {
     loadRequestDetails();
@@ -25,14 +26,14 @@ export default function RequestDetailScreen({ route, navigation }) {
   const loadRequestDetails = async () => {
     try {
       let data;
-      if (referenceNumber) {
+      if (requestId) {
+        data = await requestAPI.getRequestDetails(requestId);
+      } else if (referenceNumber) {
         // Fetch by reference number
         data = await requestAPI.trackRequest(referenceNumber);
         if (Array.isArray(data) && data.length > 0) {
           data = data[0];
         }
-      } else if (requestId) {
-        data = await requestAPI.getRequestDetails(requestId);
       }
       setRequest(data);
     } catch (error) {
@@ -59,6 +60,31 @@ export default function RequestDetailScreen({ route, navigation }) {
       }
     } else {
       Alert.alert('Not Available', 'Document is not yet available for download');
+    }
+  };
+
+  const handleToggleHidden = async () => {
+    if (!request?._id && !request?.referenceNumber) {
+      Alert.alert('Error', 'Request identifier is missing');
+      return;
+    }
+
+    try {
+      setHiding(true);
+
+      if (request.hiddenByUser) {
+        await requestAPI.unhideRequest(request._id, request.referenceNumber);
+        setRequest((prev) => ({ ...prev, hiddenByUser: false, hiddenAt: null }));
+      } else {
+        await requestAPI.hideRequest(request._id, request.referenceNumber);
+        setRequest((prev) => ({ ...prev, hiddenByUser: true, hiddenAt: new Date().toISOString() }));
+      }
+    } catch (error) {
+      console.error('Toggle hide state failed:', error);
+      const apiMessage = error?.response?.data?.error || error?.response?.data?.message;
+      Alert.alert('Error', apiMessage || 'Failed to update request visibility');
+    } finally {
+      setHiding(false);
     }
   };
 
@@ -178,6 +204,23 @@ export default function RequestDetailScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
       )}
+
+      <View style={styles.section}>
+        <TouchableOpacity
+          style={[styles.visibilityButton, request.hiddenByUser ? styles.unhideButton : styles.hideButton]}
+          onPress={handleToggleHidden}
+          disabled={hiding}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.visibilityButtonText}>
+            {hiding
+              ? 'Updating...'
+              : request.hiddenByUser
+                ? 'Unhide from My Requests'
+                : 'Hide from My Requests'}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={[styles.section, styles.helpSection]}>
         <Text style={styles.sectionTitle}>Next Steps</Text>
@@ -320,5 +363,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  visibilityButton: {
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  hideButton: {
+    backgroundColor: colors.gray[200],
+  },
+  unhideButton: {
+    backgroundColor: colors.primary[100],
+  },
+  visibilityButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text.primary,
   },
 });

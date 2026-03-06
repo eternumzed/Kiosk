@@ -191,6 +191,60 @@ export const requestAPI = {
   getRequestDetails: async (requestId) => {
     return apiClient.get(`/request/${requestId}`);
   },
+
+  // Hide request from user's active list (user-side visibility only)
+  hideRequest: async (requestId, referenceNumber) => {
+    const safeReference = typeof referenceNumber === 'string' ? referenceNumber.trim() : '';
+    const safeRequestId = typeof requestId === 'string' ? requestId.trim() : '';
+
+    if (!safeRequestId && !safeReference) {
+      throw new Error('Missing request identifier');
+    }
+
+    try {
+      return await apiClient.patch('/request/hide', {
+        requestId: safeRequestId || undefined,
+        referenceNumber: safeReference || undefined,
+      });
+    } catch (err) {
+      if (err?.response?.status === 404 && safeRequestId) {
+        return apiClient.patch(`/request/hide/${safeRequestId}`, {
+          referenceNumber: safeReference || undefined,
+        });
+      }
+      if (err?.response?.status === 404 && safeReference) {
+        return apiClient.patch(`/request/hide/ref/${encodeURIComponent(safeReference)}`);
+      }
+      throw err;
+    }
+  },
+
+  // Unhide request and move back to active list
+  unhideRequest: async (requestId, referenceNumber) => {
+    const safeReference = typeof referenceNumber === 'string' ? referenceNumber.trim() : '';
+    const safeRequestId = typeof requestId === 'string' ? requestId.trim() : '';
+
+    if (!safeRequestId && !safeReference) {
+      throw new Error('Missing request identifier');
+    }
+
+    try {
+      return await apiClient.patch('/request/unhide', {
+        requestId: safeRequestId || undefined,
+        referenceNumber: safeReference || undefined,
+      });
+    } catch (err) {
+      if (err?.response?.status === 404 && safeRequestId) {
+        return apiClient.patch(`/request/unhide/${safeRequestId}`, {
+          referenceNumber: safeReference || undefined,
+        });
+      }
+      if (err?.response?.status === 404 && safeReference) {
+        return apiClient.patch(`/request/unhide/ref/${encodeURIComponent(safeReference)}`);
+      }
+      throw err;
+    }
+  },
 };
 
 export default apiClient;

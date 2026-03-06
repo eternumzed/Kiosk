@@ -3,7 +3,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -34,6 +33,7 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
   const [documentFilter, setDocumentFilter] = useState('All');
   const [dateSort, setDateSort] = useState('desc');
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [requestTab, setRequestTab] = useState('active');
 
   // Compute display name from user object
   const displayName = user?.fullName || 
@@ -100,6 +100,21 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
     return result;
   }, [requests, statusFilter, documentFilter, dateSort]);
 
+  const activeRequests = useMemo(
+    () => filteredRequests.filter((r) => !r.hiddenByUser),
+    [filteredRequests]
+  );
+
+  const hiddenRequests = useMemo(
+    () => filteredRequests.filter((r) => !!r.hiddenByUser),
+    [filteredRequests]
+  );
+
+  const visibleRequests = useMemo(
+    () => (requestTab === 'hidden' ? hiddenRequests : activeRequests),
+    [requestTab, activeRequests, hiddenRequests]
+  );
+
   // Check if any filter is active
   const hasActiveFilters = statusFilter !== 'All' || documentFilter !== 'All';
   
@@ -108,6 +123,7 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
     setDocumentFilter('All');
     setDateSort('desc');
   };
+
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -126,10 +142,14 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
     }
   };
 
-  const renderRequestItem = ({ item }) => (
+  const renderRequestItem = ({ item, section }) => (
     <TouchableOpacity
       style={styles.requestCard}
-      onPress={() => navigation.navigate('RequestDetail', { requestId: item._id, referenceNumber: item.referenceNumber })}
+      onPress={() => navigation.navigate('RequestDetail', {
+        requestId: item._id,
+        referenceNumber: item.referenceNumber,
+        hiddenByUser: !!item.hiddenByUser,
+      })}
       activeOpacity={0.7}
     >
       <View style={styles.cardHeader}>
@@ -147,6 +167,7 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
         {new Date(item.createdAt).toLocaleDateString()}
       </Text>
       <Text style={styles.cardRef}>Ref: {item.referenceNumber || item._id?.slice(-8).toUpperCase()}</Text>
+
     </TouchableOpacity>
   );
 
@@ -248,6 +269,25 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
               {dateSort === 'desc' ? 'Newest' : 'Oldest'} first
             </Text>
           </TouchableOpacity>
+
+          <View style={styles.tabSwitcher}>
+            <TouchableOpacity
+              style={[styles.tabButton, requestTab === 'active' && styles.tabButtonActive]}
+              onPress={() => setRequestTab('active')}
+            >
+              <Text style={[styles.tabButtonText, requestTab === 'active' && styles.tabButtonTextActive]}>
+                Active ({activeRequests.length})
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tabButton, requestTab === 'hidden' && styles.tabButtonActive]}
+              onPress={() => setRequestTab('hidden')}
+            >
+              <Text style={[styles.tabButtonText, requestTab === 'hidden' && styles.tabButtonTextActive]}>
+                Hidden ({hiddenRequests.length})
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -380,11 +420,22 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
             <Text style={styles.clearFiltersText}>Clear Filters</Text>
           </TouchableOpacity>
         </View>
+      ) : visibleRequests.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconContainer}>
+            <Feather name={requestTab === 'hidden' ? 'archive' : 'inbox'} size={48} color={colors.gray[400]} />
+          </View>
+          <Text style={styles.emptyText}>
+            {requestTab === 'hidden' ? 'No hidden requests' : 'No active requests'}
+          </Text>
+          <Text style={styles.emptySubtext}>
+            {requestTab === 'hidden'
+              ? 'Requests you hide from details will appear here.'
+              : 'Try changing filters or create a new request.'}
+          </Text>
+        </View>
       ) : (
-        <FlatList
-          data={filteredRequests}
-          renderItem={renderRequestItem}
-          keyExtractor={(item) => item._id}
+        <ScrollView
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl
@@ -394,7 +445,11 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
               tintColor={colors.primary[600]}
             />
           }
-        />
+        >
+          {visibleRequests.map((item) => (
+            <View key={item._id}>{renderRequestItem({ item })}</View>
+          ))}
+        </ScrollView>
       )}
     </View>
   );
@@ -493,6 +548,30 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
+  },
+  tabSwitcher: {
+    marginTop: 10,
+    flexDirection: 'row',
+    backgroundColor: colors.gray[100],
+    borderRadius: 10,
+    padding: 4,
+  },
+  tabButton: {
+    flex: 1,
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  tabButtonActive: {
+    backgroundColor: colors.primary[600],
+  },
+  tabButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text.secondary,
+  },
+  tabButtonTextActive: {
+    color: '#fff',
   },
   cardHeader: {
     flexDirection: 'row',

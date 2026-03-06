@@ -70,6 +70,10 @@ const RequestSchema = new Schema({
     deletedReason: { type: String },                  // Why was it deleted
     deletedBy: { type: String },                      // Who deleted it (admin email/id)
 
+    // User Visibility Fields (Mobile app only - does not affect admin records)
+    hiddenByUser: { type: Boolean, default: false },
+    hiddenAt: { type: Date },
+
 }, { timestamps: true });
 
 

@@ -256,12 +256,14 @@ function App() {
     items.sort((a, b) => {
       let cmp = 0;
       if (sortBy === 'date') {
+        // FIFO: oldest first regardless of sortDir in date mode.
         cmp = new Date(a.createdTime) - new Date(b.createdTime);
       } else if (sortBy === 'name') {
         cmp = (a.name || '').localeCompare(b.name || '');
       } else if (sortBy === 'size') {
         cmp = (a.size || 0) - (b.size || 0);
       }
+      if (sortBy === 'date') return cmp;
       return sortDir === 'asc' ? cmp : -cmp;
     });
 
@@ -289,6 +291,24 @@ function App() {
     const start = (page - 1) * pageSize;
     return visiblePdfs.slice(start, start + pageSize);
   }, [visiblePdfs, page, pageSize]);
+
+  const orderedNowServing = useMemo(() => {
+    return [...(queueSnapshot.nowServing || [])].sort((a, b) => {
+      const aTime = new Date(a.createdAt || a.updatedAt || 0).getTime();
+      const bTime = new Date(b.createdAt || b.updatedAt || 0).getTime();
+      if (aTime !== bTime) return aTime - bTime;
+      return String(a.referenceNumber || '').localeCompare(String(b.referenceNumber || ''));
+    });
+  }, [queueSnapshot.nowServing]);
+
+  const orderedForPickup = useMemo(() => {
+    return [...(queueSnapshot.forPickup || [])].sort((a, b) => {
+      const aTime = new Date(a.createdAt || a.updatedAt || 0).getTime();
+      const bTime = new Date(b.createdAt || b.updatedAt || 0).getTime();
+      if (aTime !== bTime) return aTime - bTime;
+      return String(a.referenceNumber || '').localeCompare(String(b.referenceNumber || ''));
+    });
+  }, [queueSnapshot.forPickup]);
 
   const initiateAuth = async () => {
     try {
@@ -817,12 +837,12 @@ function App() {
 
               <div className="queue-grid">
                 <div className="queue-column">
-                  <h3>Now Serving ({queueSnapshot.nowServing.length})</h3>
-                  {queueSnapshot.nowServing.length === 0 ? (
+                  <h3>Now Serving ({orderedNowServing.length})</h3>
+                  {orderedNowServing.length === 0 ? (
                     <div className="empty-state"><p>No document currently in Processing.</p></div>
                   ) : (
                     <div className="queue-list">
-                      {queueSnapshot.nowServing.map((item) => (
+                      {orderedNowServing.map((item) => (
                         <div className="queue-card" key={item.referenceNumber}>
                           <div className="queue-card-head">
                             <strong>{item.referenceNumber}</strong>
@@ -846,12 +866,12 @@ function App() {
                 </div>
 
                 <div className="queue-column">
-                  <h3>For Pick-up ({queueSnapshot.forPickup.length})</h3>
-                  {queueSnapshot.forPickup.length === 0 ? (
+                  <h3>For Pick-up ({orderedForPickup.length})</h3>
+                  {orderedForPickup.length === 0 ? (
                     <div className="empty-state"><p>No document waiting for pickup.</p></div>
                   ) : (
                     <div className="queue-list">
-                      {queueSnapshot.forPickup.map((item) => (
+                      {orderedForPickup.map((item) => (
                         <div className="queue-card" key={item.referenceNumber}>
                           <div className="queue-card-head">
                             <strong>{item.referenceNumber}</strong>

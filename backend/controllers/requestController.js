@@ -1,6 +1,8 @@
 const axios = require('axios')
+const mongoose = require('mongoose');
 const Request = require('../models/requestSchema.js');
 const Counter = require('../models/counter.js');
+const websocketHandler = require('../services/websocketHandler');
 
 function getDocCode(documentName) {
     if (!documentName) return "DOC";
@@ -89,6 +91,257 @@ exports.trackRequest = async (req, res) => {
     }
 
 }
+
+exports.hideRequest = async (req, res) => {
+    try {
+        const { requestId } = req.params;
+        const referenceNumber = typeof req.body?.referenceNumber === 'string'
+            ? req.body.referenceNumber.trim()
+            : '';
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        let request = null;
+        const canUseObjectId = mongoose.Types.ObjectId.isValid(requestId);
+
+        // Primary lookup by Mongo _id.
+        if (canUseObjectId) {
+            request = await Request.findOneAndUpdate(
+                { _id: requestId, userId, deleted: { $ne: true } },
+                {
+                    hiddenByUser: true,
+                    hiddenAt: new Date(),
+                },
+                { new: true }
+            );
+        }
+
+        // Fallback for legacy/mobile edge cases where _id isn't available but reference exists.
+        if (!request && referenceNumber) {
+            request = await Request.findOneAndUpdate(
+                { referenceNumber, userId, deleted: { $ne: true } },
+                {
+                    hiddenByUser: true,
+                    hiddenAt: new Date(),
+                },
+                { new: true }
+            );
+        }
+
+        if (!request) {
+            return res.status(404).json({ error: 'Request not found' });
+        }
+
+        await websocketHandler.broadcastQueueUpdate();
+
+        res.json({
+            success: true,
+            message: 'Request hidden successfully',
+            request,
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+exports.unhideRequest = async (req, res) => {
+    try {
+        const { requestId } = req.params;
+        const referenceNumber = typeof req.body?.referenceNumber === 'string'
+            ? req.body.referenceNumber.trim()
+            : '';
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        let request = null;
+        const canUseObjectId = mongoose.Types.ObjectId.isValid(requestId);
+
+        if (canUseObjectId) {
+            request = await Request.findOneAndUpdate(
+                { _id: requestId, userId, deleted: { $ne: true } },
+                {
+                    hiddenByUser: false,
+                    hiddenAt: null,
+                },
+                { new: true }
+            );
+        }
+
+        if (!request && referenceNumber) {
+            request = await Request.findOneAndUpdate(
+                { referenceNumber, userId, deleted: { $ne: true } },
+                {
+                    hiddenByUser: false,
+                    hiddenAt: null,
+                },
+                { new: true }
+            );
+        }
+
+        if (!request) {
+            return res.status(404).json({ error: 'Request not found' });
+        }
+
+        await websocketHandler.broadcastQueueUpdate();
+
+        res.json({
+            success: true,
+            message: 'Request unhidden successfully',
+            request,
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+async function updateHiddenState(query, hiddenByUser) {
+    const update = hiddenByUser
+        ? { hiddenByUser: true, hiddenAt: new Date() }
+        : { hiddenByUser: false, hiddenAt: null };
+
+    return Request.findOneAndUpdate(
+        { ...query, deleted: { $ne: true } },
+        update,
+        { new: true }
+    );
+}
+
+async function updateHiddenStateByAnyIdentifier({ userId, requestId, referenceNumber, hiddenByUser }) {
+    const safeReference = typeof referenceNumber === 'string' ? referenceNumber.trim() : '';
+    const canUseObjectId = typeof requestId === 'string' && mongoose.Types.ObjectId.isValid(requestId);
+
+    if (canUseObjectId) {
+        const byId = await updateHiddenState({ _id: requestId, userId }, hiddenByUser);
+        if (byId) return byId;
+    }
+
+    if (safeReference) {
+        const byReference = await updateHiddenState({ referenceNumber: safeReference, userId }, hiddenByUser);
+        if (byReference) return byReference;
+    }
+
+    return null;
+}
+
+exports.hideRequestAny = async (req, res) => {
+    try {
+        const userId = req.user?.userId;
+        const requestId = typeof req.body?.requestId === 'string' ? req.body.requestId.trim() : '';
+        const referenceNumber = typeof req.body?.referenceNumber === 'string' ? req.body.referenceNumber.trim() : '';
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        if (!requestId && !referenceNumber) {
+            return res.status(400).json({ error: 'requestId or referenceNumber is required' });
+        }
+
+        const request = await updateHiddenStateByAnyIdentifier({
+            userId,
+            requestId,
+            referenceNumber,
+            hiddenByUser: true,
+        });
+
+        if (!request) {
+            return res.status(404).json({ error: 'Request not found' });
+        }
+
+        await websocketHandler.broadcastQueueUpdate();
+        res.json({ success: true, message: 'Request hidden successfully', request });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+exports.unhideRequestAny = async (req, res) => {
+    try {
+        const userId = req.user?.userId;
+        const requestId = typeof req.body?.requestId === 'string' ? req.body.requestId.trim() : '';
+        const referenceNumber = typeof req.body?.referenceNumber === 'string' ? req.body.referenceNumber.trim() : '';
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        if (!requestId && !referenceNumber) {
+            return res.status(400).json({ error: 'requestId or referenceNumber is required' });
+        }
+
+        const request = await updateHiddenStateByAnyIdentifier({
+            userId,
+            requestId,
+            referenceNumber,
+            hiddenByUser: false,
+        });
+
+        if (!request) {
+            return res.status(404).json({ error: 'Request not found' });
+        }
+
+        await websocketHandler.broadcastQueueUpdate();
+        res.json({ success: true, message: 'Request unhidden successfully', request });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+exports.hideRequestByReference = async (req, res) => {
+    try {
+        const { referenceNumber } = req.params;
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const request = await updateHiddenState(
+            { referenceNumber, userId },
+            true
+        );
+
+        if (!request) {
+            return res.status(404).json({ error: 'Request not found' });
+        }
+
+        await websocketHandler.broadcastQueueUpdate();
+        res.json({ success: true, message: 'Request hidden successfully', request });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+exports.unhideRequestByReference = async (req, res) => {
+    try {
+        const { referenceNumber } = req.params;
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const request = await updateHiddenState(
+            { referenceNumber, userId },
+            false
+        );
+
+        if (!request) {
+            return res.status(404).json({ error: 'Request not found' });
+        }
+
+        await websocketHandler.broadcastQueueUpdate();
+        res.json({ success: true, message: 'Request unhidden successfully', request });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
 
 
 

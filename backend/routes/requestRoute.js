@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const requestController = require('../controllers/requestController');
+const { verifyAccessToken } = require('../middleware/authMiddleware');
 // const authMiddleware = require('../middlewares/auth'); // for mobile/admin auth
 
 // Public / kiosk
@@ -18,6 +19,14 @@ const requestController = require('../controllers/requestController');
 
 
 router.post("/create-request/", requestController.createRequest)
+
+// Authenticated mobile user request visibility controls
+router.patch('/hide', verifyAccessToken, requestController.hideRequestAny);
+router.patch('/unhide', verifyAccessToken, requestController.unhideRequestAny);
+router.patch('/hide/:requestId', verifyAccessToken, requestController.hideRequest);
+router.patch('/unhide/:requestId', verifyAccessToken, requestController.unhideRequest);
+router.patch('/hide/ref/:referenceNumber', verifyAccessToken, requestController.hideRequestByReference);
+router.patch('/unhide/ref/:referenceNumber', verifyAccessToken, requestController.unhideRequestByReference);
 
 router.get("/:id", requestController.request); // for confirmation screen // UNUSED
 router.get("/track-request/:referenceNumber", requestController.trackRequest); // Confirmation.jsx TrackRequest.jsx

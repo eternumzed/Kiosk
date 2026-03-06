@@ -245,6 +245,7 @@ exports.deletePdf = asyncHandler(async (req, res) => {
       deletedBy: 'admin',
       deletedReason: 'Deleted via admin dashboard'
     });
+    await websocketHandler.broadcastQueueUpdate();
     res.json({ success: true, message: 'PDF deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: 'Delete failed', details: err.message });
@@ -307,6 +308,7 @@ exports.deleteMultiple = asyncHandler(async (req, res) => {
       deletedBy: 'admin',
       deletedReason: 'Bulk deleted via admin dashboard'
     });
+    await websocketHandler.broadcastQueueUpdate();
     res.json({ success: true, message: `${result.deleted} PDFs deleted successfully` });
   } catch (err) {
     res.status(500).json({ error: 'Deletion failed', details: err.message });
@@ -357,6 +359,7 @@ exports.restoreFromTrash = asyncHandler(async (req, res) => {
   
   try {
     const updated = await drive.restoreFromTrash(req.params.fileId);
+    await websocketHandler.broadcastQueueUpdate();
     res.json({ success: true, message: 'Document restored successfully', data: updated });
   } catch (err) {
     res.status(500).json({ error: 'Restore failed', details: err.message });
@@ -374,6 +377,7 @@ exports.restoreMultipleFromTrash = asyncHandler(async (req, res) => {
   
   try {
     const result = await drive.restoreMultipleFromTrash(fileIds);
+    await websocketHandler.broadcastQueueUpdate();
     res.json({ success: true, message: `${result.restored} document(s) restored successfully` });
   } catch (err) {
     res.status(500).json({ error: 'Restore failed', details: err.message });

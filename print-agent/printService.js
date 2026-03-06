@@ -170,7 +170,7 @@ function buildReceiptPayload(data) {
     receipt += init;
     receipt += alignCenter;
     receipt += boldOn + "SCAN TO TRACK STATUS" + boldOff + LF;
-    receipt += buildQrCommands(qrTrackingUrl).toString('latin1');
+    receipt += "__QR_BLOCK__";
     receipt += LF;
     receipt += `Ref: ${data.referenceNumber || 'N/A'}` + LF;
     receipt += singleLine + LF;
@@ -266,7 +266,20 @@ function buildReceiptPayload(data) {
     // Cut paper
     receipt += feedAndCut;
 
-    return Buffer.from(receipt, "ascii");
+    const marker = "__QR_BLOCK__";
+    const markerBuffer = Buffer.from(marker, "ascii");
+    const receiptBuffer = Buffer.from(receipt, "ascii");
+    const markerIndex = receiptBuffer.indexOf(markerBuffer);
+
+    if (markerIndex === -1) {
+        return receiptBuffer;
+    }
+
+    return Buffer.concat([
+        receiptBuffer.subarray(0, markerIndex),
+        buildQrCommands(qrTrackingUrl),
+        receiptBuffer.subarray(markerIndex + markerBuffer.length),
+    ]);
 }
 
 /**

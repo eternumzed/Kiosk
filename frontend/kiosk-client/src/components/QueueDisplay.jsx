@@ -4,29 +4,47 @@ const QUEUE_API_URL = 'https://api.brgybiluso.me/api/queue';
 const QUEUE_WS_URL = 'wss://api.brgybiluso.me';
 
 function QueueColumn({ title, subtitle, items, accent }) {
+  const orderedItems = [...items].sort((a, b) => {
+    const aTime = new Date(a.createdAt || a.updatedAt || 0).getTime();
+    const bTime = new Date(b.createdAt || b.updatedAt || 0).getTime();
+    if (aTime !== bTime) return aTime - bTime;
+    return String(a.referenceNumber || '').localeCompare(String(b.referenceNumber || ''));
+  });
+
+  const visibleItems = orderedItems.slice(0, 10);
+  const hiddenCount = Math.max(0, orderedItems.length - visibleItems.length);
+
   return (
-    <section className="rounded-3xl border border-white/60 bg-white/90 p-6 shadow-xl backdrop-blur-sm">
-      <div className="mb-5">
-        <h2 className={`text-4xl font-extrabold tracking-tight ${accent}`}>{title}</h2>
-        <p className="mt-1 text-sm font-semibold uppercase tracking-wider text-slate-500">{subtitle}</p>
+    <section className="flex h-full flex-col rounded-2xl border border-white/60 bg-white/95 p-2 shadow-lg backdrop-blur-sm">
+      <div className="mb-1 flex items-baseline justify-between border-b border-slate-200 pb-1">
+        <h2 className={`text-[clamp(2rem,4vw,3.6rem)] font-black uppercase tracking-tight ${accent}`}>{title}</h2>
+        <p className="text-[clamp(0.82rem,1.35vw,1.05rem)] font-bold uppercase tracking-wider text-slate-500">{subtitle}</p>
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-slate-500">
+        <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 p-2 text-center text-lg font-bold uppercase text-slate-500">
           Waiting for updates...
         </div>
       ) : (
-        <div className="space-y-3">
-          {items.map((item, idx) => (
+        <div className="flex flex-1 flex-col gap-1 overflow-hidden">
+          {visibleItems.map((item, idx) => (
             <article
               key={`${item.referenceNumber}-${idx}`}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
+              className="rounded-lg border border-slate-200 bg-white px-2 py-2 shadow-sm"
             >
-              <p className="text-2xl font-black text-slate-800">{item.referenceNumber}</p>
-              <p className="text-sm font-medium text-slate-600">{item.document || '-'}</p>
-              <p className="mt-1 text-sm text-slate-500">{item.fullName || '-'}</p>
+              <p className="truncate text-[clamp(1.7rem,3.2vw,3rem)] font-black uppercase leading-tight text-slate-900">
+                {String(item.referenceNumber || '').toUpperCase()}
+              </p>
+              <p className="truncate text-[clamp(0.95rem,1.35vw,1.25rem)] font-bold uppercase text-slate-600">
+                {String(item.document || '-').toUpperCase()}
+              </p>
             </article>
           ))}
+          {hiddenCount > 0 && (
+            <div className="rounded-lg bg-amber-50 px-2 py-1 text-center text-sm font-bold uppercase text-amber-700">
+              +{hiddenCount} more in queue
+            </div>
+          )}
         </div>
       )}
     </section>
@@ -131,30 +149,17 @@ export default function QueueDisplay() {
   }, []);
 
   return (
-    <div className="w-full min-h-screen px-6 py-6 md:px-10 md:py-8">
-      <div className="mx-auto max-w-[1500px]">
-        <header className="mb-6 rounded-3xl border border-emerald-200 bg-gradient-to-r from-emerald-600 to-teal-600 p-6 text-white shadow-lg">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="text-4xl font-black tracking-tight md:text-5xl">Barangay Biluso Queue</h1>
-              <p className="mt-2 text-sm uppercase tracking-widest text-emerald-100">
-                Live Queue Display
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-semibold uppercase tracking-wide text-emerald-100">{connected ? 'Realtime Online' : 'Reconnecting...'}</p>
-              <p className="text-2xl font-bold">{clock.toLocaleTimeString('en-PH')}</p>
-              <p className="text-sm">{clock.toLocaleDateString('en-PH')}</p>
-            </div>
-          </div>
-        </header>
-
-        <div className="mb-4 flex items-center justify-between rounded-2xl bg-white/80 px-4 py-3 text-slate-700 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-wide">Total in Queue</p>
-          <p className="text-2xl font-black">{total}</p>
+    <div className="h-screen w-full overflow-hidden bg-gradient-to-br from-emerald-50 to-teal-100 px-2 py-2 md:px-3 md:py-3">
+      <div className="mx-auto flex h-full max-w-[1920px] flex-col">
+        <div className="mb-1 flex items-center justify-between rounded-xl bg-white/90 px-3 py-2 text-slate-700 shadow-sm">
+          <p className="text-[0.78rem] font-bold uppercase tracking-wide">Total in Queue</p>
+          <p className="text-[clamp(1.3rem,2.8vw,2.2rem)] font-black uppercase">{total}</p>
+          <p className="text-[0.78rem] font-bold uppercase tracking-wide text-slate-600">
+            {connected ? 'Realtime Online' : 'Reconnecting...'} • {clock.toLocaleTimeString('en-PH')}
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="grid h-full min-h-0 grid-cols-2 gap-2">
           <QueueColumn
             title="Now Serving"
             subtitle="Status: Processing"

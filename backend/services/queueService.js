@@ -19,7 +19,7 @@ async function getQueueSnapshot() {
     deleted: { $ne: true },
     status: { $in: QUEUE_STATUSES },
   })
-    .sort({ updatedAt: -1 })
+    .sort({ createdAt: 1, _id: 1 })
     .select('referenceNumber document type fullName status updatedAt createdAt');
 
   const nowServing = [];
