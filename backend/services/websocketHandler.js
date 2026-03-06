@@ -10,7 +10,8 @@ const crypto = require("crypto");
 const queueService = require("./queueService");
 
 // Configuration
-const AGENT_SECRET = process.env.PRINT_AGENT_SECRET || "your-secure-agent-secret";
+// Canonical variable is AGENT_SECRET; PRINT_AGENT_SECRET remains for backward compatibility.
+const AGENT_SECRET = process.env.AGENT_SECRET || process.env.PRINT_AGENT_SECRET || "your-secure-agent-secret";
 
 // Store connected print agents
 const printAgents = new Map();

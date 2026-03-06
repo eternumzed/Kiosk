@@ -47,7 +47,7 @@ Edit the `.env` file:
 # WebSocket URL of the backend server
 WS_URL=wss://api.brgybiluso.me
 
-# Secret key (must match PRINT_AGENT_SECRET on the server)
+# Secret key (must match AGENT_SECRET on the server)
 AGENT_SECRET=your-secure-agent-secret-change-this
 ```
 
@@ -57,7 +57,7 @@ Add to your VPS `.env` file:
 
 ```env
 # Print Agent Secret (must match AGENT_SECRET on the Windows machine)
-PRINT_AGENT_SECRET=your-secure-agent-secret-change-this
+AGENT_SECRET=your-secure-agent-secret-change-this
 ```
 
 ## Running the Print Agent
@@ -152,7 +152,7 @@ POST /api/print/test
 - Ensure your firewall allows outbound WebSocket connections
 
 ### "Invalid agent secret"
-- Make sure `AGENT_SECRET` in Print Agent `.env` matches `PRINT_AGENT_SECRET` in VPS `.env`
+- Make sure `AGENT_SECRET` in Print Agent `.env` matches `AGENT_SECRET` in VPS `.env`
 
 ### Receipt not printing correctly
 - Ensure the printer is set to 58mm paper width
