@@ -108,8 +108,10 @@ function buildPayload(data) {
   };
 
   // ESC/POS QR Code commands (Model 2)
+  const sanitizeReferenceNumber = (value) => String(value || '').trim();
+
   const buildQrCommands = (text) => {
-    const qrPayload = Buffer.from(String(text || ''), 'ascii');
+    const qrPayload = Buffer.from(String(text || ''), 'utf8');
     const storeLength = qrPayload.length + 3;
     const pL = storeLength % 256;
     const pH = Math.floor(storeLength / 256);
@@ -120,12 +122,15 @@ function buildPayload(data) {
       Buffer.from([0x1d, 0x28, 0x6b, 0x03, 0x00, 0x31, 0x45, 0x31]),       // Error correction M
       Buffer.from([0x1d, 0x28, 0x6b, pL, pH, 0x31, 0x50, 0x30]),           // Store data
       qrPayload,
+      Buffer.from([0x0a]),                                                   // Feed before rendering
       Buffer.from([0x1d, 0x28, 0x6b, 0x03, 0x00, 0x31, 0x51, 0x30]),       // Print QR
+      Buffer.from([0x0a]),                                                   // Feed after rendering
     ]);
   };
 
   const trackingBaseUrl = process.env.TRACKING_URL_BASE || 'https://kiosk.brgybiluso.me/request-status';
-  const qrTrackingUrl = `${trackingBaseUrl}?referenceNumber=${encodeURIComponent(data.referenceNumber || '')}&status=${encodeURIComponent(data.status || 'Pending')}`;
+  const safeReferenceNumber = sanitizeReferenceNumber(data.referenceNumber);
+  const qrTrackingUrl = `${trackingBaseUrl}?referenceNumber=${encodeURIComponent(safeReferenceNumber)}`;
 
   // Build receipt sections
   let receipt = "";
@@ -137,7 +142,7 @@ function buildPayload(data) {
   receipt += boldOn + "SCAN TO TRACK STATUS" + boldOff + LF;
   receipt += "__QR_BLOCK__";
   receipt += LF;
-  receipt += `Ref: ${data.referenceNumber || 'N/A'}` + LF;
+  receipt += `Ref: ${safeReferenceNumber || 'N/A'}` + LF;
   receipt += singleLine + LF;
   receipt += LF;
   receipt += textDouble + boldOn;
@@ -153,7 +158,7 @@ function buildPayload(data) {
   // === REFERENCE NUMBER (emphasized) ===
   receipt += LF;
   receipt += reverseOn + textDoubleHeight + boldOn;
-  receipt += `${data.referenceNumber || "N/A"} ` + LF;
+  receipt += `${safeReferenceNumber || "N/A"} ` + LF;
   receipt += reverseOff + textNormal + boldOff;
   receipt += LF;
 

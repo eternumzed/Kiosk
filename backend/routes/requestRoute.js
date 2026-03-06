@@ -28,7 +28,7 @@ router.patch('/unhide/:requestId', verifyAccessToken, requestController.unhideRe
 router.patch('/hide/ref/:referenceNumber', verifyAccessToken, requestController.hideRequestByReference);
 router.patch('/unhide/ref/:referenceNumber', verifyAccessToken, requestController.unhideRequestByReference);
 
-router.get("/:id", requestController.request); // for confirmation screen // UNUSED
-router.get("/track-request/:referenceNumber", requestController.trackRequest); // Confirmation.jsx TrackRequest.jsx
+router.get('/track-request/:referenceNumber', requestController.trackRequest); // Confirmation.jsx TrackRequest.jsx
+router.get('/:id', requestController.request); // for confirmation screen + mobile details
 
 module.exports = router;

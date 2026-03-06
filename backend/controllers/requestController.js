@@ -72,7 +72,17 @@ exports.createRequest = async (req, res) => {
 
 exports.request = async (req, res) => {
     try {
-        const request = await Request.find({ referenceNumber: req.params.id });
+        const rawId = typeof req.params.id === 'string' ? req.params.id.trim() : '';
+        let request = null;
+
+        if (mongoose.Types.ObjectId.isValid(rawId)) {
+            request = await Request.findById(rawId);
+        }
+
+        if (!request) {
+            request = await Request.findOne({ referenceNumber: rawId });
+        }
+
         if (!request) return res.status(404).json({ error: "Request not found" });
         res.json(request);
     } catch (error) {
@@ -83,7 +93,10 @@ exports.request = async (req, res) => {
 exports.trackRequest = async (req, res) => {
 
     try {
-        const request = await Request.find({ referenceNumber: req.params.referenceNumber });
+        const referenceNumber = typeof req.params.referenceNumber === 'string'
+            ? req.params.referenceNumber.trim()
+            : '';
+        const request = await Request.find({ referenceNumber });
         if (!request) return res.status(404).json({ error: "Request not found" });
         res.json(request);
     } catch (err) {

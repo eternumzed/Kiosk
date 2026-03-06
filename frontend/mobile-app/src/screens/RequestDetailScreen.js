@@ -28,6 +28,13 @@ export default function RequestDetailScreen({ route, navigation }) {
       let data;
       if (requestId) {
         data = await requestAPI.getRequestDetails(requestId);
+        if (Array.isArray(data) && data.length > 0) {
+          data = data[0];
+        }
+        if ((!data || !data.referenceNumber) && referenceNumber) {
+          const fallback = await requestAPI.trackRequest(referenceNumber);
+          data = Array.isArray(fallback) ? fallback[0] : fallback;
+        }
       } else if (referenceNumber) {
         // Fetch by reference number
         data = await requestAPI.trackRequest(referenceNumber);
