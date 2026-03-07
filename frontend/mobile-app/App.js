@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { AppState } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -92,6 +93,19 @@ export default function App() {
     if (state.userToken) {
       NotificationService.registerPendingToken();
     }
+  }, [state.userToken]);
+
+  // Retry token sync when app returns to foreground.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active' && state.userToken) {
+        NotificationService.registerPendingToken();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, [state.userToken]);
 
   if (state.isLoading) {

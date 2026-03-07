@@ -107,6 +107,7 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
   };
 
   // Check if email or phone changed
+  const isGoogleAuthUser = user?.authProvider === 'google' || Boolean(user?.googleId);
   const emailChanged = email.trim().toLowerCase() !== originalEmail.toLowerCase();
   const phoneChanged = phone.trim() !== originalPhone;
 
@@ -318,16 +319,21 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
         <TextInput
           style={[
             styles.input,
-            !editing && { color: colors.text.muted, backgroundColor: colors.gray[100] },
-            editing && styles.inputEditing
+            (isGoogleAuthUser || !editing) && { color: colors.text.muted, backgroundColor: colors.gray[100] },
+            editing && !isGoogleAuthUser && styles.inputEditing
           ]}
           value={email}
           onChangeText={setEmail}
-          editable={editing && !loading}
+          editable={editing && !loading && !isGoogleAuthUser}
           keyboardType="email-address"
           autoCapitalize="none"
           placeholderTextColor={colors.text.placeholder}
         />
+        {editing && isGoogleAuthUser && (
+          <Text style={styles.helperText}>
+            Google account email is managed by Google and cannot be edited here.
+          </Text>
+        )}
 
         <Text style={styles.label}>{t('profile_address')}</Text>
         <TextInput
@@ -602,6 +608,12 @@ const styles = StyleSheet.create({
   inputEditing: {
     backgroundColor: '#fff',
     borderColor: colors.primary[600],
+  },
+  helperText: {
+    marginTop: -8,
+    marginBottom: 16,
+    fontSize: 12,
+    color: colors.text.muted,
   },
   buttonGroup: {
     marginTop: 8,

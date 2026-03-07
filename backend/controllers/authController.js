@@ -482,6 +482,12 @@ exports.requestEmailChange = asyncHandler(async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    if (currentUser.authProvider === 'google' && currentUser.googleId) {
+      return res.status(400).json({
+        error: 'Email for Google-authenticated accounts is managed by Google. Use a different Google account to change login email.',
+      });
+    }
+
     const normalizedEmail = newEmail.trim().toLowerCase();
 
     // Check if email is the same
@@ -541,6 +547,17 @@ exports.verifyEmailChange = asyncHandler(async (req, res) => {
   }
 
   try {
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (currentUser.authProvider === 'google' && currentUser.googleId) {
+      return res.status(400).json({
+        error: 'Email for Google-authenticated accounts is managed by Google. Use a different Google account to change login email.',
+      });
+    }
+
     // Verify token
     let tokenData;
     try {
@@ -677,6 +694,15 @@ exports.googleAuth = asyncHandler(async (req, res) => {
     } else {
       // Update user with Google info if not already set
       if (!user.googleId) user.googleId = googleId || googleUser.id;
+      if (googleUser.email && user.email !== googleUser.email) {
+        const conflictingEmailUser = await User.findOne({
+          email: googleUser.email,
+          _id: { $ne: user._id },
+        });
+        if (!conflictingEmailUser) {
+          user.email = googleUser.email;
+        }
+      }
       if (!user.profilePicture && (profilePicture || googleUser.picture)) {
         user.profilePicture = profilePicture || googleUser.picture;
       }
@@ -706,6 +732,8 @@ exports.googleAuth = asyncHandler(async (req, res) => {
         fullName: `${user.firstName} ${user.lastName}`.trim(),
         phone: user.phoneNumber,
         profilePicture: user.profilePicture,
+        authProvider: user.authProvider,
+        googleId: user.googleId,
       },
     });
   } catch (err) {
@@ -857,6 +885,15 @@ exports.googleMobileCallback = asyncHandler(async (req, res) => {
     } else {
       // Update user with Google info if not already set
       if (!user.googleId) user.googleId = googleUser.id;
+      if (googleUser.email && user.email !== googleUser.email) {
+        const conflictingEmailUser = await User.findOne({
+          email: googleUser.email,
+          _id: { $ne: user._id },
+        });
+        if (!conflictingEmailUser) {
+          user.email = googleUser.email;
+        }
+      }
       if (!user.profilePicture && googleUser.picture) {
         user.profilePicture = googleUser.picture;
       }
@@ -882,6 +919,8 @@ exports.googleMobileCallback = asyncHandler(async (req, res) => {
       fullName: `${user.firstName} ${user.lastName}`.trim(),
       phone: user.phoneNumber,
       profilePicture: user.profilePicture,
+      authProvider: user.authProvider,
+      googleId: user.googleId,
     };
 
     // Redirect to mobile app with tokens and user data
