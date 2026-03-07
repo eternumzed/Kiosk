@@ -324,6 +324,23 @@ exports.updateStatus = asyncHandler(async (req, res) => {
         try {
           const variants = phoneVariants(updated.contactNumber);
           if (variants.length > 0) {
+            const fallbackCandidates = await User.find({
+              phoneNumber: { $in: variants },
+            }).select('_id phoneNumber expoPushToken notificationEnabled');
+
+            if (fallbackCandidates.length > 0) {
+              const candidateSummary = fallbackCandidates.map((u) => ({
+                id: String(u._id),
+                phoneNumber: u.phoneNumber,
+                hasToken: Boolean(u.expoPushToken),
+                notificationEnabled: u.notificationEnabled !== false,
+              }));
+
+              console.log(
+                `[updateStatus] Fallback candidates for ${updated.referenceNumber}: ${JSON.stringify(candidateSummary)}`
+              );
+            }
+
             const fallbackUser = await User.findOne({
               phoneNumber: { $in: variants },
               expoPushToken: { $exists: true, $ne: null },
@@ -347,6 +364,12 @@ exports.updateStatus = asyncHandler(async (req, res) => {
               console.log(
                 `[updateStatus] Fallback lookup found no token-enabled user for ${updated.referenceNumber}`
               );
+
+              if (fallbackCandidates.length === 0) {
+                console.log(
+                  `[updateStatus] No user account found for contact variants: ${variants.join(', ')}`
+                );
+              }
             }
           }
         } catch (fallbackErr) {
