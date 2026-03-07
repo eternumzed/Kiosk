@@ -284,6 +284,10 @@ exports.updateStatus = asyncHandler(async (req, res) => {
         // Don't fail the request if notification fails
         console.error('Failed to send push notification:', notifError.message);
       }
+    } else if (updated && !updated.userId && status !== 'Pending') {
+      console.log(
+        `[updateStatus] Skipping push notification for ${updated.referenceNumber}: request has no userId linkage`
+      );
     }
 
     await websocketHandler.broadcastQueueUpdate();

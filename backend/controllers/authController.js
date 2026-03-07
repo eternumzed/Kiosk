@@ -900,12 +900,16 @@ exports.registerPushToken = asyncHandler(async (req, res) => {
   const { expoPushToken } = req.body;
   const userId = req.user.userId;
 
+  const isValidExpoPushToken = (token) => {
+    return typeof token === 'string' && /^(ExponentPushToken|ExpoPushToken)\[[^\]]+\]$/.test(token);
+  };
+
   if (!expoPushToken) {
     return res.status(400).json({ error: 'Push token is required' });
   }
 
   // Validate token format
-  if (!expoPushToken.startsWith('ExponentPushToken[')) {
+  if (!isValidExpoPushToken(expoPushToken)) {
     return res.status(400).json({ error: 'Invalid push token format' });
   }
 

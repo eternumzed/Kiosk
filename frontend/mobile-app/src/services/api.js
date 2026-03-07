@@ -23,7 +23,6 @@ apiClient.interceptors.request.use(
     try {
       const token = await SecureStore.getItemAsync('userToken');
       if (token) {
-        SecureStore.getItemAsync('userToken').then(token => console.log('User Token:', token));
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {

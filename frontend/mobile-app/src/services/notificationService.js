@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { notificationAPI } from './api';
 
 // Configure how notifications appear when app is in foreground
@@ -142,7 +143,7 @@ class NotificationService {
   static async registerTokenWithBackend(token) {
     try {
       // Check if we have a user token (logged in)
-      const userToken = await AsyncStorage.getItem('userToken');
+      const userToken = await SecureStore.getItemAsync('userToken');
       if (!userToken) {
         // Save token locally, will register when user logs in
         await AsyncStorage.setItem('pendingPushToken', token);

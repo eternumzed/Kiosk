@@ -8,6 +8,12 @@ const User = require('../../models/userSchema');
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
+const EXPO_PUSH_TOKEN_PATTERN = /^(ExponentPushToken|ExpoPushToken)\[[^\]]+\]$/;
+
+function isValidExpoPushToken(token) {
+  return typeof token === 'string' && EXPO_PUSH_TOKEN_PATTERN.test(token);
+}
+
 class PushNotificationService {
   /**
    * Send push notification to a single user
@@ -52,7 +58,7 @@ class PushNotificationService {
   static async sendNotification(pushToken, title, body, data = {}) {
     try {
       // Validate push token format
-      if (!pushToken || !pushToken.startsWith('ExponentPushToken[')) {
+      if (!isValidExpoPushToken(pushToken)) {
         console.log('Invalid push token format:', pushToken);
         return { success: false, error: 'Invalid push token format' };
       }
@@ -98,7 +104,9 @@ class PushNotificationService {
         notificationEnabled: true,
       });
 
-      const tokens = users.map(u => u.expoPushToken).filter(Boolean);
+      const tokens = users
+        .map((u) => u.expoPushToken)
+        .filter((token) => isValidExpoPushToken(token));
       
       if (tokens.length === 0) {
         return { success: false, error: 'No valid push tokens found' };
