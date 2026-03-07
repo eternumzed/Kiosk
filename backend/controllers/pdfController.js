@@ -4,10 +4,34 @@ const auth = require('../services/google/Auth');
 const drive = require('../services/google/Drive');
 const PushNotificationService = require('../services/notifications/pushNotification');
 const websocketHandler = require('../services/websocketHandler');
+const User = require('../models/userSchema');
 
 const fs = require('fs');
 const path = require('path');
 const requestService = require('../services/requestService');
+
+function normalizePhone(value) {
+  return typeof value === 'string' ? value.replace(/\D/g, '') : '';
+}
+
+function phoneVariants(phone) {
+  const digits = normalizePhone(phone);
+  if (!digits) return [];
+
+  const variants = new Set([phone, digits]);
+
+  if (digits.startsWith('63') && digits.length >= 12) {
+    variants.add(`+${digits}`);
+    variants.add(`0${digits.slice(2)}`);
+  }
+
+  if (digits.startsWith('0') && digits.length >= 11) {
+    variants.add(`+63${digits.slice(1)}`);
+    variants.add(`63${digits.slice(1)}`);
+  }
+
+  return Array.from(variants).filter(Boolean);
+}
 
 // Generate Access Denied HTML page with kiosk theme
 function getAccessDeniedPage(attemptedEmail, adminUrl) {
@@ -271,23 +295,64 @@ exports.updateStatus = asyncHandler(async (req, res) => {
   try {
     const updated = await drive.updateStatus(identifier, status);
     
-    // Send push notification to the user if they have a userId
-    if (updated && updated.userId && status !== 'Pending') {
-      try {
-        await PushNotificationService.sendRequestStatusNotification(
-          updated.userId,
-          updated.referenceNumber,
-          updated.document || updated.documentCode || 'Document Request',
-          status
+    // Send push notification to linked user first; fallback by contact number if token is missing.
+    if (updated && status !== 'Pending') {
+      const docLabel = updated.document || updated.documentCode || 'Document Request';
+      let notificationResult = null;
+
+      if (updated.userId) {
+        try {
+          notificationResult = await PushNotificationService.sendRequestStatusNotification(
+            updated.userId,
+            updated.referenceNumber,
+            docLabel,
+            status
+          );
+        } catch (notifError) {
+          // Don't fail the request if notification fails
+          console.error('Failed to send push notification:', notifError.message);
+        }
+      } else {
+        console.log(
+          `[updateStatus] No linked userId for ${updated.referenceNumber}; attempting fallback recipient lookup`
         );
-      } catch (notifError) {
-        // Don't fail the request if notification fails
-        console.error('Failed to send push notification:', notifError.message);
       }
-    } else if (updated && !updated.userId && status !== 'Pending') {
-      console.log(
-        `[updateStatus] Skipping push notification for ${updated.referenceNumber}: request has no userId linkage`
-      );
+
+      const shouldFallback = !notificationResult || notificationResult.success === false;
+
+      if (shouldFallback && updated.contactNumber) {
+        try {
+          const variants = phoneVariants(updated.contactNumber);
+          if (variants.length > 0) {
+            const fallbackUser = await User.findOne({
+              phoneNumber: { $in: variants },
+              expoPushToken: { $exists: true, $ne: null },
+              notificationEnabled: true,
+            }).select('_id phoneNumber');
+
+            if (fallbackUser) {
+              const fallbackResult = await PushNotificationService.sendRequestStatusNotification(
+                fallbackUser._id,
+                updated.referenceNumber,
+                docLabel,
+                status
+              );
+
+              if (fallbackResult?.success) {
+                console.log(
+                  `[updateStatus] Push sent via fallback recipient ${fallbackUser._id} (${fallbackUser.phoneNumber}) for ${updated.referenceNumber}`
+                );
+              }
+            } else {
+              console.log(
+                `[updateStatus] Fallback lookup found no token-enabled user for ${updated.referenceNumber}`
+              );
+            }
+          }
+        } catch (fallbackErr) {
+          console.error(`[updateStatus] Fallback push lookup failed: ${fallbackErr.message}`);
+        }
+      }
     }
 
     await websocketHandler.broadcastQueueUpdate();
