@@ -33,6 +33,10 @@ function phoneVariants(phone) {
   return Array.from(variants).filter(Boolean);
 }
 
+function normalizeEmail(value) {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
 // Generate Access Denied HTML page with kiosk theme
 function getAccessDeniedPage(attemptedEmail, adminUrl) {
   return `
@@ -374,6 +378,55 @@ exports.updateStatus = asyncHandler(async (req, res) => {
           }
         } catch (fallbackErr) {
           console.error(`[updateStatus] Fallback push lookup failed: ${fallbackErr.message}`);
+        }
+      }
+
+      const normalizedRequestEmail = normalizeEmail(updated.email);
+      if (shouldFallback && normalizedRequestEmail) {
+        try {
+          const emailCandidates = await User.find({
+            email: normalizedRequestEmail,
+          }).select('_id email expoPushToken notificationEnabled');
+
+          if (emailCandidates.length > 0) {
+            const candidateSummary = emailCandidates.map((u) => ({
+              id: String(u._id),
+              email: u.email,
+              hasToken: Boolean(u.expoPushToken),
+              notificationEnabled: u.notificationEnabled !== false,
+            }));
+
+            console.log(
+              `[updateStatus] Email fallback candidates for ${updated.referenceNumber}: ${JSON.stringify(candidateSummary)}`
+            );
+          }
+
+          const emailFallbackUser = await User.findOne({
+            email: normalizedRequestEmail,
+            expoPushToken: { $exists: true, $ne: null },
+            notificationEnabled: true,
+          }).select('_id email');
+
+          if (emailFallbackUser) {
+            const emailFallbackResult = await PushNotificationService.sendRequestStatusNotification(
+              emailFallbackUser._id,
+              updated.referenceNumber,
+              docLabel,
+              status
+            );
+
+            if (emailFallbackResult?.success) {
+              console.log(
+                `[updateStatus] Push sent via email fallback recipient ${emailFallbackUser._id} (${emailFallbackUser.email}) for ${updated.referenceNumber}`
+              );
+            }
+          } else {
+            console.log(
+              `[updateStatus] Email fallback found no token-enabled user for ${updated.referenceNumber} (${normalizedRequestEmail})`
+            );
+          }
+        } catch (emailFallbackErr) {
+          console.error(`[updateStatus] Email fallback push lookup failed: ${emailFallbackErr.message}`);
         }
       }
     }
