@@ -251,7 +251,7 @@ exports.getUserProfile = asyncHandler(async (req, res) => {
  * Note: Phone number and email changes require verification via separate endpoints
  */
 exports.updateUserProfile = asyncHandler(async (req, res) => {
-  const { firstName, lastName, address, barangay, email, phone, phoneNumber } = req.body;
+  const { firstName, lastName, address, barangay, email, phone, phoneNumber, notificationEnabled } = req.body;
   const userId = req.user.userId;
 
   try {
@@ -294,6 +294,9 @@ exports.updateUserProfile = asyncHandler(async (req, res) => {
     if (lastName && lastName.trim()) updateFields.lastName = lastName.trim();
     if (address && address.trim()) updateFields.address = address.trim();
     if (barangay && barangay.trim()) updateFields.barangay = barangay.trim();
+    if (typeof notificationEnabled === 'boolean') {
+      updateFields.notificationEnabled = notificationEnabled;
+    }
 
     // Only update if there are actual changes
     if (Object.keys(updateFields).length === 1) {
@@ -904,27 +907,39 @@ exports.registerPushToken = asyncHandler(async (req, res) => {
     return typeof token === 'string' && /^(ExponentPushToken|ExpoPushToken)\[[^\]]+\]$/.test(token);
   };
 
-  if (!expoPushToken) {
+  const normalizedToken = typeof expoPushToken === 'string' ? expoPushToken.trim() : '';
+
+  if (!normalizedToken) {
     return res.status(400).json({ error: 'Push token is required' });
   }
 
   // Validate token format
-  if (!isValidExpoPushToken(expoPushToken)) {
+  if (!isValidExpoPushToken(normalizedToken)) {
     return res.status(400).json({ error: 'Invalid push token format' });
   }
+
+  console.log(`[push-token] Register attempt for user ${userId}`);
 
   try {
     const user = await User.findByIdAndUpdate(
       userId,
-      { expoPushToken, updatedAt: new Date() },
+      { expoPushToken: normalizedToken, updatedAt: new Date() },
       { new: true }
     ).select('-passwordHash');
+
+    if (!user) {
+      console.warn(`[push-token] User not found for token registration: ${userId}`);
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    console.log(`[push-token] Token registered for user ${userId}`);
 
     res.json({
       success: true,
       message: 'Push token registered successfully',
     });
   } catch (err) {
+    console.error(`[push-token] Registration failed for user ${userId}:`, err.message);
     res.status(500).json({
       error: 'Failed to register push token',
       details: err.message,
