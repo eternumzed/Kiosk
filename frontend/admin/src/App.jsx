@@ -19,6 +19,28 @@ const TYPE_LABELS = {
 
 const STATUS_OPTIONS = ['Pending', 'Processing', 'For Pick-up', 'Completed', 'Cancelled'];
 
+const parseTimestamp = (value) => {
+  if (!value) return NaN;
+  const ts = new Date(value).getTime();
+  return Number.isFinite(ts) ? ts : NaN;
+};
+
+const getDocumentTimestamp = (pdf) => {
+  const candidates = [
+    pdf?.createdTime,
+    pdf?.appProperties?.createdAt,
+    pdf?.modifiedTime,
+    pdf?.appProperties?.updatedAt,
+  ];
+
+  for (const candidate of candidates) {
+    const ts = parseTimestamp(candidate);
+    if (Number.isFinite(ts)) return ts;
+  }
+
+  return 0;
+};
+
 function App() {
   const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -256,12 +278,21 @@ function App() {
     items.sort((a, b) => {
       let cmp = 0;
       if (sortBy === 'date') {
-        cmp = new Date(a.createdTime) - new Date(b.createdTime);
+        cmp = getDocumentTimestamp(a) - getDocumentTimestamp(b);
       } else if (sortBy === 'name') {
         cmp = (a.name || '').localeCompare(b.name || '');
       } else if (sortBy === 'size') {
         cmp = (a.size || 0) - (b.size || 0);
       }
+
+      // Keep ordering deterministic when primary sort value is equal.
+      if (cmp === 0) {
+        cmp = (a.name || '').localeCompare(b.name || '');
+      }
+      if (cmp === 0) {
+        cmp = (a.appProperties?.referenceNumber || '').localeCompare(b.appProperties?.referenceNumber || '');
+      }
+
       return sortDir === 'asc' ? cmp : -cmp;
     });
 

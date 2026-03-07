@@ -20,6 +20,17 @@ Notifications.setNotificationHandler({
  * Push notifications are not supported in Expo Go since SDK 53
  */
 const isExpoGo = Constants.executionEnvironment === 'expo';
+const FALLBACK_EAS_PROJECT_ID = 'e02fd29e-11c2-4cf1-aec5-0e561f14651e';
+
+function resolveProjectId() {
+  return (
+    process.env.EXPO_PUBLIC_EAS_PROJECT_ID ||
+    Constants.easConfig?.projectId ||
+    Constants.expoConfig?.extra?.eas?.projectId ||
+    Constants?.manifest2?.extra?.eas?.projectId ||
+    FALLBACK_EAS_PROJECT_ID
+  );
+}
 
 class NotificationService {
   static notificationListener = null;
@@ -114,13 +125,12 @@ class NotificationService {
         return null;
       }
 
-      // Get project ID from Constants
-      const projectId = Constants.expoConfig?.extra?.eas?.projectId || 
-                        Constants.easConfig?.projectId;
+      // Use multiple sources because some production builds don't expose expoConfig.
+      const projectId = resolveProjectId();
       
       if (!projectId) {
         console.error(
-          'No EAS projectId found. Run "npx eas build:configure" or add projectId to app.json extra.eas.projectId'
+          'No EAS projectId found. Set EXPO_PUBLIC_EAS_PROJECT_ID or add projectId to app.json extra.eas.projectId'
         );
         return null;
       }
@@ -147,9 +157,11 @@ class NotificationService {
       if (!userToken) {
         // Save token locally, will register when user logs in
         await AsyncStorage.setItem('pendingPushToken', token);
+        console.log('Queued push token: user not authenticated yet');
         return;
       }
 
+      console.log('Registering push token with backend...');
       await notificationAPI.registerPushToken(token);
       console.log('Push token registered with backend');
       
@@ -159,6 +171,7 @@ class NotificationService {
       console.error('Error registering push token:', error);
       // Save for later registration
       await AsyncStorage.setItem('pendingPushToken', token);
+      console.log('Queued push token for retry after registration failure');
     }
   }
 
@@ -187,6 +200,7 @@ class NotificationService {
       // Check if we already have a token pending
       const pendingToken = await AsyncStorage.getItem('pendingPushToken');
       if (pendingToken) {
+        console.log('Attempting to register pending push token...');
         await notificationAPI.registerPushToken(pendingToken);
         await AsyncStorage.removeItem('pendingPushToken');
         console.log('Pending push token registered');
@@ -196,6 +210,7 @@ class NotificationService {
       // If no pending token, try to get a new one and register
       const token = await this.getPushToken();
       if (token) {
+        console.log('Attempting to register fresh push token after login...');
         await notificationAPI.registerPushToken(token);
         console.log('Push token registered after login');
       }
