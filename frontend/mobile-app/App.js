@@ -86,12 +86,13 @@ export default function App() {
     };
   }, []);
 
-  // Register push token when user is logged in
+  // Register push token whenever an auth token is available.
+  // User profile hydration can lag behind token restore in some app states.
   useEffect(() => {
-    if (state.userToken && state.user) {
+    if (state.userToken) {
       NotificationService.registerPendingToken();
     }
-  }, [state.userToken, state.user]);
+  }, [state.userToken]);
 
   if (state.isLoading) {
     return <SplashScreen />;

@@ -172,6 +172,18 @@ class NotificationService {
         return;
       }
 
+      const userToken = await SecureStore.getItemAsync('userToken');
+      if (!userToken) {
+        console.log('Skipping push token registration: no auth token found');
+        return;
+      }
+
+      const hasPermission = await this.requestPermissions();
+      if (!hasPermission) {
+        console.log('Skipping push token registration: notification permission not granted');
+        return;
+      }
+
       // Check if we already have a token pending
       const pendingToken = await AsyncStorage.getItem('pendingPushToken');
       if (pendingToken) {
@@ -189,6 +201,16 @@ class NotificationService {
       }
     } catch (error) {
       console.error('Error registering pending token:', error);
+
+      // Keep token queued for a later retry if registration fails transiently.
+      try {
+        const fallbackToken = await this.getPushToken();
+        if (fallbackToken) {
+          await AsyncStorage.setItem('pendingPushToken', fallbackToken);
+        }
+      } catch (queueError) {
+        console.error('Failed to queue pending push token:', queueError);
+      }
     }
   }
 

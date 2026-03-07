@@ -30,7 +30,6 @@
     "android": {
       "package": "com.barangay.kioskmobile",
       "versionCode": 1,
-      "permissions": [],
       "intentFilters": [
         {
           "action": "VIEW",

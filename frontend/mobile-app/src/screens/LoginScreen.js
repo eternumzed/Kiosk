@@ -17,6 +17,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { AntDesign } from '@expo/vector-icons';
 import { authAPI } from '../services/api';
+import NotificationService from '../services/notificationService';
 import { colors } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
 
@@ -59,6 +60,8 @@ export default function LoginScreen({ navigation, dispatch }) {
               type: 'LOGIN',
               payload: { user, token },
             });
+
+            await NotificationService.registerPendingToken();
           } catch (e) {
             Alert.alert(t('common_error'), t('login_error_process'));
           }
@@ -108,6 +111,8 @@ export default function LoginScreen({ navigation, dispatch }) {
               type: 'LOGIN',
               payload: { user, token },
             });
+
+            await NotificationService.registerPendingToken();
           } else {
             Alert.alert(t('login_google_sign_in'), t('login_error_no_token'));
           }
@@ -168,6 +173,8 @@ export default function LoginScreen({ navigation, dispatch }) {
         type: 'LOGIN',
         payload: { user, token },
       });
+
+      await NotificationService.registerPendingToken();
     } catch (error) {
       Alert.alert(t('common_error'), error.response?.data?.error || error.error || t('login_error_invalid_otp_server'));
     } finally {
