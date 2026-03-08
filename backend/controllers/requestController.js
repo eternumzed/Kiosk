@@ -1,8 +1,26 @@
 const axios = require('axios')
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 const Request = require('../models/requestSchema.js');
 const Counter = require('../models/counter.js');
 const websocketHandler = require('../services/websocketHandler');
+
+function resolveUserIdFromRequest(req, fallbackUserId) {
+    const authHeader = req.headers?.authorization || '';
+    if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
+        return fallbackUserId || null;
+    }
+
+    const token = authHeader.slice(7).trim();
+    if (!token) return fallbackUserId || null;
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        return decoded?.userId || fallbackUserId || null;
+    } catch (_err) {
+        return fallbackUserId || null;
+    }
+}
 
 function getDocCode(documentName) {
     if (!documentName) return "DOC";
@@ -27,9 +45,10 @@ exports.createRequest = async (req, res) => {
         console.log('createRequest received body:', req.body);
         
         const { fullName, email, contactNumber, address, document, amount, returnUrl, cancelUrl, userId, ...templateFields } = req.body;
+        const linkedUserId = resolveUserIdFromRequest(req, userId);
         
         console.log('Extracted template fields:', templateFields);
-        console.log('User ID for request:', userId);
+        console.log('User ID for request:', linkedUserId);
 
         const year = new Date().getFullYear();
         const counter = await Counter.findOneAndUpdate(
@@ -51,7 +70,7 @@ exports.createRequest = async (req, res) => {
             amount,
             status: "Pending",
             referenceNumber,
-            userId: userId || null,  // Link to mobile user if provided
+            userId: linkedUserId || null,  // Link to mobile user if provided/authenticated
             ...templateFields  // Store all template-specific fields (age, zone, purpose, etc.)
         });
 

@@ -44,12 +44,14 @@ export default function PaymentReviewScreen({ navigation, route }) {
   const handleSubmit = async () => {
     setLoading(true);
     try {
+      const userId = user?._id || user?.id || user?.user?._id || user?.user?.id || null;
+
       const requestData = {
         ...formData,
         document: document.name,
         amount: document.fee,
         paymentMethod: paymentMethod === 'cash' ? 'Cash' : 'Online',
-        userId: user?._id,  // Link request to authenticated user
+        userId,  // Link request to authenticated user
         ...(photoId ? { photoId } : {}),  // Include photoId if available
       };
 

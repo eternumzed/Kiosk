@@ -974,6 +974,12 @@ exports.registerPushToken = asyncHandler(async (req, res) => {
   console.log(`[push-token] Register attempt for user ${userId}`);
 
   try {
+    // Keep one device token mapped to only one user at a time.
+    await User.updateMany(
+      { _id: { $ne: userId }, expoPushToken: normalizedToken },
+      { $unset: { expoPushToken: 1 }, updatedAt: new Date() }
+    );
+
     const user = await User.findByIdAndUpdate(
       userId,
       { expoPushToken: normalizedToken, updatedAt: new Date() },

@@ -82,7 +82,8 @@ export default function RequestFormScreen({ navigation, route }) {
     (async () => {
       try {
         const latestUser = await userAPI.getProfile();
-        setUser(latestUser);
+        const normalizedUser = latestUser?.user || latestUser;
+        setUser(normalizedUser || null);
       } catch (e) {
         setUser(route.params.user || null);
       }
@@ -105,7 +106,7 @@ export default function RequestFormScreen({ navigation, route }) {
         ...prev,
         fullName: user.fullName || '',
         email: user.email || '',
-        contactNumber: user.phone || '',
+        contactNumber: user.phoneNumber || user.phone || '',
         address: user.address || '',
       }));
     }

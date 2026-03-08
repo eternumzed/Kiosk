@@ -1,6 +1,7 @@
 // paymentController.js
 const axios = require('axios')
 const fs = require('fs');
+const jwt = require('jsonwebtoken');
 const Request = require('../models/requestSchema.js');
 const Counter = require('../models/counter.js');
 const pdfService = require('../services/pdf/generatePdf.js');
@@ -13,6 +14,23 @@ const websocketHandler = require('../services/websocketHandler');
 const kioskUrl = process.env.KIOSK_URL || "http://localhost:4000";
 
 const paymentMethodTypes = ["gcash", "paymaya", "qrph", "grab_pay", "shopee_pay", "billease"];
+
+function resolveUserIdFromRequest(req, fallbackUserId) {
+    const authHeader = req.headers?.authorization || '';
+    if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
+        return fallbackUserId || null;
+    }
+
+    const token = authHeader.slice(7).trim();
+    if (!token) return fallbackUserId || null;
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        return decoded?.userId || fallbackUserId || null;
+    } catch (_err) {
+        return fallbackUserId || null;
+    }
+}
 
 
 exports.createCheckout = async (req, res) => {
@@ -194,8 +212,9 @@ exports.createCashPayment = async (req, res) => {
     try {
         const newRequest = req.body;
         const { fullName, email, contactNumber, address, document, amount, userId, ...templateFields } = newRequest;
+        const linkedUserId = resolveUserIdFromRequest(req, userId);
         
-        console.log('Cash payment - User ID:', userId);
+        console.log('Cash payment - User ID:', linkedUserId);
 
         // Generate reference number same way as e-wallet
         const year = new Date().getFullYear();
@@ -227,7 +246,7 @@ exports.createCashPayment = async (req, res) => {
             paymentStatus: "Pending",
             paymentMethod: "Cash",
             paidAt: paidAt,
-            userId: userId || null,  // Link to mobile user if provided
+            userId: linkedUserId || null,  // Link to mobile user if provided/authenticated
             ...templateFields
         });
 

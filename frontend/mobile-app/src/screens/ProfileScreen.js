@@ -285,6 +285,12 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
         text: t('profile_logout'),
         style: 'destructive',
         onPress: async () => {
+          try {
+            await NotificationService.removePushToken();
+          } catch (error) {
+            console.warn('Failed to remove push token during logout:', error?.message || error);
+          }
+
           await SecureStore.deleteItemAsync('userToken');
           await SecureStore.deleteItemAsync('refreshToken');
           await AsyncStorage.removeItem('user');
