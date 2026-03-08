@@ -204,6 +204,8 @@
   "profile_notifications_physical_device_required": "Kailangan ng tunay na device para sa push notifications. Hindi nakakakuha ng Expo push token ang emulator at simulator.",
   "profile_permissions_required": "Kailangan ng Permissions",
   "profile_enable_notifications_settings": "Paki-enable ang notifications sa iyong device settings para makatanggap ng updates.",
+  "profile_notification_token_registration_failed": "Hindi ma-register ang push token sa server.",
+  "profile_notification_reason": "Dahilan",
   "profile_error_notification_settings": "Hindi na-update ang notification settings",
   "profile_updated_success": "Matagumpay na na-update ang profile",
   "profile_error_update": "Hindi na-update ang profile",

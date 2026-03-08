@@ -21,15 +21,23 @@ Notifications.setNotificationHandler({
  */
 const FALLBACK_EAS_PROJECT_ID = 'e02fd29e-11c2-4cf1-aec5-0e561f14651e';
 
+function getRuntimeInfo() {
+  return {
+    executionEnvironment: Constants.executionEnvironment || 'undefined',
+    appOwnership: Constants.appOwnership || 'undefined',
+    isDevice: Device.isDevice,
+    platform: Platform.OS,
+  };
+}
+
 function isRunningInExpoGo() {
   const executionEnvironment = Constants.executionEnvironment;
-  const appOwnership = Constants.appOwnership;
 
-  return (
-    executionEnvironment === 'expo' ||
-    executionEnvironment === 'storeClient' ||
-    appOwnership === 'expo'
-  );
+  // Only block known Expo Go environments
+  // 'expo' = Expo Go dev client
+  // 'storeClient' = Expo Go from App Store/Play Store
+  // Anything else (standalone, bare, undefined) should be allowed
+  return executionEnvironment === 'expo' || executionEnvironment === 'storeClient';
 }
 
 function resolveProjectId() {
@@ -60,6 +68,14 @@ function buildApiErrorLog(error) {
     message,
     payload,
     apiUrl: API_URL,
+  };
+}
+
+function buildResult(ok, code, details = {}) {
+  return {
+    ok,
+    code,
+    ...details,
   };
 }
 
@@ -209,7 +225,9 @@ class NotificationService {
         console.log(
           `[push-token/mobile] Queued token ${maskPushToken(token)}: user not authenticated yet`
         );
-        return;
+        return buildResult(false, 'queued-no-auth', {
+          tokenMasked: maskPushToken(token),
+        });
       }
 
       console.log(
@@ -220,6 +238,9 @@ class NotificationService {
       
       // Clear pending token if any
       await AsyncStorage.removeItem('pendingPushToken');
+      return buildResult(true, 'registered', {
+        tokenMasked: maskPushToken(token),
+      });
     } catch (error) {
       console.error('[push-token/mobile] Registration failed:', buildApiErrorLog(error));
       // Save for later registration
@@ -227,6 +248,10 @@ class NotificationService {
       console.log(
         `[push-token/mobile] Re-queued token ${maskPushToken(token)} after registration failure`
       );
+      return buildResult(false, 'queued-after-error', {
+        tokenMasked: maskPushToken(token),
+        error: buildApiErrorLog(error),
+      });
     }
   }
 
@@ -237,19 +262,19 @@ class NotificationService {
     try {
       // Skip in Expo Go - no push tokens available
       if (isRunningInExpoGo()) {
-        return;
+        return buildResult(false, 'expo-go');
       }
 
       const userToken = await SecureStore.getItemAsync('userToken');
       if (!userToken) {
         console.log('Skipping push token registration: no auth token found');
-        return;
+        return buildResult(false, 'no-auth-token');
       }
 
       const hasPermission = await this.requestPermissions();
       if (!hasPermission) {
         console.log('Skipping push token registration: notification permission not granted');
-        return;
+        return buildResult(false, 'permission-denied');
       }
 
       // Check if we already have a token pending
@@ -261,7 +286,9 @@ class NotificationService {
         await notificationAPI.registerPushToken(pendingToken);
         await AsyncStorage.removeItem('pendingPushToken');
         console.log('[push-token/mobile] Pending push token registered');
-        return;
+        return buildResult(true, 'registered-pending', {
+          tokenMasked: maskPushToken(pendingToken),
+        });
       }
 
       // If no pending token, try to get a new one and register
@@ -272,7 +299,12 @@ class NotificationService {
         );
         await notificationAPI.registerPushToken(token);
         console.log('[push-token/mobile] Fresh push token registered after login');
+        return buildResult(true, 'registered-fresh', {
+          tokenMasked: maskPushToken(token),
+        });
       }
+
+      return buildResult(false, 'no-push-token-generated');
     } catch (error) {
       console.error('[push-token/mobile] Pending registration failed:', buildApiErrorLog(error));
 
@@ -285,6 +317,10 @@ class NotificationService {
       } catch (queueError) {
         console.error('[push-token/mobile] Failed to queue pending push token:', queueError);
       }
+
+      return buildResult(false, 'registration-error', {
+        error: buildApiErrorLog(error),
+      });
     }
   }
 
@@ -297,15 +333,17 @@ class NotificationService {
   }
 
   static getPushAvailability() {
+    const runtime = getRuntimeInfo();
+
     if (!Device.isDevice) {
-      return { available: false, reason: 'simulator' };
+      return { available: false, reason: 'simulator', runtime };
     }
 
     if (isRunningInExpoGo()) {
-      return { available: false, reason: 'expo-go' };
+      return { available: false, reason: 'expo-go', runtime };
     }
 
-    return { available: true, reason: 'supported' };
+    return { available: true, reason: 'supported', runtime };
   }
 
   /**

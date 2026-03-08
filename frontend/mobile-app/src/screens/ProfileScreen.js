@@ -64,6 +64,10 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
     // Check if push notifications are available
     const availability = NotificationService.getPushAvailability();
     if (!availability.available) {
+      const runtimeDebug = availability.runtime
+        ? `\n\nDebug: env=${availability.runtime.executionEnvironment}, ownership=${availability.runtime.appOwnership}, device=${availability.runtime.isDevice}`
+        : '';
+
       const unavailableMessage =
         availability.reason === 'simulator'
           ? t('profile_notifications_physical_device_required')
@@ -71,7 +75,7 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
 
       Alert.alert(
         t('common_not_available'),
-        unavailableMessage,
+        `${unavailableMessage}${runtimeDebug}`,
         [{ text: t('common_ok') }]
       );
       return;
@@ -90,7 +94,26 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
           );
           return;
         }
-        await NotificationService.registerPendingToken();
+
+        const registrationResult = await NotificationService.registerPendingToken();
+        if (!registrationResult?.ok) {
+          setNotificationsEnabled(false);
+
+          const extra = registrationResult?.error?.status
+            ? ` (${registrationResult.error.status})`
+            : '';
+
+          const runtimeInfo = NotificationService.getPushAvailability().runtime;
+          const debugInfo = runtimeInfo
+            ? `\n\nDebug: env=${runtimeInfo.executionEnvironment}, device=${runtimeInfo.isDevice}`
+            : '';
+
+          Alert.alert(
+            t('common_error'),
+            `${t('profile_notification_token_registration_failed')}\n${t('profile_notification_reason')}: ${registrationResult?.code || 'unknown'}${extra}${debugInfo}`
+          );
+          return;
+        }
       } else {
         // Disable notifications - remove token from server
         await NotificationService.removePushToken();

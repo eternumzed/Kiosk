@@ -204,6 +204,8 @@
   "profile_notifications_physical_device_required": "Push notifications require a physical device. Emulators and simulators cannot receive Expo push tokens.",
   "profile_permissions_required": "Permissions Required",
   "profile_enable_notifications_settings": "Please enable notifications in your device settings to receive updates.",
+  "profile_notification_token_registration_failed": "Unable to register push token with the server.",
+  "profile_notification_reason": "Reason",
   "profile_error_notification_settings": "Failed to update notification settings",
   "profile_updated_success": "Profile updated successfully",
   "profile_error_update": "Failed to update profile",
