@@ -86,6 +86,27 @@ function normalizeNativeError(error) {
   return { code, message };
 }
 
+function classifyPushTokenFailure(message) {
+  const safeMessage = typeof message === 'string' ? message : '';
+
+  const missingFcmPatterns = [
+    /default\s+firebaseapp\s+is\s+not\s+initialized/i,
+    /firebaseapp\s+with\s+name\s+\[default\]\s+doesn't\s+exist/i,
+    /failed\s+to\s+get\s+fcm\s+token/i,
+    /fcm/i,
+  ];
+
+  if (missingFcmPatterns.some((pattern) => pattern.test(safeMessage))) {
+    return 'android-fcm-not-configured';
+  }
+
+  return 'expo-token-failed';
+}
+
+function isValidExpoPushToken(token) {
+  return typeof token === 'string' && /^(ExponentPushToken|ExpoPushToken)\[[^\]]+\]$/.test(token);
+}
+
 class NotificationService {
   static notificationListener = null;
   static responseListener = null;
@@ -134,11 +155,14 @@ class NotificationService {
       }
 
       // Get push token
-      const token = await this.getPushToken();
-      
-      if (token) {
+      const tokenResult = await this.getPushToken();
+      const token = tokenResult?.token || null;
+
+      if (isValidExpoPushToken(token)) {
         // Register token with backend
         await this.registerTokenWithBackend(token);
+      } else if (tokenResult?.error) {
+        console.warn('[push-token/mobile] Initialization token fetch failed:', tokenResult.error);
       }
 
       // Setup notification listeners
@@ -241,11 +265,12 @@ class NotificationService {
           };
         } catch (fallbackError) {
           const fallback = normalizeNativeError(fallbackError);
+          const combinedMessage = `Primary: ${primary.message}; Fallback: ${fallback.message}`;
           return {
             token: null,
             error: {
-              code: 'expo-token-failed',
-              message: `Primary: ${primary.message}; Fallback: ${fallback.message}`,
+              code: classifyPushTokenFailure(combinedMessage),
+              message: combinedMessage,
             },
           };
         }
@@ -276,6 +301,12 @@ class NotificationService {
    */
   static async registerTokenWithBackend(token) {
     try {
+      if (!isValidExpoPushToken(token)) {
+        return buildResult(false, 'invalid-token-format-client', {
+          tokenMasked: maskPushToken(token),
+        });
+      }
+
       // Check if we have a user token (logged in)
       const userToken = await SecureStore.getItemAsync('userToken');
       if (!userToken) {
@@ -339,6 +370,10 @@ class NotificationService {
       // Check if we already have a token pending
       const pendingToken = await AsyncStorage.getItem('pendingPushToken');
       if (pendingToken) {
+        if (!isValidExpoPushToken(pendingToken)) {
+          await AsyncStorage.removeItem('pendingPushToken');
+          console.warn('[push-token/mobile] Removed invalid pending push token from storage');
+        } else {
         console.log(
           `[push-token/mobile] Attempting pending token registration ${maskPushToken(pendingToken)}`
         );
@@ -348,6 +383,7 @@ class NotificationService {
         return buildResult(true, 'registered-pending', {
           tokenMasked: maskPushToken(pendingToken),
         });
+        }
       }
 
       // If no pending token, try to get a new one and register
