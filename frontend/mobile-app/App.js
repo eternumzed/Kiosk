@@ -17,6 +17,25 @@ const Stack = createNativeStackNavigator();
 
 export default function App() {
   const navigationRef = useRef(null);
+  const linking = {
+    prefixes: ['kiosk-mobile-app://'],
+    config: {
+      screens: {
+        Auth: 'auth',
+        App: {
+          screens: {
+            Dashboard: {
+              screens: {
+                DashboardList: 'dashboard',
+                RequestDetail: 'request/:referenceNumber',
+              },
+            },
+            Profile: 'profile',
+          },
+        },
+      },
+    },
+  };
   
   const [state, dispatch] = React.useReducer(
     (prevState, action) => {
@@ -113,7 +132,11 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer
+      ref={navigationRef}
+      linking={linking}
+      onReady={() => NotificationService.onNavigationReady()}
+    >
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {state.userToken == null ? (
           <Stack.Screen name="Auth" options={{ animationEnabled: false }}>

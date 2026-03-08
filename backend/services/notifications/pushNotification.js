@@ -145,7 +145,7 @@ class PushNotificationService {
    * @param {string} documentType - Type of document
    * @param {string} newStatus - New status of the request
    */
-  static async sendRequestStatusNotification(userId, referenceNumber, documentType, newStatus) {
+  static async sendRequestStatusNotification(userId, referenceNumber, documentType, newStatus, requestId = null) {
     const statusMessages = {
       'pending': {
         title: 'Request Received',
@@ -191,11 +191,17 @@ class PushNotificationService {
       body: `Your ${documentType} request (${referenceNumber}) status has been updated to: ${newStatus}`,
     };
 
-    return await this.sendToUser(userId, message.title, message.body, {
+    const payload = {
       type: 'request_status',
       referenceNumber,
       status: newStatus,
-    });
+    };
+
+    if (requestId) {
+      payload.requestId = String(requestId);
+    }
+
+    return await this.sendToUser(userId, message.title, message.body, payload);
   }
 }
 

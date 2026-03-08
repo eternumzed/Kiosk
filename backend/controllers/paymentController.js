@@ -128,7 +128,8 @@ exports.handleWebhook = async (req, res) => {
                             updatedRequest.userId,
                             updatedRequest.referenceNumber,
                             updatedRequest.document || updatedRequest.documentCode || 'Document Request',
-                            updatedRequest.status
+                            updatedRequest.status,
+                            updatedRequest._id
                         );
                     } catch (notifErr) {
                         console.error('Failed to send processing notification:', notifErr.message);

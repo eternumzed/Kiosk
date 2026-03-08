@@ -310,7 +310,8 @@ exports.updateStatus = asyncHandler(async (req, res) => {
             updated.userId,
             updated.referenceNumber,
             docLabel,
-            status
+            status,
+            updated._id
           );
         } catch (notifError) {
           // Don't fail the request if notification fails
@@ -356,7 +357,8 @@ exports.updateStatus = asyncHandler(async (req, res) => {
                 fallbackUser._id,
                 updated.referenceNumber,
                 docLabel,
-                status
+                status,
+                updated._id
               );
 
               if (fallbackResult?.success) {
@@ -412,7 +414,8 @@ exports.updateStatus = asyncHandler(async (req, res) => {
               emailFallbackUser._id,
               updated.referenceNumber,
               docLabel,
-              status
+              status,
+              updated._id
             );
 
             if (emailFallbackResult?.success) {

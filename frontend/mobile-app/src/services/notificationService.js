@@ -35,6 +35,9 @@ function resolveProjectId() {
 class NotificationService {
   static notificationListener = null;
   static responseListener = null;
+  static navigationRef = null;
+  static pendingRequestParams = null;
+  static handledResponseIds = new Set();
 
   /**
    * Initialize notification service
@@ -42,6 +45,8 @@ class NotificationService {
    */
   static async initialize(navigationRef) {
     try {
+      this.navigationRef = navigationRef;
+
       // Check if running in Expo Go - push notifications not supported
       if (isExpoGo) {
         console.warn(
@@ -241,6 +246,11 @@ class NotificationService {
    * Setup notification listeners
    */
   static setupListeners(navigationRef) {
+    this.navigationRef = navigationRef;
+
+    // Handle notification taps that launched the app from a killed state.
+    this.handleInitialNotificationResponse();
+
     // Listen for notifications received while app is foregrounded
     this.notificationListener = Notifications.addNotificationReceivedListener(
       (notification) => {
@@ -252,24 +262,83 @@ class NotificationService {
     this.responseListener = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         console.log('Notification response:', response);
-        
-        const data = response.notification.request.content.data;
-        
-        // Handle navigation based on notification type
-        if (data?.type === 'request_status' && data?.referenceNumber) {
-          // Navigate to request details
-          if (navigationRef?.current) {
-            navigationRef.current.navigate('App', {
-              screen: 'Dashboard',
-              params: {
-                screen: 'RequestDetail',
-                params: { referenceNumber: data.referenceNumber },
-              },
-            });
-          }
-        }
+
+        this.handleNotificationResponse(response, 'tap');
       }
     );
+  }
+
+  static async handleInitialNotificationResponse() {
+    try {
+      const response = await Notifications.getLastNotificationResponseAsync();
+
+      if (response) {
+        this.handleNotificationResponse(response, 'initial-open');
+      }
+    } catch (error) {
+      console.error('Failed to process initial notification response:', error);
+    }
+  }
+
+  static handleNotificationResponse(response, source = 'tap') {
+    if (!response?.notification?.request) {
+      return;
+    }
+
+    const responseId = response.notification.request.identifier;
+    if (responseId && this.handledResponseIds.has(responseId)) {
+      return;
+    }
+
+    if (responseId) {
+      this.handledResponseIds.add(responseId);
+    }
+
+    const data = response.notification.request.content?.data || {};
+    const requestId = data.requestId || null;
+    const referenceNumber = data.referenceNumber || null;
+
+    if (data.type !== 'request_status' || (!requestId && !referenceNumber)) {
+      return;
+    }
+
+    const params = {};
+    if (requestId) {
+      params.requestId = requestId;
+    }
+    if (referenceNumber) {
+      params.referenceNumber = referenceNumber;
+    }
+
+    this.navigateToRequestDetail(params, source);
+  }
+
+  static navigateToRequestDetail(params, source = 'tap') {
+    const nav = this.navigationRef?.current;
+
+    if (!nav) {
+      this.pendingRequestParams = params;
+      console.log(`Queued notification navigation from ${source} until navigation is ready`);
+      return;
+    }
+
+    nav.navigate('App', {
+      screen: 'Dashboard',
+      params: {
+        screen: 'RequestDetail',
+        params,
+      },
+    });
+  }
+
+  static onNavigationReady() {
+    if (!this.pendingRequestParams) {
+      return;
+    }
+
+    const queuedParams = this.pendingRequestParams;
+    this.pendingRequestParams = null;
+    this.navigateToRequestDetail(queuedParams, 'queued');
   }
 
   /**
@@ -282,6 +351,10 @@ class NotificationService {
     if (this.responseListener) {
       Notifications.removeNotificationSubscription(this.responseListener);
     }
+
+    this.navigationRef = null;
+    this.pendingRequestParams = null;
+    this.handledResponseIds.clear();
   }
 
   /**
