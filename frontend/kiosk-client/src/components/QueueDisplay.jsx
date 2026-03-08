@@ -14,8 +14,8 @@ function QueueColumn({ title, subtitle, items, accent, t }) {
 
   const visibleItems = orderedItems.slice(0, 10);
   const hiddenCount = Math.max(0, orderedItems.length - visibleItems.length);
-  const shouldSplit = visibleItems.length >= 10;
-  const splitIndex = shouldSplit ? Math.ceil(visibleItems.length / 2) : visibleItems.length;
+  const shouldSplit = visibleItems.length > 7;
+  const splitIndex = shouldSplit ? 8 : visibleItems.length;
   const leftItems = visibleItems.slice(0, splitIndex);
   const rightItems = shouldSplit ? visibleItems.slice(splitIndex) : [];
 

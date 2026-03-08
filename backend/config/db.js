@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 
 mongoose.set('strictQuery', false);
 
+
+// function to connect to mongodb. 
 async function dbMain() {
     const mongoUri = process.env.MONGO_URI || (() => {
         const DB_USERNAME = process.env.DB_USERNAME;
@@ -16,7 +18,6 @@ async function dbMain() {
     await mongoose.connect(mongoUri, {});
     console.log('>> Connected to MongoDB.');
 
-    // Fix indexes - drop old non-sparse indexes and recreate with sparse
     try {
         const db = mongoose.connection.db;
         const usersCollection = db.collection('users');
