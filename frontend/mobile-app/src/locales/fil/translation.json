@@ -201,6 +201,7 @@
   "profile_verify": "I-verify",
   "profile_error_change_language": "Hindi napalitan ang wika",
   "profile_notifications_not_available": "Kailangan ng development build para sa push notifications. Hindi ito suportado sa Expo Go.",
+  "profile_notifications_physical_device_required": "Kailangan ng tunay na device para sa push notifications. Hindi nakakakuha ng Expo push token ang emulator at simulator.",
   "profile_permissions_required": "Kailangan ng Permissions",
   "profile_enable_notifications_settings": "Paki-enable ang notifications sa iyong device settings para makatanggap ng updates.",
   "profile_error_notification_settings": "Hindi na-update ang notification settings",

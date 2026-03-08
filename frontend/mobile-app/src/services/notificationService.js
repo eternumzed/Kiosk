@@ -19,8 +19,18 @@ Notifications.setNotificationHandler({
  * Check if running in Expo Go
  * Push notifications are not supported in Expo Go since SDK 53
  */
-const isExpoGo = Constants.executionEnvironment === 'expo';
 const FALLBACK_EAS_PROJECT_ID = 'e02fd29e-11c2-4cf1-aec5-0e561f14651e';
+
+function isRunningInExpoGo() {
+  const executionEnvironment = Constants.executionEnvironment;
+  const appOwnership = Constants.appOwnership;
+
+  return (
+    executionEnvironment === 'expo' ||
+    executionEnvironment === 'storeClient' ||
+    appOwnership === 'expo'
+  );
+}
 
 function resolveProjectId() {
   return (
@@ -67,13 +77,26 @@ class NotificationService {
   static async initialize(navigationRef) {
     try {
       this.navigationRef = navigationRef;
+      const availability = this.getPushAvailability();
+
+      console.log('[push-token/mobile] Runtime:', {
+        executionEnvironment: Constants.executionEnvironment || 'unknown',
+        appOwnership: Constants.appOwnership || 'unknown',
+        isDevice: Device.isDevice,
+        apiUrl: API_URL,
+      });
 
       // Check if running in Expo Go - push notifications not supported
-      if (isExpoGo) {
-        console.warn(
-          'Push notifications are not supported in Expo Go (SDK 53+). ' +
-          'Use a development build for full notification support.'
-        );
+      if (!availability.available) {
+        if (availability.reason === 'expo-go') {
+          console.warn(
+            'Push notifications are not supported in Expo Go (SDK 53+). ' +
+            'Use a development build for full notification support.'
+          );
+        } else {
+          console.warn('Push notifications require a physical device. Emulator/simulator detected.');
+        }
+
         // Still setup listeners for local notifications
         this.setupListeners(navigationRef);
         return null;
@@ -146,7 +169,7 @@ class NotificationService {
   static async getPushToken() {
     try {
       // Push tokens not available in Expo Go
-      if (isExpoGo) {
+      if (isRunningInExpoGo()) {
         console.warn('Push tokens are not available in Expo Go. Use a development build.');
         return null;
       }
@@ -213,7 +236,7 @@ class NotificationService {
   static async registerPendingToken() {
     try {
       // Skip in Expo Go - no push tokens available
-      if (isExpoGo) {
+      if (isRunningInExpoGo()) {
         return;
       }
 
@@ -270,7 +293,19 @@ class NotificationService {
    * Returns false in Expo Go or if not a physical device
    */
   static isPushNotificationAvailable() {
-    return !isExpoGo && Device.isDevice;
+    return this.getPushAvailability().available;
+  }
+
+  static getPushAvailability() {
+    if (!Device.isDevice) {
+      return { available: false, reason: 'simulator' };
+    }
+
+    if (isRunningInExpoGo()) {
+      return { available: false, reason: 'expo-go' };
+    }
+
+    return { available: true, reason: 'supported' };
   }
 
   /**

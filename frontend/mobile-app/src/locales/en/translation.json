@@ -201,6 +201,7 @@
   "profile_verify": "Verify",
   "profile_error_change_language": "Failed to change language",
   "profile_notifications_not_available": "Push notifications require a development build. They are not supported in Expo Go.",
+  "profile_notifications_physical_device_required": "Push notifications require a physical device. Emulators and simulators cannot receive Expo push tokens.",
   "profile_permissions_required": "Permissions Required",
   "profile_enable_notifications_settings": "Please enable notifications in your device settings to receive updates.",
   "profile_error_notification_settings": "Failed to update notification settings",

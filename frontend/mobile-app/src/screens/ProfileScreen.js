@@ -62,10 +62,16 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
 
   const handleNotificationToggle = async (value) => {
     // Check if push notifications are available
-    if (!NotificationService.isPushNotificationAvailable()) {
+    const availability = NotificationService.getPushAvailability();
+    if (!availability.available) {
+      const unavailableMessage =
+        availability.reason === 'simulator'
+          ? t('profile_notifications_physical_device_required')
+          : t('profile_notifications_not_available');
+
       Alert.alert(
         t('common_not_available'),
-        t('profile_notifications_not_available'),
+        unavailableMessage,
         [{ text: t('common_ok') }]
       );
       return;
