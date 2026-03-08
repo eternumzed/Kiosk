@@ -79,6 +79,13 @@ function buildResult(ok, code, details = {}) {
   };
 }
 
+function normalizeNativeError(error) {
+  const message = error?.message || String(error || 'Unknown error');
+  const code = error?.code || error?.name || 'unknown';
+
+  return { code, message };
+}
+
 class NotificationService {
   static notificationListener = null;
   static responseListener = null;
@@ -187,7 +194,7 @@ class NotificationService {
       // Push tokens not available in Expo Go
       if (isRunningInExpoGo()) {
         console.warn('Push tokens are not available in Expo Go. Use a development build.');
-        return null;
+        return { token: null, error: { code: 'expo-go', message: 'Running inside Expo Go' } };
       }
 
       // Use multiple sources because some production builds don't expose expoConfig.
@@ -197,18 +204,70 @@ class NotificationService {
         console.error(
           'No EAS projectId found. Set EXPO_PUBLIC_EAS_PROJECT_ID or add projectId to app.json extra.eas.projectId'
         );
-        return null;
+        return {
+          token: null,
+          error: {
+            code: 'missing-project-id',
+            message: 'No EAS projectId found at runtime',
+          },
+        };
       }
-      
-      const tokenData = await Notifications.getExpoPushTokenAsync({
-        projectId,
-      });
-      
-      console.log('Expo push token:', tokenData.data);
-      return tokenData.data;
+
+      // First attempt: explicit projectId (recommended for EAS builds)
+      try {
+        const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+        if (tokenData?.data) {
+          console.log('Expo push token:', tokenData.data);
+          return { token: tokenData.data, error: null };
+        }
+      } catch (primaryError) {
+        const primary = normalizeNativeError(primaryError);
+        console.error('[push-token/mobile] Primary token fetch failed:', primary);
+
+        // Fallback attempt for some bare/dev-client runtime edge cases.
+        try {
+          const fallbackData = await Notifications.getExpoPushTokenAsync();
+          if (fallbackData?.data) {
+            console.log('Expo push token (fallback):', fallbackData.data);
+            return { token: fallbackData.data, error: null };
+          }
+
+          return {
+            token: null,
+            error: {
+              code: 'empty-token-fallback',
+              message: 'Fallback token request returned empty token',
+            },
+          };
+        } catch (fallbackError) {
+          const fallback = normalizeNativeError(fallbackError);
+          return {
+            token: null,
+            error: {
+              code: 'expo-token-failed',
+              message: `Primary: ${primary.message}; Fallback: ${fallback.message}`,
+            },
+          };
+        }
+      }
+
+      return {
+        token: null,
+        error: {
+          code: 'empty-token',
+          message: 'Expo token API returned no token data',
+        },
+      };
     } catch (error) {
       console.error('Error getting push token:', error);
-      return null;
+      const normalized = normalizeNativeError(error);
+      return {
+        token: null,
+        error: {
+          code: normalized.code,
+          message: normalized.message,
+        },
+      };
     }
   }
 
@@ -292,7 +351,9 @@ class NotificationService {
       }
 
       // If no pending token, try to get a new one and register
-      const token = await this.getPushToken();
+      const tokenResult = await this.getPushToken();
+      const token = tokenResult?.token || null;
+
       if (token) {
         console.log(
           `[push-token/mobile] Attempting fresh token registration ${maskPushToken(token)} after login`
@@ -304,13 +365,19 @@ class NotificationService {
         });
       }
 
-      return buildResult(false, 'no-push-token-generated');
+      return buildResult(false, 'no-push-token-generated', {
+        error: tokenResult?.error || {
+          code: 'unknown-token-error',
+          message: 'Token generation returned null without explicit error',
+        },
+      });
     } catch (error) {
       console.error('[push-token/mobile] Pending registration failed:', buildApiErrorLog(error));
 
       // Keep token queued for a later retry if registration fails transiently.
       try {
-        const fallbackToken = await this.getPushToken();
+        const fallbackTokenResult = await this.getPushToken();
+        const fallbackToken = fallbackTokenResult?.token || null;
         if (fallbackToken) {
           await AsyncStorage.setItem('pendingPushToken', fallbackToken);
         }

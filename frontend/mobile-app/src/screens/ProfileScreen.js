@@ -103,6 +103,14 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
             ? ` (${registrationResult.error.status})`
             : '';
 
+          const tokenErrorCode = registrationResult?.error?.code
+            ? `\nToken Error: ${registrationResult.error.code}`
+            : '';
+
+          const tokenErrorMessage = registrationResult?.error?.message
+            ? `\nToken Detail: ${registrationResult.error.message}`
+            : '';
+
           const runtimeInfo = NotificationService.getPushAvailability().runtime;
           const debugInfo = runtimeInfo
             ? `\n\nDebug: env=${runtimeInfo.executionEnvironment}, device=${runtimeInfo.isDevice}`
@@ -110,7 +118,7 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
 
           Alert.alert(
             t('common_error'),
-            `${t('profile_notification_token_registration_failed')}\n${t('profile_notification_reason')}: ${registrationResult?.code || 'unknown'}${extra}${debugInfo}`
+            `${t('profile_notification_token_registration_failed')}\n${t('profile_notification_reason')}: ${registrationResult?.code || 'unknown'}${extra}${tokenErrorCode}${tokenErrorMessage}${debugInfo}`
           );
           return;
         }
