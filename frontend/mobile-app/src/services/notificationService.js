@@ -4,7 +4,7 @@ import Constants from 'expo-constants';
 import { Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
-import { notificationAPI } from './api';
+import { notificationAPI, API_URL } from './api';
 
 // Configure how notifications appear when app is in foreground
 Notifications.setNotificationHandler({
@@ -30,6 +30,27 @@ function resolveProjectId() {
     Constants?.manifest2?.extra?.eas?.projectId ||
     FALLBACK_EAS_PROJECT_ID
   );
+}
+
+function maskPushToken(token) {
+  if (typeof token !== 'string' || token.length < 14) {
+    return 'invalid-token';
+  }
+
+  return `${token.slice(0, 12)}...${token.slice(-4)}`;
+}
+
+function buildApiErrorLog(error) {
+  const status = error?.response?.status;
+  const payload = error?.response?.data;
+  const message = error?.message || 'Unknown error';
+
+  return {
+    status: status || 'no-response',
+    message,
+    payload,
+    apiUrl: API_URL,
+  };
 }
 
 class NotificationService {
@@ -162,21 +183,27 @@ class NotificationService {
       if (!userToken) {
         // Save token locally, will register when user logs in
         await AsyncStorage.setItem('pendingPushToken', token);
-        console.log('Queued push token: user not authenticated yet');
+        console.log(
+          `[push-token/mobile] Queued token ${maskPushToken(token)}: user not authenticated yet`
+        );
         return;
       }
 
-      console.log('Registering push token with backend...');
+      console.log(
+        `[push-token/mobile] Registering token ${maskPushToken(token)} with backend ${API_URL}`
+      );
       await notificationAPI.registerPushToken(token);
-      console.log('Push token registered with backend');
+      console.log('[push-token/mobile] Push token registered with backend');
       
       // Clear pending token if any
       await AsyncStorage.removeItem('pendingPushToken');
     } catch (error) {
-      console.error('Error registering push token:', error);
+      console.error('[push-token/mobile] Registration failed:', buildApiErrorLog(error));
       // Save for later registration
       await AsyncStorage.setItem('pendingPushToken', token);
-      console.log('Queued push token for retry after registration failure');
+      console.log(
+        `[push-token/mobile] Re-queued token ${maskPushToken(token)} after registration failure`
+      );
     }
   }
 
@@ -205,22 +232,26 @@ class NotificationService {
       // Check if we already have a token pending
       const pendingToken = await AsyncStorage.getItem('pendingPushToken');
       if (pendingToken) {
-        console.log('Attempting to register pending push token...');
+        console.log(
+          `[push-token/mobile] Attempting pending token registration ${maskPushToken(pendingToken)}`
+        );
         await notificationAPI.registerPushToken(pendingToken);
         await AsyncStorage.removeItem('pendingPushToken');
-        console.log('Pending push token registered');
+        console.log('[push-token/mobile] Pending push token registered');
         return;
       }
 
       // If no pending token, try to get a new one and register
       const token = await this.getPushToken();
       if (token) {
-        console.log('Attempting to register fresh push token after login...');
+        console.log(
+          `[push-token/mobile] Attempting fresh token registration ${maskPushToken(token)} after login`
+        );
         await notificationAPI.registerPushToken(token);
-        console.log('Push token registered after login');
+        console.log('[push-token/mobile] Fresh push token registered after login');
       }
     } catch (error) {
-      console.error('Error registering pending token:', error);
+      console.error('[push-token/mobile] Pending registration failed:', buildApiErrorLog(error));
 
       // Keep token queued for a later retry if registration fails transiently.
       try {
@@ -229,7 +260,7 @@ class NotificationService {
           await AsyncStorage.setItem('pendingPushToken', fallbackToken);
         }
       } catch (queueError) {
-        console.error('Failed to queue pending push token:', queueError);
+        console.error('[push-token/mobile] Failed to queue pending push token:', queueError);
       }
     }
   }

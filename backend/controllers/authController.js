@@ -941,6 +941,12 @@ exports.googleMobileCallback = asyncHandler(async (req, res) => {
 exports.registerPushToken = asyncHandler(async (req, res) => {
   const { expoPushToken } = req.body;
   const userId = req.user.userId;
+  const contentType = req.headers['content-type'] || 'unknown';
+
+  const maskToken = (token) => {
+    if (typeof token !== 'string' || token.length < 14) return 'invalid-token';
+    return `${token.slice(0, 12)}...${token.slice(-4)}`;
+  };
 
   const isValidExpoPushToken = (token) => {
     return typeof token === 'string' && /^(ExponentPushToken|ExpoPushToken)\[[^\]]+\]$/.test(token);
@@ -948,12 +954,20 @@ exports.registerPushToken = asyncHandler(async (req, res) => {
 
   const normalizedToken = typeof expoPushToken === 'string' ? expoPushToken.trim() : '';
 
+  console.log(
+    `[push-token] Incoming registration user=${userId} contentType=${contentType} bodyKeys=${Object.keys(req.body || {}).join(',') || 'none'} token=${maskToken(normalizedToken)}`
+  );
+
   if (!normalizedToken) {
+    console.warn(`[push-token] Missing token for user ${userId}`);
     return res.status(400).json({ error: 'Push token is required' });
   }
 
   // Validate token format
   if (!isValidExpoPushToken(normalizedToken)) {
+    console.warn(
+      `[push-token] Invalid token format for user ${userId}: ${maskToken(normalizedToken)}`
+    );
     return res.status(400).json({ error: 'Invalid push token format' });
   }
 

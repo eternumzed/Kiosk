@@ -10,7 +10,7 @@ const resolveApiUrl = () => {
   return 'https://api.brgybiluso.me/api';
 };
 
-const API_URL = resolveApiUrl();
+export const API_URL = resolveApiUrl();
 
 const apiClient = axios.create({
   baseURL: API_URL,
