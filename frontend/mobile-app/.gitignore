@@ -11,6 +11,9 @@ web-build/
 .env
 .env.local
 .env.production
+credentials.json
+google-services.json
+GoogleService-Info.plist
 
 # Native builds
 *.orig.*
