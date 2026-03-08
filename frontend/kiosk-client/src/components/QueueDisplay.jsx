@@ -12,7 +12,7 @@ function QueueColumn({ title, subtitle, items, accent, t }) {
     return String(a.referenceNumber || '').localeCompare(String(b.referenceNumber || ''));
   });
 
-  const visibleItems = orderedItems.slice(0, 10);
+  const visibleItems = orderedItems.slice(0, 16);
   const hiddenCount = Math.max(0, orderedItems.length - visibleItems.length);
   const shouldSplit = visibleItems.length > 7;
   const splitIndex = shouldSplit ? 8 : visibleItems.length;
