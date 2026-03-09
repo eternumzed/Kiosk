@@ -14,6 +14,9 @@ import { colors } from '../theme/colors';
 import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
+// Temporary switch: keep download flow implemented but hidden from users for now.
+const SHOW_PDF_DOWNLOAD = false;
+
 export default function RequestDetailScreen({ route, navigation }) {
   const { t } = useTranslation();
   const { requestId, referenceNumber } = route.params;
@@ -201,7 +204,7 @@ export default function RequestDetailScreen({ route, navigation }) {
       )}
 
       {/* Download Button - only shown when document is ready */}
-      {(request.pdfUrl || request.pdfDownloadUrl) && (
+      {SHOW_PDF_DOWNLOAD && (request.pdfUrl || request.pdfDownloadUrl) && (
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.downloadButton}
