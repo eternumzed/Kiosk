@@ -11,7 +11,10 @@ import {
   Modal,
   Image,
   Switch,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { userAPI } from '../services/api';
@@ -22,6 +25,7 @@ import i18n, { saveLanguage } from '../i18n';
 
 export default function ProfileScreen({ navigation, user, dispatch }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   // Compute initial fullName from firstName/lastName if fullName not present
   const initialFullName = user?.fullName || 
     (user?.firstName || user?.lastName 
@@ -301,8 +305,17 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
+    >
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) }}
+        keyboardShouldPersistTaps="handled"
+      >
+      <View style={[styles.header, { paddingTop: Math.max(insets.top + 10, 50) }]}>
         {/* Backdrop Seal */}
         <Image
           source={require('../../assets/BRGY_BILUSO_SEAL-modified.png')}
@@ -544,7 +557,8 @@ export default function ProfileScreen({ navigation, user, dispatch }) {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -555,7 +569,6 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: colors.primary[600],
-    paddingTop: 50,
     paddingBottom: 30,
     alignItems: 'center',
     paddingHorizontal: 20,

@@ -11,6 +11,7 @@ import {
   Platform,
   Image,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
@@ -23,6 +24,7 @@ import { useTranslation } from 'react-i18next';
 
 export default function LoginScreen({ navigation, dispatch }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [step, setStep] = useState('phone'); // 'phone' | 'otp'
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
@@ -197,8 +199,9 @@ export default function LoginScreen({ navigation, dispatch }) {
     <KeyboardAvoidingView 
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
     >
-      <View style={styles.headerSection}>
+      <View style={[styles.headerSection, { paddingTop: Math.max(insets.top + 16, 60) }]}>
         {/* Backdrop Seal */}
         <Image
           source={require('../../assets/BRGY_BILUSO_SEAL-modified.png')}
@@ -329,7 +332,6 @@ const styles = StyleSheet.create({
   },
   headerSection: {
     backgroundColor: colors.primary[600],
-    paddingTop: 60,
     paddingBottom: 40,
     paddingHorizontal: 20,
     alignItems: 'center',

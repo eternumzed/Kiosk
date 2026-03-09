@@ -12,6 +12,7 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
@@ -72,6 +73,7 @@ const personalInfoFields = [
 
 export default function RequestFormScreen({ navigation, route }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { document } = route.params;
   const docSpecificFields = documentFields[document.name] || [];
   const requiresPhoto = TEMPLATES_REQUIRING_PHOTO.includes(document.name);
@@ -285,9 +287,10 @@ export default function RequestFormScreen({ navigation, route }) {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top + 10, 50) }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={handlePrevious}
@@ -397,7 +400,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.primary[600],
-    paddingTop: 50,
     paddingBottom: 16,
     paddingHorizontal: 16,
   },

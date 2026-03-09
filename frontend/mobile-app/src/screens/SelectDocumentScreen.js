@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +26,7 @@ const categories = ['All', 'Clearance', 'Certification', 'Permit'];
 
 export default function SelectDocumentScreen({ navigation, route }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const user = route.params?.user;
 
@@ -64,7 +66,7 @@ export default function SelectDocumentScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top + 10, 50) }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -140,7 +142,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.primary[600],
-    paddingTop: 50,
     paddingBottom: 16,
     paddingHorizontal: 16,
   },

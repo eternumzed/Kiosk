@@ -12,6 +12,7 @@ import {
   Platform,
   Image,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
@@ -23,6 +24,7 @@ import { colors } from '../theme/colors';
 
 export default function SignupScreen({ navigation, dispatch }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [step, setStep] = useState('phone'); // 'phone' | 'otp' | 'details'
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
@@ -185,9 +187,10 @@ export default function SignupScreen({ navigation, dispatch }) {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
     >
       <ScrollView contentContainerStyle={styles.contentContainer}>
-        <View style={styles.headerSection}>
+        <View style={[styles.headerSection, { paddingTop: Math.max(insets.top + 16, 60) }]}>
           <Image
             source={require('../../assets/BRGY_BILUSO_SEAL-modified.png')}
             style={styles.backdropSeal}
@@ -354,7 +357,6 @@ const styles = StyleSheet.create({
   },
   headerSection: {
     backgroundColor: colors.primary[600],
-    paddingTop: 60,
     paddingBottom: 40,
     paddingHorizontal: 20,
     alignItems: 'center',

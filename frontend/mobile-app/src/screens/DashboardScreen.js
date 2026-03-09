@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   View,
   Text,
@@ -26,6 +27,7 @@ const SORT_OPTIONS = [
 
 export default function DashboardScreen({ navigation, user, dispatch }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -197,7 +199,7 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top + 6, 50) }]}>
         {/* Backdrop Seal */}
         <Image
           source={require('../../assets/BRGY_BILUSO_SEAL-modified.png')}
@@ -485,7 +487,6 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: colors.primary[600],
     paddingHorizontal: 20,
-    paddingTop: 50,
     paddingBottom: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',

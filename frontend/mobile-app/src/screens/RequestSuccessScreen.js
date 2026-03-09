@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Share,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { requestAPI } from '../services/api';
 import { colors } from '../theme/colors';
 import { Feather } from '@expo/vector-icons';
@@ -14,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 
 export default function RequestSuccessScreen({ navigation, route }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { referenceNumber, document, paymentMethod } = route.params;
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -77,7 +79,7 @@ export default function RequestSuccessScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
+      <View style={[styles.content, { paddingTop: Math.max(insets.top + 16, 60) }]}>
         {/* Success Icon */}
         <View style={styles.iconContainer}>
           <Feather name="check" size={40} color="#fff" />
@@ -132,7 +134,7 @@ export default function RequestSuccessScreen({ navigation, route }) {
       </View>
 
       {/* Bottom Buttons */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: 20 + insets.bottom }]}>
         <TouchableOpacity
           style={styles.secondaryButton}
           onPress={handleTrackRequest}
@@ -173,7 +175,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     alignItems: 'center',
-    paddingTop: 60,
   },
   iconContainer: {
     width: 80,

@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Linking,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 import * as ExpoLinking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -20,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 
 export default function PaymentReviewScreen({ navigation, route }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { document, formData, user } = route.params;
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('online'); // 'online' | 'cash'
@@ -146,7 +148,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top + 10, 50) }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -239,7 +241,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
       </ScrollView>
 
       {/* Submit Button */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>{t('common_total_amount')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -276,7 +278,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.primary[600],
-    paddingTop: 50,
     paddingBottom: 16,
     paddingHorizontal: 16,
   },
