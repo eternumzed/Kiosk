@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "start": "expo start",
+    "start:tunnel:stable": "expo start --tunnel --clear --no-dev --minify --port 8081 --non-interactive",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
