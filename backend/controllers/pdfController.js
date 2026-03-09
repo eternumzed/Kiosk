@@ -346,13 +346,14 @@ exports.updateStatus = asyncHandler(async (req, res) => {
               );
             }
 
-            const fallbackUser = await User.findOne({
+            const tokenEnabledFallbackUsers = await User.find({
               phoneNumber: { $in: variants },
               expoPushToken: { $exists: true, $ne: null },
               notificationEnabled: true,
             }).select('_id phoneNumber');
 
-            if (fallbackUser) {
+            if (tokenEnabledFallbackUsers.length === 1) {
+              const fallbackUser = tokenEnabledFallbackUsers[0];
               const fallbackResult = await PushNotificationService.sendRequestStatusNotification(
                 fallbackUser._id,
                 updated.referenceNumber,
@@ -370,6 +371,12 @@ exports.updateStatus = asyncHandler(async (req, res) => {
               console.log(
                 `[updateStatus] Fallback lookup found no token-enabled user for ${updated.referenceNumber}`
               );
+
+              if (tokenEnabledFallbackUsers.length > 1) {
+                console.log(
+                  `[updateStatus] Fallback lookup is ambiguous for ${updated.referenceNumber}; matched ${tokenEnabledFallbackUsers.length} token-enabled users, skipping push`
+                );
+              }
 
               if (fallbackCandidates.length === 0) {
                 console.log(
@@ -403,13 +410,14 @@ exports.updateStatus = asyncHandler(async (req, res) => {
             );
           }
 
-          const emailFallbackUser = await User.findOne({
+          const emailFallbackUsers = await User.find({
             email: normalizedRequestEmail,
             expoPushToken: { $exists: true, $ne: null },
             notificationEnabled: true,
           }).select('_id email');
 
-          if (emailFallbackUser) {
+          if (emailFallbackUsers.length === 1) {
+            const emailFallbackUser = emailFallbackUsers[0];
             const emailFallbackResult = await PushNotificationService.sendRequestStatusNotification(
               emailFallbackUser._id,
               updated.referenceNumber,
@@ -427,6 +435,12 @@ exports.updateStatus = asyncHandler(async (req, res) => {
             console.log(
               `[updateStatus] Email fallback found no token-enabled user for ${updated.referenceNumber} (${normalizedRequestEmail})`
             );
+
+            if (emailFallbackUsers.length > 1) {
+              console.log(
+                `[updateStatus] Email fallback is ambiguous for ${updated.referenceNumber}; matched ${emailFallbackUsers.length} token-enabled users, skipping push`
+              );
+            }
           }
         } catch (emailFallbackErr) {
           console.error(`[updateStatus] Email fallback push lookup failed: ${emailFallbackErr.message}`);
