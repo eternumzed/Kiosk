@@ -12,7 +12,6 @@ module.exports = {
       env: {
         NODE_ENV: 'development',
         EXPO_NO_TELEMETRY: '1',
-        CI: '1',
       },
     },
   ],
