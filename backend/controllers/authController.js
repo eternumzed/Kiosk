@@ -939,7 +939,7 @@ exports.googleMobileCallback = asyncHandler(async (req, res) => {
  * Register or update Expo push token for notifications
  */
 exports.registerPushToken = asyncHandler(async (req, res) => {
-  const { expoPushToken } = req.body;
+  const { expoPushToken, pushDeviceId } = req.body;
   const userId = req.user.userId;
   const contentType = req.headers['content-type'] || 'unknown';
 
@@ -953,9 +953,10 @@ exports.registerPushToken = asyncHandler(async (req, res) => {
   };
 
   const normalizedToken = typeof expoPushToken === 'string' ? expoPushToken.trim() : '';
+  const normalizedDeviceId = typeof pushDeviceId === 'string' ? pushDeviceId.trim() : '';
 
   console.log(
-    `[push-token] Incoming registration user=${userId} contentType=${contentType} bodyKeys=${Object.keys(req.body || {}).join(',') || 'none'} token=${maskToken(normalizedToken)}`
+    `[push-token] Incoming registration user=${userId} contentType=${contentType} bodyKeys=${Object.keys(req.body || {}).join(',') || 'none'} token=${maskToken(normalizedToken)} deviceId=${normalizedDeviceId || 'none'}`
   );
 
   if (!normalizedToken) {
@@ -977,12 +978,23 @@ exports.registerPushToken = asyncHandler(async (req, res) => {
     // Keep one device token mapped to only one user at a time.
     await User.updateMany(
       { _id: { $ne: userId }, expoPushToken: normalizedToken },
-      { $unset: { expoPushToken: 1 }, updatedAt: new Date() }
+      { $unset: { expoPushToken: 1, expoPushDeviceId: 1 }, updatedAt: new Date() }
     );
+
+    if (normalizedDeviceId) {
+      await User.updateMany(
+        { _id: { $ne: userId }, expoPushDeviceId: normalizedDeviceId },
+        { $unset: { expoPushToken: 1, expoPushDeviceId: 1 }, updatedAt: new Date() }
+      );
+    }
 
     const user = await User.findByIdAndUpdate(
       userId,
-      { expoPushToken: normalizedToken, updatedAt: new Date() },
+      {
+        expoPushToken: normalizedToken,
+        ...(normalizedDeviceId ? { expoPushDeviceId: normalizedDeviceId } : {}),
+        updatedAt: new Date(),
+      },
       { new: true }
     ).select('-passwordHash');
 
@@ -1015,7 +1027,7 @@ exports.removePushToken = asyncHandler(async (req, res) => {
   try {
     await User.findByIdAndUpdate(
       userId,
-      { $unset: { expoPushToken: 1 }, updatedAt: new Date() }
+      { $unset: { expoPushToken: 1, expoPushDeviceId: 1 }, updatedAt: new Date() }
     );
 
     res.json({

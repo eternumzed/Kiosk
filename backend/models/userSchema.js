@@ -58,6 +58,7 @@ const UserSchema = new Schema({
   
   // Push Notifications
   expoPushToken: { type: String, sparse: true },
+  expoPushDeviceId: { type: String, sparse: true },
   
 }, { timestamps: true });
 

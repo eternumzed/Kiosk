@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
+import * as Crypto from 'expo-crypto';
 import { Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
@@ -113,6 +114,24 @@ class NotificationService {
   static navigationRef = null;
   static pendingRequestParams = null;
   static handledResponseIds = new Set();
+  static pushDeviceId = null;
+
+  static async getOrCreatePushDeviceId() {
+    if (this.pushDeviceId) {
+      return this.pushDeviceId;
+    }
+
+    const storageKey = 'pushDeviceInstallId';
+    let id = await AsyncStorage.getItem(storageKey);
+
+    if (!id) {
+      id = Crypto.randomUUID();
+      await AsyncStorage.setItem(storageKey, id);
+    }
+
+    this.pushDeviceId = id;
+    return id;
+  }
 
   /**
    * Initialize notification service
@@ -323,7 +342,8 @@ class NotificationService {
       console.log(
         `[push-token/mobile] Registering token ${maskPushToken(token)} with backend ${API_URL}`
       );
-      await notificationAPI.registerPushToken(token);
+      const pushDeviceId = await this.getOrCreatePushDeviceId();
+      await notificationAPI.registerPushToken(token, pushDeviceId);
       console.log('[push-token/mobile] Push token registered with backend');
       
       // Clear pending token if any
@@ -377,7 +397,8 @@ class NotificationService {
         console.log(
           `[push-token/mobile] Attempting pending token registration ${maskPushToken(pendingToken)}`
         );
-        await notificationAPI.registerPushToken(pendingToken);
+        const pushDeviceId = await this.getOrCreatePushDeviceId();
+        await notificationAPI.registerPushToken(pendingToken, pushDeviceId);
         await AsyncStorage.removeItem('pendingPushToken');
         console.log('[push-token/mobile] Pending push token registered');
         return buildResult(true, 'registered-pending', {
@@ -394,7 +415,8 @@ class NotificationService {
         console.log(
           `[push-token/mobile] Attempting fresh token registration ${maskPushToken(token)} after login`
         );
-        await notificationAPI.registerPushToken(token);
+        const pushDeviceId = await this.getOrCreatePushDeviceId();
+        await notificationAPI.registerPushToken(token, pushDeviceId);
         console.log('[push-token/mobile] Fresh push token registered after login');
         return buildResult(true, 'registered-fresh', {
           tokenMasked: maskPushToken(token),

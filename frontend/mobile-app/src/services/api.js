@@ -113,8 +113,8 @@ export const authAPI = {
 
 export const notificationAPI = {
   // Register push token
-  registerPushToken: async (expoPushToken) => {
-    return apiClient.post('/auth/push-token', { expoPushToken });
+  registerPushToken: async (expoPushToken, pushDeviceId) => {
+    return apiClient.post('/auth/push-token', { expoPushToken, pushDeviceId });
   },
 
   // Remove push token

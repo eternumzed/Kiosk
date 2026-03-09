@@ -6,6 +6,7 @@
     "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "scheme": "kiosk-mobile-app",
+    "icon": "./assets/icon.png",
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -30,6 +31,11 @@
     "android": {
       "package": "com.barangay.kioskmobile",
       "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon-foreground.png",
+        "backgroundImage": "./assets/adaptive-icon-background.png",
+        "monochromeImage": "./assets/adaptive-icon-foreground.png"
+      },
       "versionCode": 1,
       "intentFilters": [
         {
