@@ -4,9 +4,12 @@ setlocal
 REM Relaunch hidden so no terminal window appears in front of the kiosk.
 if /I not "%~1"=="_bg" (
     set "HIDDEN_VBS=%TEMP%\bb_kiosk_hidden_launcher.vbs"
-    >"%HIDDEN_VBS%" echo Set WshShell = CreateObject("WScript.Shell")
-    >>"%HIDDEN_VBS%" echo WshShell.Run """%~f0"" _bg", 0, False
-    wscript.exe "%HIDDEN_VBS%"
+    if exist "%TEMP%\bb_kiosk_hiden_launcher.vbs" del /f /q "%TEMP%\bb_kiosk_hiden_launcher.vbs" >nul 2>nul
+    >"%HIDDEN_VBS%" (
+        echo Set oShell = CreateObject("WScript.Shell")
+        echo oShell.Run "cmd /c ""%~f0"" _bg", 0, False
+    )
+    wscript.exe //nologo "%HIDDEN_VBS%"
     exit /b 0
 )
 
