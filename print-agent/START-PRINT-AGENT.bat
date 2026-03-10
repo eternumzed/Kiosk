@@ -1,5 +1,15 @@
 @echo off
 setlocal
+
+REM Relaunch hidden so no terminal window appears in front of the kiosk.
+if /I not "%~1"=="_bg" (
+    set "HIDDEN_VBS=%TEMP%\bb_kiosk_hidden_launcher.vbs"
+    >"%HIDDEN_VBS%" echo Set WshShell = CreateObject("WScript.Shell")
+    >>"%HIDDEN_VBS%" echo WshShell.Run """%~f0"" _bg", 0, False
+    wscript.exe "%HIDDEN_VBS%"
+    exit /b 0
+)
+
 title Barangay Biluso Kiosk Launcher
 color 0A
 
@@ -61,10 +71,11 @@ if not exist "node_modules" (
     )
 )
 
-echo [INFO] Starting print agent in a new window...
-start "BRGY Print Agent" cmd /k "cd /d ""%PRINT_AGENT_DIR%"" && node index.js"
+REM Start print agent with hidden window (no visible terminal).
+powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Start-Process -FilePath 'node' -ArgumentList 'index.js' -WorkingDirectory '%PRINT_AGENT_DIR%' -WindowStyle Hidden"
 
 echo [INFO] Launching Edge kiosk window...
+timeout /t 1 /nobreak >nul
 start "BRGY Kiosk" "%EDGE_EXE%" ^
   --kiosk "%KIOSK_URL%" ^
   --edge-kiosk-type=fullscreen ^
@@ -75,10 +86,5 @@ start "BRGY Kiosk" "%EDGE_EXE%" ^
   --overscroll-history-navigation=0
 
 popd
-
-echo.
-echo [OK] Kiosk and print agent launched.
-echo You can close this launcher window.
-timeout /t 3 /nobreak >nul
 endlocal
 exit /b 0
