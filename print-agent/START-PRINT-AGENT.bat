@@ -1,14 +1,9 @@
 @echo off
 setlocal
 
-REM Relaunch hidden so no terminal window appears in front of the kiosk.
+REM Relaunch hidden without VBScript to avoid Windows Script Host errors.
 if /I not "%~1"=="_bg" (
-    set "HIDDEN_VBS=%TEMP%\bb_kiosk_hidden_launcher.vbs"
-    if exist "%TEMP%\bb_kiosk_hiden_launcher.vbs" del /f /q "%TEMP%\bb_kiosk_hiden_launcher.vbs" >nul 2>nul
-    >"%HIDDEN_VBS%" echo Set oShell = CreateObject("WScript.Shell")
-    >>"%HIDDEN_VBS%" echo cmdLine = "cmd.exe /c " ^& Chr(34) ^& "%~f0" ^& Chr(34) ^& " _bg"
-    >>"%HIDDEN_VBS%" echo oShell.Run cmdLine, 0, False
-    wscript.exe //nologo "%HIDDEN_VBS%"
+    powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList '/c ""%~f0"" _bg' -WindowStyle Hidden"
     exit /b 0
 )
 
