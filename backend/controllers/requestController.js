@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const Request = require('../models/requestSchema.js');
 const Counter = require('../models/counter.js');
 const websocketHandler = require('../services/websocketHandler');
+const { computeDocumentFee } = require('../services/feePolicy');
 
 function resolveUserIdFromRequest(req, fallbackUserId) {
     const authHeader = req.headers?.authorization || '';
@@ -44,8 +45,13 @@ exports.createRequest = async (req, res) => {
     try {
         console.log('createRequest received body:', req.body);
         
-        const { fullName, email, contactNumber, address, document, amount, returnUrl, cancelUrl, userId, ...templateFields } = req.body;
+        const { fullName, email, contactNumber, address, document, returnUrl, cancelUrl, userId, ...templateFields } = req.body;
         const linkedUserId = resolveUserIdFromRequest(req, userId);
+        const feeResult = computeDocumentFee({
+            document,
+            purpose: templateFields.purpose,
+            isStudent: templateFields.isStudent,
+        });
         
         console.log('Extracted template fields:', templateFields);
         console.log('User ID for request:', linkedUserId);
@@ -67,7 +73,7 @@ exports.createRequest = async (req, res) => {
             contactNumber,
             email,
             address,
-            amount,
+            amount: feeResult.amount,
             status: "Pending",
             referenceNumber,
             userId: linkedUserId || null,  // Link to mobile user if provided/authenticated

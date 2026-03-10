@@ -1,5 +1,6 @@
 const Request = require('../models/requestSchema');
 const Counter = require('../models/counter');
+const { computeDocumentFee } = require('./feePolicy');
 
 function getDocCode(documentName) {
   if (!documentName) return 'DOC';
@@ -25,7 +26,12 @@ async function createRequestIfMissing(data) {
     if (existing) return existing;
   }
 
-  const { fullName, email, contactNumber, address, document, amount } = data;
+  const { fullName, email, contactNumber, address, document } = data;
+  const feeResult = computeDocumentFee({
+    document,
+    purpose: data?.purpose,
+    isStudent: data?.isStudent,
+  });
 
   const year = new Date().getFullYear();
   const counter = await Counter.findOneAndUpdate(
@@ -45,7 +51,7 @@ async function createRequestIfMissing(data) {
     contactNumber,
     email,
     address,
-    amount,
+    amount: feeResult.amount,
     status: 'Pending',
     referenceNumber,
   });

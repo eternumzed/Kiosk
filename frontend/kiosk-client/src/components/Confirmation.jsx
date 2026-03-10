@@ -149,7 +149,11 @@ const Confirmation = ({ handleNext, resetUI }) => {
     <div className="w-full flex flex-col items-center justify-center p-4">
       <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-xl border border-gray-100 text-center">
         <h2 className="text-2xl font-bold mb-4 text-gray-800">{t('conf_title')}</h2>
-        {request.paymentMethod === "Cash" ? (
+        {request.paymentMethod === "Free" ? (
+          <p className="text-gray-600 mb-4">
+            {t('conf_free_msg')}
+          </p>
+        ) : request.paymentMethod === "Cash" ? (
           <p className="text-gray-600 mb-4">
             {t('conf_cash_msg')}
           </p>

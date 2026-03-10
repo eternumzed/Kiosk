@@ -1,8 +1,10 @@
 
 import { useTranslation } from 'react-i18next';
 
-const Payment = ({ formData, getFee, paymentStatus, setPaymentStatus, handleBack, handlePayment, handleCashPayment }) => {
+const Payment = ({ formData, getFee, paymentStatus, setPaymentStatus, handleBack, handlePayment, handleCashPayment, handleFreePayment }) => {
   const { t } = useTranslation();
+  const fee = Number(getFee() || 0);
+  const isFreeRequest = fee === 0;
 
   return (
     <div className="w-full flex flex-col items-center justify-center p-4">
@@ -11,7 +13,7 @@ const Payment = ({ formData, getFee, paymentStatus, setPaymentStatus, handleBack
         <div className="p-6 bg-gray-50 rounded-xl mb-8 border border-gray-200">
           <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">{t('fee_breakdown')}</p>
           <p className="text-lg text-gray-700">{t('label_document')}: <span className="font-semibold">{formData.document}</span></p>
-          <p className="text-2xl font-bold text-emerald-700 mt-2">{t('label_total')}: ₱{getFee().toFixed(2)}</p>
+          <p className="text-2xl font-bold text-emerald-700 mt-2">{t('label_total')}: ₱{fee.toFixed(2)}</p>
         </div>
         {paymentStatus === "Processing" && (
           <div className="mb-8 p-6 bg-emerald-50 rounded-xl border border-emerald-200">
@@ -27,26 +29,41 @@ const Payment = ({ formData, getFee, paymentStatus, setPaymentStatus, handleBack
           </div>
         )}
         <div className="space-y-4">
-          <button
-            onClick={handlePayment}
-            disabled={paymentStatus === "Processing"}
-            className={`w-full font-bold py-4 px-6 rounded-xl transition-all duration-200 ${paymentStatus === "Processing"
-              ? "bg-gray-300 cursor-not-allowed text-gray-500"
-              : "bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98]"
-              }`}
-          >
-            {paymentStatus === "Processing" ? t('btn_processing') : t('btn_e_wallet')}
-          </button>
-          <button
-            onClick={handleCashPayment}
-            disabled={paymentStatus === "Processing"}
-            className={`w-full font-bold py-4 px-6 rounded-xl transition-all duration-200 ${paymentStatus === "Processing"
-              ? "bg-gray-300 cursor-not-allowed text-gray-500"
-              : "bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98]"
-              }`}
-          >
-            {paymentStatus === "Processing" ? t('btn_processing') : t('btn_cash')}
-          </button>
+          {isFreeRequest ? (
+            <button
+              onClick={handleFreePayment}
+              disabled={paymentStatus === "Processing"}
+              className={`w-full font-bold py-4 px-6 rounded-xl transition-all duration-200 ${paymentStatus === "Processing"
+                ? "bg-gray-300 cursor-not-allowed text-gray-500"
+                : "bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98]"
+                }`}
+            >
+              {paymentStatus === "Processing" ? t('btn_processing') : t('btn_continue')}
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={handlePayment}
+                disabled={paymentStatus === "Processing"}
+                className={`w-full font-bold py-4 px-6 rounded-xl transition-all duration-200 ${paymentStatus === "Processing"
+                  ? "bg-gray-300 cursor-not-allowed text-gray-500"
+                  : "bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98]"
+                  }`}
+              >
+                {paymentStatus === "Processing" ? t('btn_processing') : t('btn_e_wallet')}
+              </button>
+              <button
+                onClick={handleCashPayment}
+                disabled={paymentStatus === "Processing"}
+                className={`w-full font-bold py-4 px-6 rounded-xl transition-all duration-200 ${paymentStatus === "Processing"
+                  ? "bg-gray-300 cursor-not-allowed text-gray-500"
+                  : "bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98]"
+                  }`}
+              >
+                {paymentStatus === "Processing" ? t('btn_processing') : t('btn_cash')}
+              </button>
+            </>
+          )}
           <button
             onClick={handleBack}
             disabled={paymentStatus === "Processing"}

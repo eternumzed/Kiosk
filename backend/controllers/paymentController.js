@@ -10,6 +10,7 @@ const auth = require('../services/google/Auth.js');
 const requestService = require('../services/requestService.js');
 const PushNotificationService = require('../services/notifications/pushNotification');
 const websocketHandler = require('../services/websocketHandler');
+const { computeDocumentFee } = require('../services/feePolicy');
 
 const kioskUrl = process.env.KIOSK_URL || "http://localhost:4000";
 
@@ -36,6 +37,12 @@ function resolveUserIdFromRequest(req, fallbackUserId) {
 exports.createCheckout = async (req, res) => {
     try {
         const newRequest = req.body
+        const feeResult = computeDocumentFee({
+            document: newRequest.document,
+            purpose: newRequest.purpose,
+            isStudent: newRequest.isStudent,
+        });
+        newRequest.amount = feeResult.amount;
         
         // Use client-provided returnUrl (for mobile deep linking) or default to kiosk URL
         const successUrl = newRequest.returnUrl 
@@ -211,8 +218,14 @@ exports.handleWebhook = async (req, res) => {
 exports.createCashPayment = async (req, res) => {
     try {
         const newRequest = req.body;
-        const { fullName, email, contactNumber, address, document, amount, userId, ...templateFields } = newRequest;
+        const { fullName, email, contactNumber, address, document, userId, ...templateFields } = newRequest;
         const linkedUserId = resolveUserIdFromRequest(req, userId);
+        const feeResult = computeDocumentFee({
+            document,
+            purpose: templateFields.purpose,
+            isStudent: templateFields.isStudent,
+        });
+        const isFreeRequest = feeResult.amount === 0;
         
         console.log('Cash payment - User ID:', linkedUserId);
 
@@ -240,11 +253,11 @@ exports.createCashPayment = async (req, res) => {
             contactNumber,
             email,
             address,
-            amount,
+            amount: feeResult.amount,
             referenceNumber,
-            status: "Pending",
-            paymentStatus: "Pending",
-            paymentMethod: "Cash",
+            status: isFreeRequest ? "Processing" : "Pending",
+            paymentStatus: isFreeRequest ? "Paid" : "Pending",
+            paymentMethod: isFreeRequest ? "Free" : "Cash",
             paidAt: paidAt,
             userId: linkedUserId || null,  // Link to mobile user if provided/authenticated
             ...templateFields

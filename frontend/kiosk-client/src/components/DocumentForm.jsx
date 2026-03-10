@@ -17,6 +17,9 @@ const documents = {
         { label: 'label_civilStatus', key: 'civilStatus' },
         { label: 'label_age', key: 'age' },
         { label: 'label_purpose', key: 'purpose' },
+        { label: 'label_isStudent', key: 'isStudent' },
+        { label: 'label_schoolName', key: 'schoolName' },
+        { label: 'label_studentIdNumber', key: 'studentIdNumber' },
     ],
     doc_indigency: [
         { label: 'label_fullName', key: 'fullName' },
@@ -67,6 +70,16 @@ const typeKeyMap = {
     'Barangay Building Clearance': 'doc_building_clearance',
 };
 
+const normalizeBoolean = (value) => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        return normalized === 'true' || normalized === 'yes' || normalized === 'y' || normalized === '1';
+    }
+    if (typeof value === 'number') return value === 1;
+    return false;
+};
+
 export default function DocumentForm({ type, formData, setFormData, handleNext, handleBack }) {
     const { t } = useTranslation();
     // Map type to i18n key if needed
@@ -114,7 +127,17 @@ export default function DocumentForm({ type, formData, setFormData, handleNext, 
             // Text field step
             const fieldIndex = currentStep - photoStep;
             const field = fields[fieldIndex];
-            if (!formData[field.key]) {
+            const isStudent = normalizeBoolean(formData.isStudent);
+            const isStudentDetailField = field.key === 'schoolName' || field.key === 'studentIdNumber';
+
+            if (field.key === 'isStudent' && formData[field.key] === undefined) {
+                alert(t('alert_fill', { label: t(field.label) }));
+                return;
+            }
+
+            if (isStudentDetailField && !isStudent) {
+                // Student details are optional when requester is not a student.
+            } else if (!formData[field.key]) {
                 alert(t('alert_fill', { label: t(field.label) }));
                 return;
             }
@@ -287,12 +310,37 @@ export default function DocumentForm({ type, formData, setFormData, handleNext, 
                             <label className="block text-lg font-semibold text-gray-700 mb-3">
                                 {t(currentField.label)} <span className="text-red-500">*</span>
                             </label>
-                            <KeyboardInput
-                                type="text"
-                                value={formData[currentField.key] || ''}
-                                onChange={(value) => handleChange(currentField.key, value)}
-                                autoFocus={true}
-                            />
+                            {currentField.key === 'isStudent' ? (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleChange('isStudent', true)}
+                                        className={`w-full py-3 rounded-xl border font-semibold transition-all duration-200 ${normalizeBoolean(formData.isStudent)
+                                            ? 'bg-emerald-600 text-white border-emerald-600'
+                                            : 'bg-white text-gray-700 border-gray-300 hover:border-emerald-400'
+                                            }`}
+                                    >
+                                        {t('common_yes') || 'Yes'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleChange('isStudent', false)}
+                                        className={`w-full py-3 rounded-xl border font-semibold transition-all duration-200 ${formData.isStudent === false
+                                            ? 'bg-emerald-600 text-white border-emerald-600'
+                                            : 'bg-white text-gray-700 border-gray-300 hover:border-emerald-400'
+                                            }`}
+                                    >
+                                        {t('common_no') || 'No'}
+                                    </button>
+                                </div>
+                            ) : (
+                                <KeyboardInput
+                                    type="text"
+                                    value={formData[currentField.key] || ''}
+                                    onChange={(value) => handleChange(currentField.key, value)}
+                                    autoFocus={true}
+                                />
+                            )}
                         </div>
                     )}
 

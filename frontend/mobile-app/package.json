@@ -6,8 +6,8 @@
   "scripts": {
     "start": "expo start",
     "start:tunnel:stable": "expo start --tunnel --clear --no-dev --minify --port 8081",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "eject": "expo eject"
   },

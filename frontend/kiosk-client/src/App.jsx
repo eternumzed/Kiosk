@@ -12,10 +12,10 @@ import brgyBilusoSeal from "./assets/images/BRGY_BILUSO_SEAL.jpg";
 
 const documents = [
   { name: "Barangay Clearance", fee: 50, category: "Clearance" },
-  { name: "Barangay Indigency Certificate", fee: 150, category: "Certification" },
+  { name: "Barangay Indigency Certificate", fee: 0, category: "Certification" },
   { name: "First Time Job Seeker Certificate", fee: 200, category: "Certification" },
   { name: "Barangay Work Permit", fee: 200, category: "Permit" },
-  { name: "Barangay Residency Certificate", fee: 100, category: "Certification" },
+  { name: "Barangay Residency Certificate", fee: 0, category: "Certification" },
   { name: "Certificate of Good Moral Character", fee: 500, category: "Certification" },
   { name: "Barangay Business Permit", fee: 100, category: "Permit" },
   { name: "Barangay Building Clearance", fee: 100, category: "Permit" },
@@ -61,7 +61,34 @@ const App = () => {
   const [requestRef, setRequestRef] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
+  const normalizeBoolean = (value) => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      return normalized === 'true' || normalized === 'yes' || normalized === 'y' || normalized === '1';
+    }
+    if (typeof value === 'number') return value === 1;
+    return false;
+  };
+
+  const isWorkPurpose = (value) => {
+    const text = typeof value === 'string' ? value.trim().toLowerCase() : '';
+    return /(work|job|employment|trabaho|hanapbuhay|apply|application)/i.test(text);
+  };
+
   const getFee = () => {
+    const docName = (formData.document || '').trim().toLowerCase();
+    if (docName === 'barangay indigency certificate') return 0;
+    if (docName === 'barangay residency certificate') return 0;
+
+    if (docName === 'barangay clearance') {
+      const student = normalizeBoolean(formData.isStudent);
+      if (student && !isWorkPurpose(formData.purpose)) {
+        return 0;
+      }
+      return 50;
+    }
+
     const doc = documents.find((d) => d.name === formData.document);
     return doc ? doc.fee : 0;
   };
@@ -125,6 +152,34 @@ const App = () => {
     }
   };
 
+  const handleFreePayment = async () => {
+    try {
+      setPaymentStatus("Processing");
+
+      const paymentData = {
+        ...formData,
+        amount: getFee(),
+        paymentMethod: 'Free',
+      };
+      console.log('Creating free request:', paymentData);
+
+      const res = await axios.post(`${API_URL}/payment/create-cash-payment`, paymentData);
+
+      if (res.data.referenceNumber) {
+        setRequestRef({
+          reference: res.data.referenceNumber,
+        });
+
+        window.location.href = `/confirmation?referenceNumber=${res.data.referenceNumber}`;
+      } else {
+        throw new Error("Reference number missing");
+      }
+    } catch (err) {
+      console.error("Free request error:", err.response?.data || err.message);
+      setPaymentStatus("Failed");
+    }
+  };
+
   return (
     <KeyboardProvider>
       <Router>
@@ -141,6 +196,7 @@ const App = () => {
           getFee={getFee}
           handlePayment={handlePayment}
           handleCashPayment={handleCashPayment}
+          handleFreePayment={handleFreePayment}
           resetUI={resetUI}
         />
       </Router>
@@ -162,6 +218,7 @@ const AppContent = ({
   getFee,
   handlePayment,
   handleCashPayment,
+  handleFreePayment,
   resetUI,
 }) => {
   const location = useLocation();
@@ -194,6 +251,7 @@ const AppContent = ({
           getFee={getFee}
           handlePayment={handlePayment}
           handleCashPayment={handleCashPayment}
+          handleFreePayment={handleFreePayment}
           resetUI={resetUI}
         />
       </div>

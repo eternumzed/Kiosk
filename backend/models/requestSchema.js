@@ -26,6 +26,9 @@ const RequestSchema = new Schema({
     businessKind: { type: String },
     sex: { type: String },
     projectType: { type: String },
+    isStudent: { type: Boolean, default: false },
+    schoolName: { type: String },
+    studentIdNumber: { type: String },
 
     checkoutUrl: { type: String },
     paymongoSessionId: { type: String },

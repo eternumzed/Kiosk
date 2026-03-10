@@ -27,6 +27,39 @@ export default function PaymentReviewScreen({ navigation, route }) {
   const [paymentMethod, setPaymentMethod] = useState('online'); // 'online' | 'cash'
   const [photoId, setPhotoId] = useState(null);
 
+  const normalizeBoolean = (value) => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      return normalized === 'true' || normalized === 'yes' || normalized === 'y' || normalized === '1';
+    }
+    if (typeof value === 'number') return value === 1;
+    return false;
+  };
+
+  const isWorkPurpose = (value) => {
+    const text = typeof value === 'string' ? value.trim().toLowerCase() : '';
+    return /(work|job|employment|trabaho|hanapbuhay|apply|application)/i.test(text);
+  };
+
+  const computeFee = () => {
+    const docName = (document?.name || '').trim().toLowerCase();
+    if (docName === 'barangay indigency certificate') return 0;
+    if (docName === 'barangay residency certificate') return 0;
+
+    if (docName === 'barangay clearance') {
+      const student = normalizeBoolean(formData?.isStudent);
+      if (student && !isWorkPurpose(formData?.purpose)) {
+        return 0;
+      }
+      return 50;
+    }
+
+    return Number(document?.fee || 0);
+  };
+
+  const computedFee = computeFee();
+
   // Retrieve photoId from AsyncStorage on mount
   useEffect(() => {
     const loadPhoto = async () => {
@@ -51,7 +84,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
       const requestData = {
         ...formData,
         document: document.name,
-        amount: document.fee,
+        amount: computedFee,
         paymentMethod: paymentMethod === 'cash' ? 'Cash' : 'Online',
         userId,  // Link request to authenticated user
         ...(photoId ? { photoId } : {}),  // Include photoId if available
@@ -167,7 +200,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
             <Text style={styles.feeLabel}>{t('payment_review_processing_fee')}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <MaterialCommunityIcons name="currency-php" size={20} color="#fff" style={{ marginRight: 4 }} />
-              <Text style={styles.feeAmount}>{document.fee}</Text>
+              <Text style={styles.feeAmount}>{computedFee}</Text>
             </View>
           </View>
         </View>

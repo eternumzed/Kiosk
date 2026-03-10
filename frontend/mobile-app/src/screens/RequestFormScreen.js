@@ -34,6 +34,9 @@ const documentFields = {
     { label: 'Civil Status', key: 'civilStatus', placeholder: 'e.g., Single, Married' },
     { label: 'Age', key: 'age', placeholder: 'Enter your age', keyboardType: 'numeric' },
     { label: 'Purpose', key: 'purpose', placeholder: 'Purpose of request' },
+    { label: 'Student (Yes/No)', key: 'isStudent', placeholder: 'Yes or No' },
+    { label: 'School Name', key: 'schoolName', placeholder: 'Enter school name (if student)' },
+    { label: 'Student ID Number', key: 'studentIdNumber', placeholder: 'Enter student ID number (if student)' },
   ],
   'Barangay Indigency Certificate': [
     { label: 'Age', key: 'age', placeholder: 'Enter your age', keyboardType: 'numeric' },
@@ -182,6 +185,17 @@ export default function RequestFormScreen({ navigation, route }) {
         Alert.alert(t('common_required'), t('request_form_required_photo'));
         return;
       }
+    } else if (currentField.key === 'isStudent') {
+      if (formData.isStudent === undefined || formData.isStudent === null || formData.isStudent === '') {
+        Alert.alert(t('common_required'), t('request_form_required_field', { field: currentField.label }));
+        return;
+      }
+    } else if ((currentField.key === 'schoolName' || currentField.key === 'studentIdNumber')) {
+      const isStudent = String(formData.isStudent).toLowerCase() === 'yes' || formData.isStudent === true;
+      if (isStudent && !formData[currentField.key]?.trim()) {
+        Alert.alert(t('common_required'), t('request_form_required_field', { field: currentField.label }));
+        return;
+      }
     } else if (!formData[currentField.key]?.trim()) {
       Alert.alert(t('common_required'), t('request_form_required_field', { field: currentField.label }));
       return;
@@ -324,6 +338,23 @@ export default function RequestFormScreen({ navigation, route }) {
         
         {isPhotoStep ? (
           renderPhotoStep()
+        ) : currentField.key === 'isStudent' ? (
+          <View style={styles.checkboxRow}>
+            <TouchableOpacity
+              style={[styles.checkboxOption, formData.isStudent === 'yes' && styles.checkboxOptionActive]}
+              onPress={() => handleChange('isStudent', 'yes')}
+            >
+              <View style={[styles.checkbox, formData.isStudent === 'yes' && styles.checkboxChecked]} />
+              <Text style={[styles.checkboxLabel, formData.isStudent === 'yes' && styles.checkboxLabelActive]}>{t('common_yes')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.checkboxOption, formData.isStudent === 'no' && styles.checkboxOptionActive]}
+              onPress={() => handleChange('isStudent', 'no')}
+            >
+              <View style={[styles.checkbox, formData.isStudent === 'no' && styles.checkboxChecked]} />
+              <Text style={[styles.checkboxLabel, formData.isStudent === 'no' && styles.checkboxLabelActive]}>{t('common_no')}</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <>
             <TextInput
@@ -475,6 +506,46 @@ const styles = StyleSheet.create({
   quickFillText: {
     color: colors.primary[700],
     fontSize: 14,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  checkboxOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.gray[300],
+    backgroundColor: '#fff',
+  },
+  checkboxOptionActive: {
+    borderColor: colors.primary[600],
+    backgroundColor: colors.primary[50],
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: colors.gray[400],
+    backgroundColor: '#fff',
+  },
+  checkboxChecked: {
+    borderColor: colors.primary[600],
+    backgroundColor: colors.primary[600],
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.primary,
+  },
+  checkboxLabelActive: {
+    color: colors.primary[700],
   },
   buttonContainer: {
     padding: 20,
