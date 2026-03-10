@@ -142,6 +142,8 @@
     "scan_receipt_qr": "I-scan ang QR ng Resibo",
     "scan_receipt_qr_hint": "Itapat ang camera sa QR code na naka-print sa resibo.",
     "scanning_qr": "Hinahanap ang QR code...",
+    "scanning_qr_detected": "Nakita ang QR. Vine-verify ang reference...",
+    "scanning_qr_restart": "Matagal ang pag-scan. Nire-restart ang camera...",
     "close": "Isara",
     "status_page_title": "I-track ang Status ng Dokumento",
     "status_page_subtitle": "I-scan ang QR sa iyong resibo o ilagay ang reference number sa ibaba.",

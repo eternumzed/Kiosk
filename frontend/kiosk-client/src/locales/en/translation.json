@@ -142,6 +142,8 @@
     "scan_receipt_qr": "Scan Receipt QR",
     "scan_receipt_qr_hint": "Point the camera at the QR code printed on your receipt.",
     "scanning_qr": "Scanning for QR code...",
+    "scanning_qr_detected": "QR detected. Validating reference...",
+    "scanning_qr_restart": "Scanning is taking longer than expected. Restarting camera...",
     "close": "Close",
     "status_page_title": "Track Document Status",
     "status_page_subtitle": "Scan QR from your receipt or enter your reference number below.",

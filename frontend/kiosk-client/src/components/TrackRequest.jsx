@@ -14,6 +14,7 @@ const TrackRequest = () => {
     const [scannerOpen, setScannerOpen] = useState(false);
     const [scannerError, setScannerError] = useState('');
     const [scannerBusy, setScannerBusy] = useState(false);
+    const [qrBounds, setQrBounds] = useState(null);
     const navigate = useNavigate();
     const { hideKeyboard } = useKeyboard();
     const { t } = useTranslation();
@@ -28,6 +29,7 @@ const TrackRequest = () => {
     const lastProgressRef = useRef(0);
     const restartAttemptsRef = useRef(0);
     const fetchInFlightRef = useRef(false);
+    const lastDetectionAtRef = useRef(0);
 
     const statusKey = (status) => {
         const normalized = String(status || '').toLowerCase().replace(/[^a-z]/g, '');
@@ -94,6 +96,7 @@ const TrackRequest = () => {
     const stopScanner = () => {
         scanActiveRef.current = false;
         scanInProgressRef.current = false;
+        setQrBounds(null);
 
         if (scanTimerRef.current) {
             clearTimeout(scanTimerRef.current);
@@ -116,6 +119,7 @@ const TrackRequest = () => {
     const startScanner = async () => {
         setScannerError('');
         setScannerBusy(true);
+        setQrBounds(null);
         hideKeyboard();
 
         scanActiveRef.current = true;
@@ -231,7 +235,34 @@ const TrackRequest = () => {
                     inversionAttempts: 'attemptBoth',
                 });
 
-                return qrCode?.data || null;
+                if (!qrCode) return null;
+
+                const location = qrCode.location;
+                const points = [
+                    location?.topLeftCorner,
+                    location?.topRightCorner,
+                    location?.bottomRightCorner,
+                    location?.bottomLeftCorner,
+                ].filter(Boolean);
+
+                let bounds = null;
+                if (points.length >= 4) {
+                    const xs = points.map((p) => p.x);
+                    const ys = points.map((p) => p.y);
+                    const x = Math.max(0, Math.min(...xs));
+                    const y = Math.max(0, Math.min(...ys));
+                    const w = Math.max(0, Math.max(...xs) - x);
+                    const h = Math.max(0, Math.max(...ys) - y);
+
+                    bounds = {
+                        xPct: (x / width) * 100,
+                        yPct: (y / height) * 100,
+                        wPct: (w / width) * 100,
+                        hPct: (h / height) * 100,
+                    };
+                }
+
+                return { rawValue: qrCode.data, bounds };
             };
 
             const scanLoop = async () => {
@@ -248,6 +279,7 @@ const TrackRequest = () => {
 
                 try {
                     let rawValue = null;
+                    let detectedBounds = null;
                     const videoElement = videoRef.current;
 
                     if (!videoElement || videoElement.readyState < 2) {
@@ -259,15 +291,44 @@ const TrackRequest = () => {
                     if (detector) {
                         const results = await detector.detect(videoElement);
                         if (results.length > 0) {
-                            rawValue = results[0].rawValue;
+                            const first = results[0];
+                            rawValue = first.rawValue;
+
+                            if (Array.isArray(first.cornerPoints) && first.cornerPoints.length > 0) {
+                                const xs = first.cornerPoints.map((p) => p.x);
+                                const ys = first.cornerPoints.map((p) => p.y);
+                                const x = Math.max(0, Math.min(...xs));
+                                const y = Math.max(0, Math.min(...ys));
+                                const w = Math.max(0, Math.max(...xs) - x);
+                                const h = Math.max(0, Math.max(...ys) - y);
+
+                                detectedBounds = {
+                                    xPct: (x / videoElement.videoWidth) * 100,
+                                    yPct: (y / videoElement.videoHeight) * 100,
+                                    wPct: (w / videoElement.videoWidth) * 100,
+                                    hPct: (h / videoElement.videoHeight) * 100,
+                                };
+                            }
                         }
                     }
 
                     if (!rawValue) {
-                        rawValue = decodeWithJsQr();
+                        const jsQrResult = decodeWithJsQr();
+                        rawValue = jsQrResult?.rawValue || null;
+                        detectedBounds = jsQrResult?.bounds || null;
                     }
 
-                    if (!rawValue) return;
+                    if (!rawValue) {
+                        if (Date.now() - lastDetectionAtRef.current > 500) {
+                            setQrBounds(null);
+                        }
+                        return;
+                    }
+
+                    lastDetectionAtRef.current = Date.now();
+                    if (detectedBounds) {
+                        setQrBounds(detectedBounds);
+                    }
 
                     const extractedReference = extractReferenceFromQr(rawValue);
 
@@ -408,12 +469,34 @@ const TrackRequest = () => {
                         <p className="mt-1 text-sm text-gray-600">{t('scan_receipt_qr_hint')}</p>
 
                         <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-black">
-                            <video ref={videoRef} className="h-[340px] w-full object-cover" muted playsInline autoPlay />
+                            <div className="relative h-[340px] w-full">
+                                <video ref={videoRef} className="h-full w-full object-contain" muted playsInline autoPlay />
+
+                                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                                    <div className="h-[52%] w-[52%] rounded-2xl border-2 border-dashed border-white/65" />
+                                </div>
+
+                                {qrBounds && (
+                                    <div
+                                        className="pointer-events-none absolute border-2 border-emerald-400 shadow-[0_0_0_9999px_rgba(0,0,0,0.16)] transition-all duration-100"
+                                        style={{
+                                            left: `${Math.max(0, Math.min(96, qrBounds.xPct))}%`,
+                                            top: `${Math.max(0, Math.min(96, qrBounds.yPct))}%`,
+                                            width: `${Math.max(4, Math.min(100, qrBounds.wPct))}%`,
+                                            height: `${Math.max(4, Math.min(100, qrBounds.hPct))}%`,
+                                        }}
+                                    >
+                                        <div className="absolute -top-6 left-0 rounded bg-emerald-500 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white">
+                                            QR DETECTED
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             <canvas ref={canvasRef} className="hidden" />
                         </div>
 
                         {scannerBusy && !scannerError && (
-                            <p className="mt-3 text-sm text-emerald-700">{t('scanning_qr')}</p>
+                            <p className="mt-3 text-sm text-emerald-700">{qrBounds ? t('scanning_qr_detected', { defaultValue: 'QR detected. Validating reference...' }) : t('scanning_qr')}</p>
                         )}
 
                         {scannerError && (

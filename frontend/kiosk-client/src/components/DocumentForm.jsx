@@ -82,8 +82,37 @@ const normalizeBoolean = (value) => {
 
 export default function DocumentForm({ type, formData, setFormData, handleNext, handleBack }) {
     const { t } = useTranslation();
-    // Map type to i18n key if needed
-    const typeKey = documents[type] ? type : typeKeyMap[type] || type;
+    const normalizedType = String(type || '').trim().toLowerCase();
+    const translatedTypeToKey = Object.keys(documents).reduce((acc, key) => {
+        acc[String(t(key) || '').trim().toLowerCase()] = key;
+        return acc;
+    }, {});
+
+    const resolveTypeKey = () => {
+        if (documents[type]) return type;
+        if (typeKeyMap[type]) return typeKeyMap[type];
+        if (translatedTypeToKey[normalizedType]) return translatedTypeToKey[normalizedType];
+
+        if (normalizedType.includes('building') && normalizedType.includes('clearance')) {
+            return 'doc_building_clearance';
+        }
+
+        if (normalizedType.includes('clearance')) {
+            return 'doc_brgy_clearance';
+        }
+
+        if (normalizedType.includes('indigency')) return 'doc_indigency';
+        if (normalizedType.includes('residency')) return 'doc_residency';
+        if (normalizedType.includes('job seeker')) return 'doc_job_seeker';
+        if (normalizedType.includes('work permit')) return 'doc_work_permit';
+        if (normalizedType.includes('good moral')) return 'doc_good_moral';
+        if (normalizedType.includes('business permit')) return 'doc_business_permit';
+
+        return type;
+    };
+
+    // Resolve type to i18n template key for stable field rendering.
+    const typeKey = resolveTypeKey();
     const fields = documents[typeKey] || [];
     const requiresPhoto = TEMPLATES_REQUIRING_PHOTO.includes(typeKey);
     const { hideKeyboard } = useKeyboard();
