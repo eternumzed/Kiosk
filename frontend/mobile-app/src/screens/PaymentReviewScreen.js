@@ -45,7 +45,8 @@ export default function PaymentReviewScreen({ navigation, route }) {
   const computeFee = () => {
     const docName = (document?.name || '').trim().toLowerCase();
     if (docName === 'barangay indigency certificate') return 0;
-    if (docName === 'barangay residency certificate') return 0;
+    if (docName === 'first time job seeker certificate') return 0;
+    if (docName === 'barangay residency certificate') return 50;
 
     if (docName === 'barangay clearance') {
       const student = normalizeBoolean(formData?.isStudent);
@@ -59,6 +60,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
   };
 
   const computedFee = computeFee();
+  const isFreeRequest = computedFee === 0;
 
   // Retrieve photoId from AsyncStorage on mount
   useEffect(() => {
@@ -85,7 +87,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
         ...formData,
         document: document.name,
         amount: computedFee,
-        paymentMethod: paymentMethod === 'cash' ? 'Cash' : 'Online',
+        paymentMethod: isFreeRequest ? 'Free' : paymentMethod === 'cash' ? 'Cash' : 'Online',
         userId,  // Link request to authenticated user
         ...(photoId ? { photoId } : {}),  // Include photoId if available
       };
@@ -94,7 +96,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
       const { photoId: _photo, ...logData } = requestData;
       console.log('Submitting request:', logData, _photo ? '(with photo)' : '(no photo)');
 
-      if (paymentMethod === 'online') {
+      if (!isFreeRequest && paymentMethod === 'online') {
         // Create deep link URL for PayMongo to redirect back to app
         const returnUrl = ExpoLinking.createURL('payment-success');
         const cancelUrl = ExpoLinking.createURL('payment-cancelled');
@@ -144,7 +146,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
           Alert.alert(t('common_error'), t('payment_review_error_create_session'));
         }
       } else {
-        // Cash payment - create request without checkout
+        // Cash or free request - create request without checkout
         const response = await requestAPI.createRequestCash(requestData);
         
         // Clean up stored photo
@@ -152,7 +154,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
         navigation.navigate('RequestSuccess', {
           referenceNumber: response.referenceNumber || response.reference_number,
           document: document.name,
-          paymentMethod: 'Cash',
+          paymentMethod: isFreeRequest ? 'Free' : 'Cash',
         });
       }
     } catch (error) {
@@ -231,46 +233,47 @@ export default function PaymentReviewScreen({ navigation, route }) {
           </View>
         )}
 
-        {/* Payment Method */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('common_payment_method')}</Text>
-          
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              paymentMethod === 'online' && styles.paymentOptionActive,
-            ]}
-            onPress={() => setPaymentMethod('online')}
-          >
-            <View style={styles.paymentRadio}>
-              {paymentMethod === 'online' && <View style={styles.paymentRadioInner} />}
-            </View>
-            <View style={styles.paymentInfo}>
-              <Text style={styles.paymentTitle}>{t('payment_review_pay_online')}</Text>
-              <Text style={styles.paymentDesc}>
-                {t('payment_review_pay_online_desc')}
-              </Text>
-            </View>
-          </TouchableOpacity>
+        {!isFreeRequest && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('common_payment_method')}</Text>
+            
+            <TouchableOpacity
+              style={[
+                styles.paymentOption,
+                paymentMethod === 'online' && styles.paymentOptionActive,
+              ]}
+              onPress={() => setPaymentMethod('online')}
+            >
+              <View style={styles.paymentRadio}>
+                {paymentMethod === 'online' && <View style={styles.paymentRadioInner} />}
+              </View>
+              <View style={styles.paymentInfo}>
+                <Text style={styles.paymentTitle}>{t('payment_review_pay_online')}</Text>
+                <Text style={styles.paymentDesc}>
+                  {t('payment_review_pay_online_desc')}
+                </Text>
+              </View>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              paymentMethod === 'cash' && styles.paymentOptionActive,
-            ]}
-            onPress={() => setPaymentMethod('cash')}
-          >
-            <View style={styles.paymentRadio}>
-              {paymentMethod === 'cash' && <View style={styles.paymentRadioInner} />}
-            </View>
-            <View style={styles.paymentInfo}>
-              <Text style={styles.paymentTitle}>{t('payment_review_pay_cash')}</Text>
-              <Text style={styles.paymentDesc}>
-                {t('payment_review_pay_cash_desc')}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={[
+                styles.paymentOption,
+                paymentMethod === 'cash' && styles.paymentOptionActive,
+              ]}
+              onPress={() => setPaymentMethod('cash')}
+            >
+              <View style={styles.paymentRadio}>
+                {paymentMethod === 'cash' && <View style={styles.paymentRadioInner} />}
+              </View>
+              <View style={styles.paymentInfo}>
+                <Text style={styles.paymentTitle}>{t('payment_review_pay_cash')}</Text>
+                <Text style={styles.paymentDesc}>
+                  {t('payment_review_pay_cash_desc')}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
 
       {/* Submit Button */}
@@ -279,7 +282,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
           <Text style={styles.totalLabel}>{t('common_total_amount')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <MaterialCommunityIcons name="currency-php" size={20} color={colors.primary[600]} style={{ marginRight: 4 }} />
-            <Text style={styles.totalAmount}>{document.fee}</Text>
+            <Text style={styles.totalAmount}>{computedFee}</Text>
           </View>
         </View>
         <TouchableOpacity
@@ -292,7 +295,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.submitButtonText}>
-              {paymentMethod === 'online' ? t('payment_review_proceed_payment') : t('payment_review_submit_request')}
+              {isFreeRequest ? t('payment_review_submit_request') : paymentMethod === 'online' ? t('payment_review_proceed_payment') : t('payment_review_submit_request')}
             </Text>
           )}
         </TouchableOpacity>

@@ -1,12 +1,12 @@
 const BASE_FEES = {
   'barangay clearance': 50,
   'barangay indigency certificate': 0,
-  'barangay residency certificate': 0,
-  'first time job seeker certificate': 200,
-  'barangay work permit': 200,
-  'certificate of good moral character': 500,
-  'barangay business permit': 100,
-  'barangay building clearance': 100,
+  'barangay residency certificate': 50,
+  'first time job seeker certificate': 0,
+  'barangay work permit': 100,
+  'certificate of good moral character': 50,
+  'barangay business permit': 300,
+  'barangay building clearance': 300,
 };
 
 function normalizeText(value) {

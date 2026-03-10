@@ -126,14 +126,27 @@ export default function RequestFormScreen({ navigation, route }) {
     ...docSpecificFields,
     ...(requiresPhoto ? [{ label: 'Photo ID', key: 'photoId', type: 'photo' }] : []),
   ];
-  const totalSteps = allFields.length;
-  const currentField = allFields[currentStep];
+  const isStudentYes = String(formData.isStudent).toLowerCase() === 'yes' || formData.isStudent === true;
+  const isStudentDetailField = (key) => key === 'schoolName' || key === 'studentIdNumber';
+  const visibleFields = allFields.filter((field) => {
+    if (field.type === 'photo') return true;
+    if (!isStudentDetailField(field.key)) return true;
+    return isStudentYes;
+  });
+  const totalSteps = visibleFields.length;
+  const currentField = visibleFields[currentStep];
   const progress = ((currentStep + 1) / totalSteps) * 100;
   const isPhotoStep = currentField?.type === 'photo';
 
   const handleChange = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
+
+  useEffect(() => {
+    if (currentStep > totalSteps - 1) {
+      setCurrentStep(Math.max(totalSteps - 1, 0));
+    }
+  }, [currentStep, totalSteps]);
 
   const pickImage = async (useCamera = false) => {
     try {
@@ -236,7 +249,7 @@ export default function RequestFormScreen({ navigation, route }) {
 
   const handleReview = () => {
     // Check if all fields are filled
-    const emptyFields = allFields.filter((field) => {
+    const emptyFields = visibleFields.filter((field) => {
       if (field.type === 'photo') {
         return !formData.photoId;
       }
@@ -405,7 +418,7 @@ export default function RequestFormScreen({ navigation, route }) {
 
         {/* Progress dots */}
         <View style={styles.dotsContainer}>
-          {allFields.map((_, index) => (
+          {visibleFields.map((_, index) => (
             <View
               key={index}
               style={[

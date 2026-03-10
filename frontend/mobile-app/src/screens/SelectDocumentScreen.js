@@ -14,12 +14,12 @@ import { useTranslation } from 'react-i18next';
 const documents = [
   { name: 'Barangay Clearance', fee: 50, category: 'Clearance' },
   { name: 'Barangay Indigency Certificate', fee: 0, category: 'Certification' },
-  { name: 'First Time Job Seeker Certificate', fee: 200, category: 'Certification' },
-  { name: 'Barangay Work Permit', fee: 200, category: 'Permit' },
-  { name: 'Barangay Residency Certificate', fee: 0, category: 'Certification' },
-  { name: 'Certificate of Good Moral Character', fee: 500, category: 'Certification' },
-  { name: 'Barangay Business Permit', fee: 100, category: 'Permit' },
-  { name: 'Barangay Building Clearance', fee: 100, category: 'Permit' },
+  { name: 'First Time Job Seeker Certificate', fee: 0, category: 'Certification' },
+  { name: 'Barangay Work Permit', fee: 100, category: 'Permit' },
+  { name: 'Barangay Residency Certificate', fee: 50, category: 'Certification' },
+  { name: 'Certificate of Good Moral Character', fee: 50, category: 'Certification' },
+  { name: 'Barangay Business Permit', fee: 300, category: 'Permit' },
+  { name: 'Barangay Building Clearance', fee: 300, category: 'Permit' },
 ];
 
 const categories = ['All', 'Clearance', 'Certification', 'Permit'];

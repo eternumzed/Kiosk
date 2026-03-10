@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 
 import AnimatedRoutes from "./AnimatedRoutes";
+import LanguageSwitcher from "./components/LanguageSwitcher";
 
 // API URL from environment variable
 const API_URL = 'https://api.brgybiluso.me/api';
@@ -13,12 +14,12 @@ import brgyBilusoSeal from "./assets/images/BRGY_BILUSO_SEAL.jpg";
 const documents = [
   { name: "Barangay Clearance", fee: 50, category: "Clearance" },
   { name: "Barangay Indigency Certificate", fee: 0, category: "Certification" },
-  { name: "First Time Job Seeker Certificate", fee: 200, category: "Certification" },
-  { name: "Barangay Work Permit", fee: 200, category: "Permit" },
-  { name: "Barangay Residency Certificate", fee: 0, category: "Certification" },
-  { name: "Certificate of Good Moral Character", fee: 500, category: "Certification" },
-  { name: "Barangay Business Permit", fee: 100, category: "Permit" },
-  { name: "Barangay Building Clearance", fee: 100, category: "Permit" },
+  { name: "First Time Job Seeker Certificate", fee: 0, category: "Certification" },
+  { name: "Barangay Work Permit", fee: 100, category: "Permit" },
+  { name: "Barangay Residency Certificate", fee: 50, category: "Certification" },
+  { name: "Certificate of Good Moral Character", fee: 50, category: "Certification" },
+  { name: "Barangay Business Permit", fee: 300, category: "Permit" },
+  { name: "Barangay Building Clearance", fee: 300, category: "Permit" },
 ];
 
 const App = () => {
@@ -79,7 +80,8 @@ const App = () => {
   const getFee = () => {
     const docName = (formData.document || '').trim().toLowerCase();
     if (docName === 'barangay indigency certificate') return 0;
-    if (docName === 'barangay residency certificate') return 0;
+    if (docName === 'first time job seeker certificate') return 0;
+    if (docName === 'barangay residency certificate') return 50;
 
     if (docName === 'barangay clearance') {
       const student = normalizeBoolean(formData.isStudent);
@@ -224,6 +226,7 @@ const AppContent = ({
   const location = useLocation();
   const { isVisible, handleKeyPress, handleBackspace, handleEnter, hideKeyboard } = useKeyboard();
   const isPublicStatusView = location.pathname.startsWith('/queue') || location.pathname.startsWith('/request-status');
+  const showPersistentLanguageSwitcher = !isPublicStatusView && location.pathname !== '/';
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 font-sans text-gray-800 flex flex-col overflow-hidden">
@@ -237,6 +240,7 @@ const AppContent = ({
           />
         </div>
       )}
+      {showPersistentLanguageSwitcher && <LanguageSwitcher />}
       <div className={`relative z-10 flex-grow ${isPublicStatusView ? '' : `flex flex-col justify-center items-center p-6 ${isVisible ? 'pb-80' : ''}`}`}>
         <AnimatedRoutes
           documents={documents}

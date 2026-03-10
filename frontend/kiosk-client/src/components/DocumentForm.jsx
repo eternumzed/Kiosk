@@ -87,10 +87,16 @@ export default function DocumentForm({ type, formData, setFormData, handleNext, 
     const fields = documents[typeKey] || [];
     const requiresPhoto = TEMPLATES_REQUIRING_PHOTO.includes(typeKey);
     const { hideKeyboard } = useKeyboard();
+    const isStudent = normalizeBoolean(formData.isStudent);
+    const isStudentDetailField = (fieldKey) => fieldKey === 'schoolName' || fieldKey === 'studentIdNumber';
+    const visibleFields = fields.filter((field) => {
+        if (!isStudentDetailField(field.key)) return true;
+        return isStudent;
+    });
 
     // Calculate total steps (fields + photo if required)
     const photoStep = requiresPhoto ? 1 : 0;
-    const totalSteps = fields.length + photoStep;
+    const totalSteps = visibleFields.length + photoStep;
 
     const [currentStep, setCurrentStep] = useState(0);
     const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
@@ -126,17 +132,14 @@ export default function DocumentForm({ type, formData, setFormData, handleNext, 
         } else {
             // Text field step
             const fieldIndex = currentStep - photoStep;
-            const field = fields[fieldIndex];
-            const isStudent = normalizeBoolean(formData.isStudent);
-            const isStudentDetailField = field.key === 'schoolName' || field.key === 'studentIdNumber';
+            const field = visibleFields[fieldIndex];
 
-            if (field.key === 'isStudent' && formData[field.key] === undefined) {
-                alert(t('alert_fill', { label: t(field.label) }));
-                return;
-            }
-
-            if (isStudentDetailField && !isStudent) {
-                // Student details are optional when requester is not a student.
+            if (field.key === 'isStudent') {
+                const hasSelection = formData[field.key] === true || formData[field.key] === false;
+                if (!hasSelection) {
+                    alert(t('alert_fill', { label: t(field.label) }));
+                    return;
+                }
             } else if (!formData[field.key]) {
                 alert(t('alert_fill', { label: t(field.label) }));
                 return;
@@ -174,6 +177,16 @@ export default function DocumentForm({ type, formData, setFormData, handleNext, 
         handleNext();
     };
 
+    const formatReviewValue = (fieldKey) => {
+        if (fieldKey === 'isStudent') {
+            if (formData.isStudent === true) return t('common_yes') || 'Yes';
+            if (formData.isStudent === false) return t('common_no') || 'No';
+            return '-';
+        }
+
+        return formData[fieldKey] || '-';
+    };
+
     // Review Mode
     if (isReviewMode) {
         return (
@@ -204,20 +217,23 @@ export default function DocumentForm({ type, formData, setFormData, handleNext, 
 
                     {/* Fields Section */}
                     <div className="space-y-4 mb-8">
-                        {fields.map((field, index) => (
+                        {visibleFields.map((field) => {
+                            const originalIndex = fields.findIndex((f) => f.key === field.key);
+                            return (
                             <div key={field.key} className="p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between hover:bg-gray-100 transition-colors">
                                 <div className="flex-1">
                                     <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{t(field.label)}</p>
-                                    <p className="text-lg font-bold text-gray-800 mt-1">{formData[field.key] || '-'}</p>
+                                    <p className="text-lg font-bold text-gray-800 mt-1">{formatReviewValue(field.key)}</p>
                                 </div>
                                 <button
-                                    onClick={() => editField(photoStep + index)}
+                                    onClick={() => editField(photoStep + originalIndex)}
                                     className="ml-4 px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition-all duration-200 font-semibold"
                                 >
                                     {t('edit_button') || 'Edit'}
                                 </button>
                             </div>
-                        ))}
+                        );
+                        })}
                     </div>
 
                     <div className="flex space-x-4">
@@ -242,7 +258,7 @@ export default function DocumentForm({ type, formData, setFormData, handleNext, 
     // Single Field Mode
     const isPhotoStep = currentStep < photoStep;
     const fieldIndex = currentStep - photoStep;
-    const currentField = !isPhotoStep ? fields[fieldIndex] : null;
+    const currentField = !isPhotoStep ? visibleFields[fieldIndex] : null;
     const progressPercent = ((currentStep + 1) / totalSteps) * 100;
 
     return (

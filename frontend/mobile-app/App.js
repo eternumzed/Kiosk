@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { AppState } from 'react-native';
+import { AppState, LogBox, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -81,6 +81,15 @@ export default function App() {
   );
 
   useEffect(() => {
+    if (__DEV__ && Platform.OS === 'ios') {
+      LogBox.ignoreLogs([
+        'Push notifications are not supported in Expo Go',
+        'Push tokens are not available in Expo Go',
+        'No EAS projectId found',
+        'Failed to load saved language',
+      ]);
+    }
+
     const bootstrapAsync = async () => {
       let userToken;
       let user;
