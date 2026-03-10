@@ -139,10 +139,10 @@ const VirtualKeyboard = ({ onKeyPress, onBackspace, onEnter, onClose, visible })
                 onTouchStart={(e) => handleButtonPress(e, keyId, onClick)}
                 onMouseDown={(e) => handleButtonPress(e, keyId, onClick)}
                 className={`
-                    ${extraWide ? 'min-w-[240px] flex-grow' : wide ? 'min-w-[124px]' : 'min-w-[80px]'}
-                    h-18 px-4 m-1
+                    ${extraWide ? 'min-w-[200px] flex-grow' : wide ? 'min-w-[104px]' : 'min-w-[68px]'}
+                    h-14 px-3 m-0.5
                     border-2 rounded-xl
-                    text-2xl font-semibold
+                    text-xl font-semibold
                     select-none touch-manipulation
                     ${isPressed 
                         ? 'bg-emerald-300 border-emerald-600 scale-90 shadow-inner text-gray-900' 
@@ -169,10 +169,10 @@ const VirtualKeyboard = ({ onKeyPress, onBackspace, onEnter, onClose, visible })
                     type="button"
                     onTouchStart={(e) => handleButtonPress(e, 'hide-letter', onClose)}
                     onMouseDown={(e) => handleButtonPress(e, 'hide-letter', onClose)}
-                    className={`min-w-[124px] h-18 px-4 m-1 border-2 rounded-xl text-lg font-semibold flex items-center justify-center select-none touch-manipulation ${pressedKey === 'hide-letter' ? 'bg-gray-400 border-gray-500 scale-90 shadow-inner' : 'bg-gray-200 border-gray-300 text-gray-700'}`}
+                    className={`min-w-[104px] h-14 px-3 m-0.5 border-2 rounded-xl text-sm font-semibold flex items-center justify-center select-none touch-manipulation ${pressedKey === 'hide-letter' ? 'bg-gray-400 border-gray-500 scale-90 shadow-inner' : 'bg-gray-200 border-gray-300 text-gray-700'}`}
                     style={{ transition: 'transform 0.05s, background-color 0.05s' }}
                 >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                     Hide
@@ -213,8 +213,8 @@ const VirtualKeyboard = ({ onKeyPress, onBackspace, onEnter, onClose, visible })
                             onPointerLeave={clearBackspaceRepeat}
                             onPointerCancel={clearBackspaceRepeat}
                             className={`
-                                min-w-[124px] h-18 px-4 m-1
-                                border-2 rounded-xl text-xl font-semibold
+                                min-w-[104px] h-14 px-3 m-0.5
+                                border-2 rounded-xl text-lg font-semibold
                                 select-none touch-manipulation
                                 ${pressedKey === 'backspace'
                                     ? 'bg-emerald-300 border-emerald-600 scale-90 shadow-inner text-gray-900'
@@ -245,10 +245,10 @@ const VirtualKeyboard = ({ onKeyPress, onBackspace, onEnter, onClose, visible })
                     type="button"
                     onTouchStart={(e) => handleButtonPress(e, 'hide-symbol', onClose)}
                     onMouseDown={(e) => handleButtonPress(e, 'hide-symbol', onClose)}
-                    className={`min-w-[124px] h-18 px-4 m-1 border-2 rounded-xl text-lg font-semibold flex items-center justify-center select-none touch-manipulation ${pressedKey === 'hide-symbol' ? 'bg-gray-400 border-gray-500 scale-90 shadow-inner' : 'bg-gray-200 border-gray-300 text-gray-700'}`}
+                    className={`min-w-[104px] h-14 px-3 m-0.5 border-2 rounded-xl text-sm font-semibold flex items-center justify-center select-none touch-manipulation ${pressedKey === 'hide-symbol' ? 'bg-gray-400 border-gray-500 scale-90 shadow-inner' : 'bg-gray-200 border-gray-300 text-gray-700'}`}
                     style={{ transition: 'transform 0.05s, background-color 0.05s' }}
                 >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                     Hide
@@ -272,8 +272,8 @@ const VirtualKeyboard = ({ onKeyPress, onBackspace, onEnter, onClose, visible })
                     onPointerLeave={clearBackspaceRepeat}
                     onPointerCancel={clearBackspaceRepeat}
                     className={`
-                        min-w-[124px] h-18 px-4 m-1
-                        border-2 rounded-xl text-xl font-semibold
+                        min-w-[104px] h-14 px-3 m-0.5
+                        border-2 rounded-xl text-lg font-semibold
                         select-none touch-manipulation
                         ${pressedKey === 'backspace-sym'
                             ? 'bg-emerald-300 border-emerald-600 scale-90 shadow-inner text-gray-900'
@@ -290,9 +290,9 @@ const VirtualKeyboard = ({ onKeyPress, onBackspace, onEnter, onClose, visible })
     );
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 bg-gray-100 border-t-2 border-gray-300 shadow-2xl z-50 p-3">
+        <div className="fixed bottom-0 left-0 right-0 bg-gray-100 border-t-2 border-gray-300 shadow-2xl z-50 p-2">
             {/* Keyboard Layout */}
-            <div className="max-w-6xl mx-auto">
+            <div className="max-w-5xl mx-auto">
                 {isSymbol ? renderSymbolKeyboard() : renderLetterKeyboard()}
 
                 {/* Bottom Row */}
