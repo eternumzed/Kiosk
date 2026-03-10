@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import brgyBilusoSeal from '../assets/images/BRGY_BILUSO_SEAL.jpg';
 
 const SelectDocument = ({ filteredDocuments, selectedCategory, setSelectedCategory, handleDocumentSelect, handleBack, handleNext }) => {
 
@@ -46,7 +47,7 @@ const SelectDocument = ({ filteredDocuments, selectedCategory, setSelectedCatego
 
                     <div className="flex flex-col items-center justify-center mb-6">
                         <div className="w-24 h-24 rounded-full mb-2 flex items-center justify-center overflow-hidden bg-gray-50 border-2 border-emerald-200">
-                            <img src="../src/assets/images/BRGY_BILUSO_SEAL.jpg" alt="Brgy. Biluso Seal" className="w-full h-full object-contain p-1" />
+                            <img src={brgyBilusoSeal} alt="Brgy. Biluso Seal" className="w-full h-full object-contain p-1" draggable={false} />
                         </div>
                     </div>
 

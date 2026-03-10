@@ -21,6 +21,13 @@ const TrackRequest = () => {
     const canvasRef = useRef(null);
     const streamRef = useRef(null);
     const scanTimerRef = useRef(null);
+    const animationFrameRef = useRef(null);
+    const scanActiveRef = useRef(false);
+    const scanInProgressRef = useRef(false);
+    const lastDecodeAttemptRef = useRef(0);
+    const lastProgressRef = useRef(0);
+    const restartAttemptsRef = useRef(0);
+    const fetchInFlightRef = useRef(false);
 
     const statusKey = (status) => {
         const normalized = String(status || '').toLowerCase().replace(/[^a-z]/g, '');
@@ -85,9 +92,17 @@ const TrackRequest = () => {
     };
 
     const stopScanner = () => {
+        scanActiveRef.current = false;
+        scanInProgressRef.current = false;
+
         if (scanTimerRef.current) {
-            clearInterval(scanTimerRef.current);
+            clearTimeout(scanTimerRef.current);
             scanTimerRef.current = null;
+        }
+
+        if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+            animationFrameRef.current = null;
         }
 
         if (streamRef.current) {
@@ -103,19 +118,86 @@ const TrackRequest = () => {
         setScannerBusy(true);
         hideKeyboard();
 
+        scanActiveRef.current = true;
+        scanInProgressRef.current = false;
+        lastDecodeAttemptRef.current = 0;
+        lastProgressRef.current = Date.now();
+
+        const scheduleAutoRecover = () => {
+            if (scanTimerRef.current) {
+                clearTimeout(scanTimerRef.current);
+            }
+
+            scanTimerRef.current = setTimeout(async () => {
+                if (!scanActiveRef.current) return;
+                const elapsed = Date.now() - lastProgressRef.current;
+
+                if (elapsed < 10000) {
+                    scheduleAutoRecover();
+                    return;
+                }
+
+                if (restartAttemptsRef.current >= 2) {
+                    return;
+                }
+
+                restartAttemptsRef.current += 1;
+                setScannerError(t('scanning_qr_restart', { defaultValue: 'Scanning is taking longer than expected. Restarting camera...' }));
+
+                stopScanner();
+                setScannerOpen(true);
+                setTimeout(() => {
+                    startScanner();
+                }, 250);
+            }, 3000);
+        };
+
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: { ideal: 'environment' },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
                 },
                 audio: false,
             });
 
             streamRef.current = stream;
 
+            const [videoTrack] = stream.getVideoTracks();
+            if (videoTrack?.getCapabilities && videoTrack?.applyConstraints) {
+                try {
+                    const caps = videoTrack.getCapabilities();
+                    const advanced = [];
+                    if (caps.focusMode?.includes('continuous')) {
+                        advanced.push({ focusMode: 'continuous' });
+                    }
+                    if (caps.exposureMode?.includes('continuous')) {
+                        advanced.push({ exposureMode: 'continuous' });
+                    }
+                    if (advanced.length > 0) {
+                        await videoTrack.applyConstraints({ advanced });
+                    }
+                } catch (constraintErr) {
+                    console.warn('Could not apply advanced camera constraints:', constraintErr);
+                }
+            }
+
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
                 await videoRef.current.play();
+
+                if (!videoRef.current.videoWidth || !videoRef.current.videoHeight) {
+                    await new Promise((resolve) => {
+                        const handleLoadedMeta = () => {
+                            videoRef.current?.removeEventListener('loadedmetadata', handleLoadedMeta);
+                            resolve();
+                        };
+
+                        videoRef.current?.addEventListener('loadedmetadata', handleLoadedMeta);
+                        setTimeout(resolve, 800);
+                    });
+                }
             }
 
             let detector = null;
@@ -135,8 +217,13 @@ const TrackRequest = () => {
                 const context = canvas.getContext('2d', { willReadFrequently: true });
                 if (!context) return null;
 
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
+                const maxDimension = 960;
+                const scale = Math.min(1, maxDimension / Math.max(video.videoWidth, video.videoHeight));
+                const width = Math.max(320, Math.floor(video.videoWidth * scale));
+                const height = Math.max(240, Math.floor(video.videoHeight * scale));
+
+                canvas.width = width;
+                canvas.height = height;
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
                 const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
@@ -147,14 +234,30 @@ const TrackRequest = () => {
                 return qrCode?.data || null;
             };
 
-            scanTimerRef.current = setInterval(async () => {
-                if (!videoRef.current) return;
+            const scanLoop = async () => {
+                if (!scanActiveRef.current) return;
+                const now = Date.now();
+
+                if (scanInProgressRef.current || now - lastDecodeAttemptRef.current < 120) {
+                    animationFrameRef.current = requestAnimationFrame(scanLoop);
+                    return;
+                }
+
+                lastDecodeAttemptRef.current = now;
+                scanInProgressRef.current = true;
 
                 try {
                     let rawValue = null;
+                    const videoElement = videoRef.current;
+
+                    if (!videoElement || videoElement.readyState < 2) {
+                        scanInProgressRef.current = false;
+                        animationFrameRef.current = requestAnimationFrame(scanLoop);
+                        return;
+                    }
 
                     if (detector) {
-                        const results = await detector.detect(videoRef.current);
+                        const results = await detector.detect(videoElement);
                         if (results.length > 0) {
                             rawValue = results[0].rawValue;
                         }
@@ -173,13 +276,29 @@ const TrackRequest = () => {
                         return;
                     }
 
+                    if (fetchInFlightRef.current) {
+                        return;
+                    }
+
+                    fetchInFlightRef.current = true;
                     setScannerOpen(false);
                     stopScanner();
-                    fetchByReference(extractedReference);
+                    await fetchByReference(extractedReference);
                 } catch (detectErr) {
                     console.error('QR detect error:', detectErr);
+                } finally {
+                    scanInProgressRef.current = false;
+                    if (scanActiveRef.current) {
+                        animationFrameRef.current = requestAnimationFrame(scanLoop);
+                    }
                 }
-            }, 350);
+
+                lastProgressRef.current = Date.now();
+            };
+
+            setScannerError('');
+            scheduleAutoRecover();
+            animationFrameRef.current = requestAnimationFrame(scanLoop);
         } catch (err) {
             console.error('Camera start error:', err);
             setScannerError('Unable to access camera. Please allow camera permission.');
@@ -188,12 +307,16 @@ const TrackRequest = () => {
     };
 
     const openScanner = async () => {
+        restartAttemptsRef.current = 0;
+        fetchInFlightRef.current = false;
         setScannerOpen(true);
         setScannerError('');
         await startScanner();
     };
 
     const closeScanner = () => {
+        restartAttemptsRef.current = 0;
+        fetchInFlightRef.current = false;
         setScannerOpen(false);
         stopScanner();
     };

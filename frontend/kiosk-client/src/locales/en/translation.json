@@ -24,6 +24,7 @@
     "optional_tag": "(Optional)",
     "fallback_email": "Not provided (using kiosk receipt)",
     "edit_button": "Edit",
+    "back_to_form_button": "Bumalik sa Form",
     "back_button": "Back to Form",
     "next_button": "Next",
     "contact_info_title": "Contact Information",
@@ -153,17 +154,17 @@
     "status_page_payment": "Payment",
     "status_page_last_update": "Last Update",
     "status_not_found": "No request found for this reference number.",
-    "status_unavailable": "Unable to fetch request status right now."
-    ,"queue_waiting_updates": "Waiting for updates..."
-    ,"queue_more_count": "+{{count}} more in queue"
-    ,"queue_total_in_queue": "Total in Queue"
-    ,"queue_realtime_online": "Realtime Online"
-    ,"queue_reconnecting": "Reconnecting..."
-    ,"queue_now_serving": "Now Serving"
-    ,"queue_status_processing": "Status: Processing"
-    ,"queue_for_pickup": "For Pick-up"
-    ,"queue_status_for_pickup": "Status: For Pick-up"
-    ,"help_go_back": "Go Back"
-    ,"help_how_to_use": "How to Use the Kiosk"
-    ,"help_video_not_supported": "Your browser does not support the video tag. Please check the help manual."
+    "status_unavailable": "Unable to fetch request status right now.",
+    "queue_waiting_updates": "Waiting for updates...",
+    "queue_more_count": "+{{count}} more in queue",
+    "queue_total_in_queue": "Total in Queue",
+    "queue_realtime_online": "Realtime Online",
+    "queue_reconnecting": "Reconnecting...",
+    "queue_now_serving": "Now Serving",
+    "queue_status_processing": "Status: Processing",
+    "queue_for_pickup": "For Pick-up",
+    "queue_status_for_pickup": "Status: For Pick-up",
+    "help_go_back": "Go Back",
+    "help_how_to_use": "How to Use the Kiosk",
+    "help_video_not_supported": "Your browser does not support the video tag. Please check the help manual."
 }
