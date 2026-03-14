@@ -17,11 +17,15 @@ This is your step-by-step execution guide. Follow it sequentially.
   - [ ] If Draw.io, enable Mermaid plugin or use flowchart shape library
   - [ ] If Visio, use "Flowchart" template
 - **Team Assignment (11 diagrams total):**
+- **Team Assignment (25 diagrams total):**
   - [ ] Designer 1: Figures X.1, X.4, X.7 (context, lifecycle, deployment)
   - [ ] Designer 2: Figures X.2, X.5, X.9 (citizen, payment, DFD)
   - [ ] Designer 3: Figures X.3, X.6, X.10 (admin, print, error handling)
-  - [ ] Designer 4 (or Designer 1–3 split): Figure X.8, X.11 (hardware interface, security)
-  - [ ] Reviewer: One person to audit all 11 before export
+  - [ ] Designer 4: Figures X.8, X.11 (hardware interface, security)
+  - [ ] Designer 5: Figures X.12, X.13, X.14, X.15 (request + payment endpoints)
+  - [ ] Designer 6: Figures X.16, X.17, X.18, X.19, X.20 (PDF, print, queue endpoints)
+  - [ ] Designer 7: Figures X.21, X.22, X.23, X.24, X.25 (auth + fee policy)
+  - [ ] Reviewer: One person to audit all 25 before export
 
 ### Step 3: Set Up Canvas & Environment
 - **All Designers:**
