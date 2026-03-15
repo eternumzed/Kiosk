@@ -402,13 +402,8 @@ export default function RequestFormScreen({ navigation, route }) {
               onChangeText={(text) => handleChange(currentField.key, text)}
               keyboardType={currentField.keyboardType || 'default'}
               autoCapitalize={currentField.key === 'email' ? 'none' : 'words'}
-              autoComplete={
-                currentField.key === 'email'
-                  ? 'email'
-                  : currentField.key === 'contactNumber'
-                  ? 'tel'
-                  : 'off'
-              }
+              autoComplete="off"
+              importantForAutofill="no"
               returnKeyType={currentStep < totalSteps - 1 ? 'next' : 'done'}
               onSubmitEditing={handleNext}
             />
