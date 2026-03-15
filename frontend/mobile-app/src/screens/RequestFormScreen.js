@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -69,8 +69,8 @@ const documentFields = {
 // Base personal info fields
 const personalInfoFields = [
   { label: 'Full Name', key: 'fullName', placeholder: 'Enter your full name' },
-  { label: 'Email', key: 'email', placeholder: 'Enter your email', keyboardType: 'email-address' },
-  { label: 'Contact Number', key: 'contactNumber', placeholder: 'Enter contact number', keyboardType: 'phone-pad' },
+  { label: 'Email', key: 'email', placeholder: 'Enter your email' },
+  { label: 'Contact Number', key: 'contactNumber', placeholder: 'Enter contact number' },
   { label: 'Address', key: 'address', placeholder: 'Enter your address' },
 ];
 
@@ -78,9 +78,8 @@ export default function RequestFormScreen({ navigation, route }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { document } = route.params;
-  const inputRef = useRef(null);
-  const docSpecificFields = useMemo(() => documentFields[document.name] || [], [document.name]);
-  const requiresPhoto = useMemo(() => TEMPLATES_REQUIRING_PHOTO.includes(document.name), [document.name]);
+  const docSpecificFields = documentFields[document.name] || [];
+  const requiresPhoto = TEMPLATES_REQUIRING_PHOTO.includes(document.name);
 
   // Fetch latest user info for autofill
   const [user, setUser] = useState(null);
@@ -108,14 +107,12 @@ export default function RequestFormScreen({ navigation, route }) {
 
   useEffect(() => {
     if (user) {
-      // Only fill fields that are still empty — prevents disrupting a field
-      // the user is already focused on if the API responds late.
       setFormData(prev => ({
         ...prev,
-        fullName: prev.fullName || user.fullName || '',
-        email: prev.email || user.email || '',
-        contactNumber: prev.contactNumber || user.phoneNumber || user.phone || '',
-        address: prev.address || user.address || '',
+        fullName: user.fullName || '',
+        email: user.email || '',
+        contactNumber: user.phoneNumber || user.phone || '',
+        address: user.address || '',
       }));
     }
   }, [user]);
@@ -124,43 +121,22 @@ export default function RequestFormScreen({ navigation, route }) {
   const [imageLoading, setImageLoading] = useState(false);
   
   // Add photo step at the end if required
-  const allFields = useMemo(
-    () => [
-      ...personalInfoFields,
-      ...docSpecificFields,
-      ...(requiresPhoto ? [{ label: 'Photo ID', key: 'photoId', type: 'photo' }] : []),
-    ],
-    [docSpecificFields, requiresPhoto]
-  );
+  const allFields = [
+    ...personalInfoFields,
+    ...docSpecificFields,
+    ...(requiresPhoto ? [{ label: 'Photo ID', key: 'photoId', type: 'photo' }] : []),
+  ];
   const isStudentYes = String(formData.isStudent).toLowerCase() === 'yes' || formData.isStudent === true;
   const isStudentDetailField = (key) => key === 'schoolName' || key === 'studentIdNumber';
-  const visibleFields = useMemo(
-    () =>
-      allFields.filter((field) => {
-        if (field.type === 'photo') return true;
-        if (!isStudentDetailField(field.key)) return true;
-        return isStudentYes;
-      }),
-    [allFields, isStudentYes]
-  );
+  const visibleFields = allFields.filter((field) => {
+    if (field.type === 'photo') return true;
+    if (!isStudentDetailField(field.key)) return true;
+    return isStudentYes;
+  });
   const totalSteps = visibleFields.length;
   const currentField = visibleFields[currentStep];
   const progress = ((currentStep + 1) / totalSteps) * 100;
   const isPhotoStep = currentField?.type === 'photo';
-
-  useEffect(() => {
-    if (!currentField || isPhotoStep || currentField.key === 'isStudent') return;
-
-    // Use a plain timeout instead of InteractionManager — the latter can block
-    // indefinitely in Expo Go waiting on navigation or background interaction
-    // handles, which is what causes the 10-20 s keyboard delay on
-    // email-address / phone-pad steps.
-    const timer = setTimeout(() => {
-      inputRef.current?.focus();
-    }, currentStep === 0 ? 300 : 50);
-
-    return () => clearTimeout(timer);
-  }, [currentStep]);
 
   const handleChange = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -216,10 +192,35 @@ export default function RequestFormScreen({ navigation, route }) {
   };
 
   const handleNext = () => {
+    const currentValue = String(formData[currentField.key] || '').trim();
+
     // Validate current field
     if (isPhotoStep) {
       if (!formData.photoId) {
         Alert.alert(t('common_required'), t('request_form_required_photo'));
+        return;
+      }
+    } else if (currentField.key === 'email') {
+      if (!currentValue) {
+        Alert.alert(t('common_required'), t('request_form_required_field', { field: currentField.label }));
+        return;
+      }
+
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(currentValue)) {
+        Alert.alert(t('common_error'), 'Please enter a valid email address');
+        return;
+      }
+    } else if (currentField.key === 'contactNumber') {
+      if (!currentValue) {
+        Alert.alert(t('common_required'), t('request_form_required_field', { field: currentField.label }));
+        return;
+      }
+
+      // Allow +, spaces, dashes, and parentheses but validate by digit count.
+      const digitsOnly = currentValue.replace(/\D/g, '');
+      if (digitsOnly.length < 10 || digitsOnly.length > 15) {
+        Alert.alert(t('common_error'), 'Please enter a valid contact number');
         return;
       }
     } else if (currentField.key === 'isStudent') {
@@ -395,7 +396,6 @@ export default function RequestFormScreen({ navigation, route }) {
         ) : (
           <>
             <TextInput
-              ref={inputRef}
               style={styles.input}
               placeholder={currentField.placeholder}
               placeholderTextColor={colors.text.muted}
@@ -403,8 +403,7 @@ export default function RequestFormScreen({ navigation, route }) {
               onChangeText={(text) => handleChange(currentField.key, text)}
               keyboardType={currentField.keyboardType || 'default'}
               autoCapitalize={currentField.key === 'email' ? 'none' : 'words'}
-              autoComplete="off"
-              importantForAutofill="no"
+              autoFocus
               returnKeyType={currentStep < totalSteps - 1 ? 'next' : 'done'}
               onSubmitEditing={handleNext}
             />
