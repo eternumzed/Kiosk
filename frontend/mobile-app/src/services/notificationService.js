@@ -480,6 +480,9 @@ class NotificationService {
   static setupListeners(navigationRef) {
     this.navigationRef = navigationRef;
 
+    // Push notification listeners are unsupported in Expo Go (SDK 53+); skip.
+    if (isRunningInExpoGo()) return;
+
     // Handle notification taps that launched the app from a killed state.
     this.handleInitialNotificationResponse();
 
@@ -578,10 +581,10 @@ class NotificationService {
    */
   static cleanup() {
     if (this.notificationListener) {
-      Notifications.removeNotificationSubscription(this.notificationListener);
+      this.notificationListener.remove();
     }
     if (this.responseListener) {
-      Notifications.removeNotificationSubscription(this.responseListener);
+      this.responseListener.remove();
     }
 
     this.navigationRef = null;
