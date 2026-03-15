@@ -11,7 +11,6 @@ import {
   Alert,
   Image,
   ActivityIndicator,
-  InteractionManager,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -109,12 +108,14 @@ export default function RequestFormScreen({ navigation, route }) {
 
   useEffect(() => {
     if (user) {
+      // Only fill fields that are still empty — prevents disrupting a field
+      // the user is already focused on if the API responds late.
       setFormData(prev => ({
         ...prev,
-        fullName: user.fullName || '',
-        email: user.email || '',
-        contactNumber: user.phoneNumber || user.phone || '',
-        address: user.address || '',
+        fullName: prev.fullName || user.fullName || '',
+        email: prev.email || user.email || '',
+        contactNumber: prev.contactNumber || user.phoneNumber || user.phone || '',
+        address: prev.address || user.address || '',
       }));
     }
   }, [user]);
@@ -150,15 +151,16 @@ export default function RequestFormScreen({ navigation, route }) {
   useEffect(() => {
     if (!currentField || isPhotoStep || currentField.key === 'isStudent') return;
 
-    // Delay focus until UI interactions settle to keep keyboard opening responsive.
-    const task = InteractionManager.runAfterInteractions(() => {
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-      });
-    });
+    // Use a plain timeout instead of InteractionManager — the latter can block
+    // indefinitely in Expo Go waiting on navigation or background interaction
+    // handles, which is what causes the 10-20 s keyboard delay on
+    // email-address / phone-pad steps.
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, currentStep === 0 ? 300 : 50);
 
-    return () => task.cancel();
-  }, [currentField, isPhotoStep]);
+    return () => clearTimeout(timer);
+  }, [currentStep]);
 
   const handleChange = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -394,7 +396,6 @@ export default function RequestFormScreen({ navigation, route }) {
           <>
             <TextInput
               ref={inputRef}
-              key={currentField.key}
               style={styles.input}
               placeholder={currentField.placeholder}
               placeholderTextColor={colors.text.muted}
