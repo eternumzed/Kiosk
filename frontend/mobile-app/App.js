@@ -15,6 +15,13 @@ import { loadSavedLanguage } from './src/i18n';
 
 const Stack = createNativeStackNavigator();
 
+// Suppress Expo Go SDK 53 push-notification warnings that show a red error modal.
+// These are expected in Expo Go and do not affect development or production builds.
+LogBox.ignoreLogs([
+  'expo-notifications: Android Push notifications',
+  '`expo-notifications` functionality is not fully supported in Expo Go',
+]);
+
 export default function App() {
   const navigationRef = useRef(null);
   const linking = {
