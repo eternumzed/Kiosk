@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Alert,
   Image,
   ActivityIndicator,
+  InteractionManager,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -78,8 +79,9 @@ export default function RequestFormScreen({ navigation, route }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { document } = route.params;
-  const docSpecificFields = documentFields[document.name] || [];
-  const requiresPhoto = TEMPLATES_REQUIRING_PHOTO.includes(document.name);
+  const inputRef = useRef(null);
+  const docSpecificFields = useMemo(() => documentFields[document.name] || [], [document.name]);
+  const requiresPhoto = useMemo(() => TEMPLATES_REQUIRING_PHOTO.includes(document.name), [document.name]);
 
   // Fetch latest user info for autofill
   const [user, setUser] = useState(null);
@@ -121,22 +123,42 @@ export default function RequestFormScreen({ navigation, route }) {
   const [imageLoading, setImageLoading] = useState(false);
   
   // Add photo step at the end if required
-  const allFields = [
-    ...personalInfoFields,
-    ...docSpecificFields,
-    ...(requiresPhoto ? [{ label: 'Photo ID', key: 'photoId', type: 'photo' }] : []),
-  ];
+  const allFields = useMemo(
+    () => [
+      ...personalInfoFields,
+      ...docSpecificFields,
+      ...(requiresPhoto ? [{ label: 'Photo ID', key: 'photoId', type: 'photo' }] : []),
+    ],
+    [docSpecificFields, requiresPhoto]
+  );
   const isStudentYes = String(formData.isStudent).toLowerCase() === 'yes' || formData.isStudent === true;
   const isStudentDetailField = (key) => key === 'schoolName' || key === 'studentIdNumber';
-  const visibleFields = allFields.filter((field) => {
-    if (field.type === 'photo') return true;
-    if (!isStudentDetailField(field.key)) return true;
-    return isStudentYes;
-  });
+  const visibleFields = useMemo(
+    () =>
+      allFields.filter((field) => {
+        if (field.type === 'photo') return true;
+        if (!isStudentDetailField(field.key)) return true;
+        return isStudentYes;
+      }),
+    [allFields, isStudentYes]
+  );
   const totalSteps = visibleFields.length;
   const currentField = visibleFields[currentStep];
   const progress = ((currentStep + 1) / totalSteps) * 100;
   const isPhotoStep = currentField?.type === 'photo';
+
+  useEffect(() => {
+    if (!currentField || isPhotoStep || currentField.key === 'isStudent') return;
+
+    // Delay focus until UI interactions settle to keep keyboard opening responsive.
+    const task = InteractionManager.runAfterInteractions(() => {
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
+    });
+
+    return () => task.cancel();
+  }, [currentField, isPhotoStep]);
 
   const handleChange = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -371,6 +393,8 @@ export default function RequestFormScreen({ navigation, route }) {
         ) : (
           <>
             <TextInput
+              ref={inputRef}
+              key={currentField.key}
               style={styles.input}
               placeholder={currentField.placeholder}
               placeholderTextColor={colors.text.muted}
@@ -378,7 +402,13 @@ export default function RequestFormScreen({ navigation, route }) {
               onChangeText={(text) => handleChange(currentField.key, text)}
               keyboardType={currentField.keyboardType || 'default'}
               autoCapitalize={currentField.key === 'email' ? 'none' : 'words'}
-              autoFocus
+              autoComplete={
+                currentField.key === 'email'
+                  ? 'email'
+                  : currentField.key === 'contactNumber'
+                  ? 'tel'
+                  : 'off'
+              }
               returnKeyType={currentStep < totalSteps - 1 ? 'next' : 'done'}
               onSubmitEditing={handleNext}
             />

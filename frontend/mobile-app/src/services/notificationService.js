@@ -8,13 +8,16 @@ import * as SecureStore from 'expo-secure-store';
 import { notificationAPI, API_URL } from './api';
 
 // Configure how notifications appear when app is in foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Skip in Expo Go (SDK 53+) — remote push notifications are unsupported there.
+if (Constants.executionEnvironment !== 'expo' && Constants.executionEnvironment !== 'storeClient') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 /**
  * Check if running in Expo Go

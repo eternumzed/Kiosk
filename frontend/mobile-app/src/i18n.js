@@ -17,6 +17,7 @@ i18n
     resources,
     lng: 'en',
     fallbackLng: 'en',
+    compatibilityJSON: 'v3', // Suppress Intl.PluralRules warning in Expo Go / Hermes
     interpolation: {
       escapeValue: false,
     },
