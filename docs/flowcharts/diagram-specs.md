@@ -90,7 +90,7 @@ Scope note for thesis readability:
 - `C3-8` `POST /api/payment/create-checkout`
 - `C3-9` `POST /api/payment/create-cash-payment`
 - `C3-10` `POST /api/payment/handle-webhook`
-- `C3-11` `POST /api/pdf/generate` (canonical endpoint alias: `POST /api/pdf/`)
+- `C3-11` Generate PDF Service (`backend/services/pdf/generatePdf.js`)
 - `C3-12` `PATCH /api/pdf/status/:fileId`
 - `C3-13` `PATCH /api/pdf/status/ref/:referenceNumber`
 - `C3-14` `POST /api/print/`
@@ -119,6 +119,20 @@ Scope note for thesis readability:
 - `C3-35` `GET /api/request/track-request/:referenceNumber` (auxiliary kiosk endpoint flow)
 - `C3-36` Help Button Tutorial Video Flow
 
+### E. Auxiliary Mobile UI Flowcharts (Non-endpoint)
+- `C3-37` Mobile Request Details Screen Flow
+
+### F. Additional Essential In-Use Flows (Previously Missing)
+- `C3-39` Google Drive Upload Service (`backend/services/google/Drive.js` -> `uploadPdf`)
+- `C3-40` `PATCH /api/request/hide` (+ `PATCH /api/request/hide/:requestId`, `PATCH /api/request/hide/ref/:referenceNumber`)
+- `C3-41` `PATCH /api/request/unhide` (+ `PATCH /api/request/unhide/:requestId`, `PATCH /api/request/unhide/ref/:referenceNumber`)
+- `C3-42` `POST /api/auth/push-token`
+- `C3-43` `DELETE /api/auth/push-token`
+- `C3-44` `GET /api/auth/google/mobile`
+- `C3-45` `GET /api/auth/google/mobile/callback`
+- `C3-46` Push Notification Dispatch Service (`sendRequestStatusNotification`)
+- `C3-47` Token Generation Service (`tokenManager.generateTokens`)
+
 ## 4) Connector Registry (Authoritative)
 
 | Connector Pair | Source | Target |
@@ -127,7 +141,6 @@ Scope note for thesis readability:
 | `K1 OUT -> K1 IN` | C3-1 step 22 (print fail escalation) | C3-3 step 11 (admin intervention queue) |
 | `M1 OUT -> M1 IN` | C3-2 step 20 (mobile issue escalation) | C3-3 step 11 (admin intervention queue) |
 | `P1 OUT -> P1 IN` | C3-14 step 9/16 (print escalation) | C3-3 step 11 (admin intervention queue) |
-| `E1 OUT -> E1 IN` | C3-10 step 19 (webhook upload error escalation) | C3-3 step 11 (admin intervention queue) |
 
 ## 5) Macro Flowcharts
 
@@ -152,23 +165,23 @@ No  → Decision: Help selected?
 9. If Yes -> Select document type (Display)
 10. Fill document fields and review (Input/Output)
 11. Decision: Payment method is E-wallet? (Decision)
-12. If Yes -> Call `POST /api/request/create-request/` (Predefined Process) -> Open checkout URL (Display)
+12. If Yes -> Call `POST /api/request/create-request/` (Predefined Process, ref. C3-7) -> Open checkout URL (Display)
 → Await payment callback / webhook (Process)
 → Update payment status (Process)
-14. If No -> Call `POST /api/payment/create-cash-payment` (Predefined Process) -> Display Processing/ Please Wait (Display)
-15. Generate PDF (Predefined Process)
-16. Upload PDF to Google Drive (Predefined Process)
+14. If No -> Call `POST /api/payment/create-cash-payment` (Predefined Process, ref. C3-9) -> Display Processing/ Please Wait (Display)
+15. Generate PDF (Predefined Process, ref. C3-11)
+16. Upload PDF to Google Drive (Predefined Process, ref. C3-39)
 17. Display confirmation and trackable reference number (Display)
 18. Decision: Print receipt requested by user? (Decision)
 19. If No -> Keep current page or return home (Display) -> End (Terminator)
-20. If Yes -> Call `POST /api/print/` (Predefined Process)
+20. If Yes -> Call `POST /api/print/` (Predefined Process, ref. C3-14)
 21. Decision: Receipt print request successful? (Decision)
 22. If No -> Show print error/manual assistance message (Display) -> `K1 OUT` (Off-page Connector)
 23. If Yes -> Show success feedback (Display)
 24. End (Terminator)
 
 Decision: User print receipt?
-├── Yes → Predefined Process: Print Receipt → End
+├── Yes → Predefined Process: Print Receipt (ref. C3-14) → End
 └── No  → End
 
 ## C3-2) Mobile App End-to-End Flow
@@ -187,7 +200,7 @@ Required steps:
 8. Decision: Authentication successful? (Decision)
 9. If No -> Show auth error (Display) -> End (Terminator)
 10. If Yes -> Load dashboard and request history (Display)
-11. Register pending Expo push token with backend (Predefined Process)
+11. Register pending Expo push token with backend (Predefined Process, ref. C3-42)
 12. Decision: Create new request? (Decision)
 13. If No -> Open request details/tracking (Display) -> End (Terminator)
 14. If Yes -> Select document and fill form (Input/Output)
@@ -195,8 +208,8 @@ Required steps:
 
 *
 16. Decision: Payment path is Online and fee > 0? (Decision)
-17. If Yes -> Call `POST /api/request/create-request/` (Predefined Process) -> Open PayMongo checkout and wait deep-link callback (Display)
-18. If No -> Call `POST /api/payment/create-cash-payment` (Predefined Process)
+17. If Yes -> Call `POST /api/request/create-request/` (Predefined Process, ref. C3-7) -> Open PayMongo checkout and wait deep-link callback (Display)
+18. If No -> Call `POST /api/payment/create-cash-payment` (Predefined Process, ref. C3-9)
 *
 
 *
@@ -204,13 +217,18 @@ Decision: Fee > 0?
 ├── No  → Create Cash Payment (Predefined Process, ref. C3-9) [free document path]
 └── Yes → Decision: Payment method is E-wallet?
               ├── Yes → Create Document Request (Predefined Process, ref. C3-7) → Display: PayMongo checkout
+                        Process: Update payment status
+                        Predefined Process: Generate PDF (ref. C3-11)
+                        Predefined Process: Upload PDF to Google Drive (ref. C3-39)
               └── No  → Create Cash Payment (Predefined Process, ref. C3-9)
 *
 
-19. Decision: Request submission completed? (Decision)
-20. If No -> Show submit issue and allow retry/support path (Display) -> `M1 OUT` (Off-page Connector)
-21. If Yes -> Navigate to success screen with reference number (Display)
-22. End (Terminator)
+Display: Confirmation screen with reference number
+→ Decision: Track Request selected?
+    ├── Yes → Track Request (Predefined Process, ref. C3-35) → End
+    └── No  → Decision: Go to Home selected?
+                  ├── Yes → End
+                  └── No  → [arrow back to Display: Confirmation screen]
 
 ## C3-3) Admin Dashboard End-to-End Flow
 
@@ -228,7 +246,7 @@ Required steps:
 8. Connect WebSocket and send `subscribe-queue` (Predefined Process: C3-20)
 9. Decision: Continue monitoring session? (Decision)
 10. If No -> Run logout flow (Predefined Process: C3-33) -> End (Terminator)
-11. If Yes -> Intervention intake node (`K1 IN` / `M1 IN` / `P1 IN` / `E1 IN`) (Off-page Connector -> Process)
+11. If Yes -> Intervention intake node (`K1 IN` / `M1 IN` / `P1 IN`) (Off-page Connector -> Process)
 12. Decision: Intervention required? (Decision)
 13. If No -> Continue monitoring loop to step 8 (On-page Connector)
 14. If Yes -> Decision: Action is status update? (Decision)
@@ -238,6 +256,50 @@ Required steps:
 18. If No -> Decision: Action is Drive disconnect? (Decision)
 19. If Yes -> Run C3-34 (Predefined Process) -> return to step 8 (On-page Connector)
 20. If No -> Run C3-33 (Predefined Process) -> return to step 8 (On-page Connector)
+
+*
+1.  Start (Terminator)  
+
+2.  Check admin Drive auth session (Process)
+
+3.  Decision: Session valid?
+    ├── No  → Display: Sign in with Google Drive button (Display)
+    │         → Decision: Admin clicks Sign in?
+    │             ├── No  → End (Terminator)
+    │             └── Yes → Initialize OAuth and Callback
+    │                        (Predefined Process, ref. C3-22, C3-23)
+    │                        → Decision: Auth successful?
+    │                            ├── No  → Display: Access denied/error → End (Terminator)
+    │                            └── Yes → [○ A1 merge into step 5]
+    └── Yes → Decision: Authorized?
+                ├── No  → Display: Access denied/error → End (Terminator)
+                └── Yes → [○ A1 merge into step 5]
+
+5.  [Merge] Prepare Dashboard (Process)
+
+6.  Display: Load queue and file lists (Display)
+
+7.  Connect WebSocket and subscribe to queue
+    (Predefined Process, ref. C3-20)
+
+8.  Decision: Continue session?
+    ├── No  → Logout
+    │         (Predefined Process, ref. C3-33)
+    │         → End (Terminator)
+    └── Yes → Decision: Action is status update?
+                ├── Yes → Progress Request Status
+                │         (Predefined Process, ref. C3-12 / C3-13)
+                │         → [arrow back to step 7]
+                └── No  → Decision: Manage a PDF File?
+                          ├── Yes → PDF File Operation
+                          │         (Predefined Process, ref. C3-24 to C3-32)
+                          │         → [arrow back to step 7]
+                          └── No  → Decision: Action is Drive disconnect?
+                                    ├── Yes → Disconnect Drive
+                                    │         (Predefined Process, ref. C3-34)
+                                    │         → [arrow back to step 7]
+                                    └── No  → [arrow back to step 8]
+*
 
 ## 6) Architecture Diagrams (Non-flowchart)
 
@@ -291,7 +353,7 @@ L1 processes:
 
 All endpoint flowcharts below must be drawn as strict flowcharts.
 
-## C3-7) `POST /api/request/create-request/` Create Request and Checkout
+## C3-7) `POST /api/request/create-request/` Create Request - 4
 
 Start: Request creation call received.
 End: Checkout payload returned or error returned.
@@ -300,17 +362,17 @@ End: Checkout payload returned or error returned.
 2. Receive request payload body (Input/Output)
 3. Extract base fields and template fields (Process)
 4. Resolve userId from `Authorization` token or body fallback (Process)
-5. Compute document fee via fee policy (Predefined Process)
+5. Compute document fee via fee policy (Predefined Process, ref. C3-38)
 6. Increment yearly counter (`Counter.findOneAndUpdate`) (Data Store)
 7. Build reference number from doc code + year + sequence (Process)
 8. Create request record with status `Pending` (Data Store)
 9. Build payment payload with return/cancel URLs (Process)
-10. Call `POST /api/payment/create-checkout` (Predefined Process)
+10. Call `POST /api/payment/create-checkout` (Predefined Process, ref. C3-8)
 11. Decision: Checkout call successful? (Decision)
 12. If No -> Return 500 error payload (Input/Output) -> End (Terminator)
 13. If Yes -> Return 200 checkout attributes (Input/Output) -> End (Terminator)
 
-## C3-8) `POST /api/payment/create-checkout`
+## C3-8) `POST /api/payment/create-checkout` Create Checkout - 5
 
 Start: Checkout creation call received.
 End: Checkout URL returned or failure returned.
@@ -320,12 +382,12 @@ End: Checkout URL returned or failure returned.
 3. Recompute fee using backend policy (Process)
 4. Resolve success/cancel URLs from payload or kiosk defaults (Process)
 5. Convert PHP amount to centavos (Process)
-6. Send checkout session request to PayMongo (Predefined Process)
+6. Input/Output: Call PayMongo checkout session API and receive response (Input/Output)
 7. Decision: PayMongo API call successful? (Decision)
 8. If No -> Return 500 with error details (Input/Output) -> End (Terminator)
 9. If Yes -> Return 200 with checkout attributes (Input/Output) -> End (Terminator)
 
-## C3-9) `POST /api/payment/create-cash-payment` Create Cash Payment
+## C3-9) `POST /api/payment/create-cash-payment` Create Cash Payment - 6
 
 Start: Cash payment call received.
 End: Request persisted and response returned.
@@ -339,58 +401,51 @@ End: Request persisted and response returned.
 7. Create request record (Data Store)
 8. Decision: Request create successful? (Decision)
 9. If No -> Return 500 error payload (Input/Output) -> End (Terminator)
-10. If Yes -> Generate PDF using template key (Predefined Process)
-11. Decision: Drive authenticated? (Decision)
-12. If No -> Skip upload and leave temp file for cleanup daemon (Process) -> End (Terminator)
-13. If Yes -> Upload PDF to Google Drive (Data Store)
-14. Return 200 with reference/status/payment fields (Input/Output) -> End (Terminator)
+10. If Yes -> Generate PDF then upload to Drive (Predefined Process, ref. C3-11, C3-39)
+11. Return 200 with reference/status/payment fields (Input/Output) -> End (Terminator)
 
-## C3-10) `POST /api/payment/handle-webhook`
+## C3-10) `POST /api/payment/handle-webhook` - Handle Webhook - 7
 
-Start: Paymongo webhook received.
-End: Return HTTP 200 for handled webhook paths, or HTTP 500 if outer processing fails.
+Start: Paymongo webhook POST received.
+End: HTTP 200 always returned on handled paths; HTTP 500 on outer failure.
+
+Always-200 rule: every handled branch calls `res.sendStatus(200)` — Paymongo requires this to stop retries.
 
 1. Start (Terminator)
 2. Receive webhook payload (`req.body.data`) (Input/Output)
-3. Parse event type from payload (Process)
+3. Parse `event.attributes.type` (Process)
 4. Decision: Event type is `checkout_session.payment.paid`? (Decision)
-5. If No -> Return 200 ignored event (Input/Output) -> End (Terminator)
-6. If Yes -> Extract reference number + payment method used (Process)
-7. Update matching request to `status=Processing`, `paymentStatus=Paid`, `paymentMethod`, `paidAt` (Data Store)
-8. Decision: Matching request updated? (Decision)
-9. If No -> Log warning and STILL continue (Process)
-10. If Yes -> Send linked-user push notification when `userId` exists (Predefined Process)
-11. Broadcast queue update via WebSocket handler (Predefined Process)
-12. Generate PDF from request data (Predefined Process)
-13. Decision: PDF generated successfully? (Decision)
-14. If No -> Log error and return 200 (Input/Output) -> End (Terminator)
-15. If Yes -> Decision: Drive authenticated? (Decision)
-16. If No -> Log warning and skip upload (cleanup daemon handles file) (Process) -> Return 200 (Input/Output) -> End (Terminator)
-17. If Yes -> Upload PDF to Google Drive (Data Store)
-18. Decision: Upload successful? (Decision)
-19. If No -> Log upload error (Process) → Trigger Admin Escalation (Predefined Process) → Return 200 (I/O) → End
-20. If Yes -> Delete temp PDF file (Process) -> Return 200 (Input/Output) -> End (Terminator)
-21. Outer catch path -> Return 500 (Input/Output) -> End (Terminator)
+5. If No -> Return 200 (Input/Output) -> End (Terminator)
+6. If Yes -> Extract `referenceNumber` and `paymentMethod` from checkout attributes (Process)
+7. Resolve `paymentLabel` from method string (e.g. `gcash` → `GCash`) (Process)
+8. Update request record: `status=Processing`, `paymentStatus=Paid`, `paymentMethod`, `paidAt` (Data Store)
+9. Decision: Record found and updated? (Decision)
+10. If No -> Log warning; continue to step 11 (Process)
+11. If Yes -> Send push notification to linked user when `userId` exists (Predefined Process, ref. C3-46)
+12. Broadcast queue update (Predefined Process, ref. C3-20)
+13. Generate PDF and upload to Drive (Predefined Process, ref. C3-11, C3-39)
+14. Return 200 (Input/Output) -> End (Terminator)
+15. Outer catch -> Return 500 (Input/Output) -> End (Terminator)
 
-## C3-11) `POST /api/pdf/generate` (alias: `POST /api/pdf/`)
+## C3-11) Generate PDF Service - 8
 
-Start: PDF generation endpoint called.
-End: Uploaded metadata or structured error returned.
 
-1. Start (Terminator)
-2. Receive `{ type, data }` payload (Input/Output)
-3. Generate local temp PDF file (Predefined Process)
-4. Decision: PDF generation succeeded? (Decision)
-5. If No -> Return 500 `Failed to process document` (Input/Output) -> End (Terminator)
-6. If Yes -> Create/find request record (`createRequestIfMissing`) (Predefined Process)
-7. Decision: Request linkage succeeded? (Decision)
-8. If No -> Return 500 `Failed to create request record` (Input/Output) -> End (Terminator)
-9. If Yes -> Decision: Drive authenticated? (Decision)
-10. If No -> Return 200 `{authenticated:false, authUrl, pdfPath}` (Input/Output) -> finally cleanup temp file (Process) -> End (Terminator)
-11. If Yes -> Upload PDF to Google Drive (Data Store)
-12. Decision: Upload succeeded? (Decision)
-13. If No -> Return 500 `Drive upload failed` (Input/Output) -> finally cleanup temp file (Process) -> End (Terminator)
-14. If Yes -> Return 200 `{uploaded:true,file}` (Input/Output) -> finally cleanup temp file (Process) -> End (Terminator)
+1.  Start (Terminator)
+2.  Receive templateKey and rawData (Input/Output)
+3.  Decision: Template exists for templateKey?
+    ├── No  → Throw invalid template error (Input/Output) → End (Terminator)
+    └── Yes → Render base PDF via Carbone (Process)
+4.  Decision: Template has images?
+    ├── No  → Return final PDF path (Input/Output) → End (Terminator)
+    └── Yes → Embed images into PDF (Process)
+              → Decision: New file produced?
+                  ├── Yes → Delete intermediate base PDF (Process)
+                  │         → Decision: Deletion successful?
+                  │             ├── No  → Log cleanup warning (Input/Output)
+                  │             │         → [continue]
+                  │             └── Yes → [continue]
+                  └── No  → [continue]
+              → Return final PDF path (Input/Output) → End (Terminator)
 
 ## C3-12) `PATCH /api/pdf/status/:fileId`
 
@@ -410,7 +465,7 @@ End: Updated status returned or error returned.
 11. If Yes -> Update request status via drive service (Data Store)
 12. Decision: Update path succeeded? (Decision)
 13. If No -> Return 500 update failed (Input/Output) -> End (Terminator)
-14. If Yes -> Send push/fallback notifications + broadcast queue update (Predefined Process) -> Return 200 success payload (Input/Output) -> End (Terminator)
+14. If Yes -> Send push/fallback notifications + broadcast queue update (Predefined Process, ref. C3-46, C3-20) -> Return 200 success payload (Input/Output) -> End (Terminator)
 
 ## C3-13) `PATCH /api/pdf/status/ref/:referenceNumber`
 
@@ -430,12 +485,13 @@ End: Updated status returned or error returned.
 11. If Yes -> Update request status via drive service (Data Store)
 12. Decision: Update path succeeded? (Decision)
 13. If No -> Return 500 update failed (Input/Output) -> End (Terminator)
-14. If Yes -> Send push/fallback notifications + broadcast queue update (Predefined Process) -> Return 200 success payload (Input/Output) -> End (Terminator)
+14. If Yes -> Send push/fallback notifications + broadcast queue update (Predefined Process, ref. C3-46, C3-20) -> Return 200 success payload (Input/Output) -> End (Terminator)
 
 ## C3-14) `POST /api/print/` Print Receipt
 
 Start: Print dispatch endpoint called.
 End: Print result returned.
+
 
 1. Start (Terminator)
 2. Receive print payload (Input/Output)
@@ -443,7 +499,7 @@ End: Print result returned.
 4. If Yes -> Check print agent availability (`isPrintAgentAvailable`) (Process)
 5. Decision: Agent available? (Decision)
 6. If No -> Return 503 no-agent message (Input/Output) -> End (Terminator)
-7. If Yes -> Send print job via WebSocket and wait callback (Predefined Process)
+7. If Yes -> Send print job via WebSocket and wait callback (Predefined Process, ref. C3-20)
 8. Decision: Agent callback success? (Decision)
 9. If No -> Return 500 print failure (Input/Output) -> `P1 OUT` (Off-page Connector) -> End (Terminator)
 10. If Yes -> Return 200 receipt sent (Input/Output) -> End (Terminator)
@@ -506,7 +562,7 @@ End: Access/refresh tokens returned or error.
 12. Decision: User exists? (Decision)
 13. If No -> Create user (Data Store)
 14. If Yes -> Update verification/login fields (Data Store)
-15. Generate access/refresh tokens (Predefined Process)
+15. Generate access/refresh tokens (Predefined Process, ref. C3-47)
 16. Return 200 with token, refreshToken, and user info (Input/Output) -> End (Terminator)
 
 ## C3-18) `POST /api/auth/google`
@@ -518,7 +574,7 @@ End: Access/refresh tokens returned or error.
 2. Receive Google token and email payload (Input/Output)
 3. Decision: `googleToken` and `email` present? (Decision)
 4. No -> Return 400 missing fields (Input/Output) -> End (Terminator)
-5. Yes -> Call Google userinfo API (Predefined Process)
+5. Yes -> Call Google userinfo API (Process)
 6. Decision: Google token valid? (Decision)
 7. No -> Return 401 invalid token (Input/Output) -> End (Terminator)
 8. Yes -> Decision: Token email matches payload email? (Decision)
@@ -527,7 +583,7 @@ End: Access/refresh tokens returned or error.
 11. Decision: User exists? (Decision)
 12. No -> Create user (Data Store)
 13. Yes -> Patch missing profile fields and login timestamp (Data Store)
-14. Generate access/refresh tokens (Predefined Process) -> Return 200 success payload (Input/Output) -> End (Terminator)
+14. Generate access/refresh tokens (Predefined Process, ref. C3-47) -> Return 200 success payload (Input/Output) -> End (Terminator)
 
 ## C3-19) `POST /api/auth/refresh-token`
 
@@ -598,7 +654,7 @@ End: Token persisted or access denied.
 2. Receive callback query/code (Input/Output)
 3. Decision: Authorization code present? (Decision)
 4. No -> Return 400 missing code (Input/Output) -> End (Terminator)
-5. Yes -> Exchange code for tokens with Google (Predefined Process)
+5. Yes -> Exchange code for tokens with Google (Process)
 6. Decision: Exchange/validation successful? (Decision)
 7. No -> Return 500 authentication failed (Input/Output) -> End (Terminator)
 8. Yes -> Decision: Admin identity allowed? (Decision)
@@ -643,7 +699,7 @@ End: Deletion result returned.
 3. Decision: Authorized? (Decision)
 4. No -> Return 401 not-authenticated (Input/Output) -> End (Terminator)
 5. Yes -> Receive `fileId` path param (Input/Output)
-6. Call soft-delete in service (`deleted=true`) and broadcast queue update (Predefined Process)
+6. Call soft-delete in service (`deleted=true`) and broadcast queue update (Process)
 7. Decision: Operation successful? (Decision)
 8. If No -> Return 500 delete failure (Input/Output) -> End (Terminator)
 9. If Yes -> Return 200 success message (Input/Output) -> End (Terminator)
@@ -660,7 +716,7 @@ End: Batch result returned.
 5. Receive `fileIds` array payload (Input/Output)
 6. Decision: Non-empty valid array? (Decision)
 7. No -> Return 400 invalid file IDs (Input/Output) -> End (Terminator)
-8. Yes -> Run bulk soft-delete service + queue broadcast (Predefined Process)
+8. Yes -> Run bulk soft-delete service + queue broadcast (Process)
 9. Decision: Bulk action successful? (Decision)
 10. If No -> Return 500 deletion failure (Input/Output) -> End (Terminator)
 11. If Yes -> Return 200 success message (Input/Output) -> End (Terminator)
@@ -675,7 +731,7 @@ End: Restore result returned.
 3. Decision: Authorized? (Decision)
 4. No -> Return 401 not-authenticated (Input/Output) -> End (Terminator)
 5. Receive `fileId` path param (Input/Output)
-6. Restore one record from trash + broadcast queue update (Predefined Process)
+6. Restore one record from trash + broadcast queue update (Process)
 7. Decision: Restore successful? (Decision)
 8. If No -> Return 500 restore failure (Input/Output) -> End (Terminator)
 9. If Yes -> Return 200 restore result (Input/Output) -> End (Terminator)
@@ -692,7 +748,7 @@ End: Batch restore summary returned.
 5. Receive `fileIds` array payload (Input/Output)
 6. Decision: Valid non-empty array? (Decision)
 7. No -> Return 400 invalid file IDs (Input/Output) -> End (Terminator)
-8. Yes -> Run bulk restore + broadcast queue update (Predefined Process)
+8. Yes -> Run bulk restore + broadcast queue update (Process)
 9. Decision: Restore action successful? (Decision)
 10. If No -> Return 500 restore failure (Input/Output) -> End (Terminator)
 11. If Yes -> Return 200 restore summary (Input/Output) -> End (Terminator)
@@ -795,6 +851,198 @@ End: User returns to Home screen.
 9. If No -> Continue viewing/replay loop -> Step 7 (On-page Connector)
 10. If Yes -> Navigate back to Home screen (Display) -> End (Terminator)
 
+## C3-37) Mobile Request Details Screen Flow
+
+Start: User opens one request from mobile `My Requests`.
+End: Request remains visible, or is hidden from `My Requests` list.
+
+1. Start (Terminator)
+2. User taps a request item in `My Requests` (Input/Output)
+3. App displays Request Details screen (Display)
+4. Decision: User taps `Hide from My Requests`? (Decision)
+5. If No -> Stay on Request Details screen (Display) -> End (Terminator)
+6. If Yes -> Show updating state on button (Display)
+7. Save hidden state for this request (Process)
+8. Decision: Hide action succeeded? (Decision)
+9. If No -> Show error alert and keep request visible (Display) -> End (Terminator)
+10. If Yes -> Confirm hidden state and remove from `My Requests` list view (Display) -> End (Terminator)
+
+## C3-38) Compute Document Fee (Fee Policy)
+
+Start: Fee computation called with document, purpose, isStudent
+End: Fee amount and reason returned
+
+1.  Start (Terminator)
+2.  Receive document, purpose, isStudent (Input/Output)
+3.  Normalize document name to lowercase trimmed string (Process)
+4.  Look up base fee from fee schedule (Process)
+5.  Decision: Document is Barangay Clearance?
+    ├── No  → Return fee amount and reason: standard_fee (Input/Output)
+    │         → End (Terminator)
+    └── Yes → Normalize isStudent to boolean (Process)
+              → Evaluate purpose for work-related keywords (Process)
+              → Decision: Is student AND purpose is non-work?
+                  ├── Yes → Return amount: 0, reason: student_non_work_clearance
+                  │         (Input/Output) → End (Terminator)
+                  └── No  → Return amount: 50, reason: standard_clearance_fee
+                            (Input/Output) → End (Terminator)
+
+## C3-39) Google Drive Upload Service (`uploadPdf`) - 9
+
+Start: Upload service called with local PDF path and metadata.
+End: Drive file metadata returned (or error propagated).
+
+1. Start (Terminator)
+2. Receive `{pdfPath, namePrefix, meta}` (Input/Output)
+3. Ensure Google token is valid (`ensureValidToken`) (Process)
+4. Decision: `namePrefix` looks like reference number (contains `-`)? (Decision)
+5. If Yes -> Build filename as `${namePrefix}.pdf` (Process)
+6. If No -> Build timestamped filename `${namePrefix || 'Document'}_<timestamp>.pdf` (Process)
+7. Upload file to Google Drive folder via `drive.files.create` (Data Store)
+8. Decision: Upload call successful? (Decision)
+9. If No -> Propagate upload error to caller (Input/Output) -> End (Terminator)
+10. If Yes -> Build request update payload (`fileId`, links, size, uploadedAt, type) (Process)
+11. Decision: `meta.requestId` present? (Decision)
+12. If Yes -> Update request by Mongo `_id` (Data Store)
+13. If No -> Decision: `meta.referenceNumber` present? (Decision)
+14. If Yes -> Update request by `referenceNumber` (Data Store)
+15. If No -> Log warning for missing request identifier and continue (Process)
+16. Create public-read Drive permission (`role=reader,type=anyone`) (Data Store)
+17. Return Drive file metadata (`id,name,webViewLink,webContentLink,...`) (Input/Output) -> End (Terminator)
+
+## C3-40) `PATCH /api/request/hide*` (Request Visibility Hide)
+
+Start: Authenticated mobile user hides request from My Requests.
+End: Visibility updated or error returned.
+
+1. Start (Terminator)
+2. Verify access token / resolve `userId` (Process)
+3. Decision: Authenticated user present? (Decision)
+4. If No -> Return 401 unauthorized (Input/Output) -> End (Terminator)
+5. Receive identifier from body/path (`requestId` and/or `referenceNumber`) (Input/Output)
+6. Decision: Any identifier provided? (Decision)
+7. If No -> Return 400 identifier required (Input/Output) -> End (Terminator)
+8. Update matching request with `{hiddenByUser:true, hiddenAt:now}` for this `userId` (Data Store)
+9. Decision: Request found/updated? (Decision)
+10. If No -> Return 404 request not found (Input/Output) -> End (Terminator)
+11. If Yes -> Broadcast queue update (Predefined Process, ref. C3-20)
+12. Return 200 success with updated request (Input/Output) -> End (Terminator)
+
+## C3-41) `PATCH /api/request/unhide*` (Request Visibility Unhide)
+
+Start: Authenticated mobile user unhides request.
+End: Visibility restored or error returned.
+
+1. Start (Terminator)
+2. Verify access token / resolve `userId` (Process)
+3. Decision: Authenticated user present? (Decision)
+4. If No -> Return 401 unauthorized (Input/Output) -> End (Terminator)
+5. Receive identifier from body/path (`requestId` and/or `referenceNumber`) (Input/Output)
+6. Decision: Any identifier provided? (Decision)
+7. If No -> Return 400 identifier required (Input/Output) -> End (Terminator)
+8. Update matching request with `{hiddenByUser:false, hiddenAt:null}` for this `userId` (Data Store)
+9. Decision: Request found/updated? (Decision)
+10. If No -> Return 404 request not found (Input/Output) -> End (Terminator)
+11. If Yes -> Broadcast queue update (Predefined Process, ref. C3-20)
+12. Return 200 success with updated request (Input/Output) -> End (Terminator)
+
+## C3-42) `POST /api/auth/push-token`
+
+Start: Authenticated mobile client registers Expo push token.
+End: Token saved or validation/auth error returned.
+
+1. Start (Terminator)
+2. Verify access token / resolve `userId` (Process)
+3. Decision: Authenticated user present? (Decision)
+4. If No -> Return 401 unauthorized (Input/Output) -> End (Terminator)
+5. Receive `{expoPushToken, pushDeviceId}` payload (Input/Output)
+6. Decision: `expoPushToken` present and valid format? (Decision)
+7. If No -> Return 400 invalid/missing token (Input/Output) -> End (Terminator)
+8. Clear same token/device from other users to enforce unique mapping (Data Store)
+9. Update current user push token/device fields (Data Store)
+10. Decision: User update successful? (Decision)
+11. If No -> Return 404 user not found (Input/Output) -> End (Terminator)
+12. If Yes -> Return 200 registration success (Input/Output) -> End (Terminator)
+
+## C3-43) `DELETE /api/auth/push-token`
+
+Start: Authenticated mobile client removes Expo push token.
+End: Token removed or error returned.
+
+1. Start (Terminator)
+2. Verify access token / resolve `userId` (Process)
+3. Decision: Authenticated user present? (Decision)
+4. If No -> Return 401 unauthorized (Input/Output) -> End (Terminator)
+5. Unset `expoPushToken` and `expoPushDeviceId` from user record (Data Store)
+6. Decision: Remove operation successful? (Decision)
+7. If No -> Return 500 remove-token failure (Input/Output) -> End (Terminator)
+8. If Yes -> Return 200 remove success (Input/Output) -> End (Terminator)
+
+## C3-44) `GET /api/auth/google/mobile`
+
+Start: Mobile app initiates Google OAuth browser flow.
+End: Redirect to Google consent page.
+
+1. Start (Terminator)
+2. Read optional `redirectUrl` query (Input/Output)
+3. Decision: Server OAuth credentials configured? (Decision)
+4. If No -> Return 500 oauth-not-configured (Input/Output) -> End (Terminator)
+5. If Yes -> Build backend callback URL `/api/auth/google/mobile/callback` (Process)
+6. Encode state with mobile redirect URL (Process)
+7. Build Google OAuth URL with scopes `openid email profile` (Process)
+8. Redirect to Google authorization page (Input/Output) -> End (Terminator)
+
+## C3-45) `GET /api/auth/google/mobile/callback`
+
+Start: Google redirects back with auth result.
+End: Redirect back to mobile deep link with success or error payload.
+
+1. Start (Terminator)
+2. Receive callback query `{code,error,state}` (Input/Output)
+3. Parse state and resolve mobile redirect URL (Process)
+4. Decision: `error` present OR `code` missing? (Decision)
+5. If Yes -> Redirect mobile deep link with error params (Input/Output) -> End (Terminator)
+6. If No -> Decision: OAuth credentials configured? (Decision)
+7. If No -> Redirect with oauth-not-configured error (Input/Output) -> End (Terminator)
+8. If Yes -> Exchange code for Google access token (Process)
+9. Decision: Token exchange succeeded? (Decision)
+10. If No -> Redirect with token-exchange error (Input/Output) -> End (Terminator)
+11. If Yes -> Fetch Google user profile (Process)
+12. Decision: User profile fetch succeeded? (Decision)
+13. If No -> Redirect with user-info error (Input/Output) -> End (Terminator)
+14. If Yes -> Find/create local user, issue app tokens, and redirect mobile deep link with auth payload (Process -> Input/Output) -> End (Terminator)
+
+## C3-46) Push Notification Dispatch Service (`sendRequestStatusNotification`)
+
+Start: Status-change flow requests push notification to a user.
+End: Notification sent, skipped, or failure logged without breaking caller flow.
+
+1. Start (Terminator)
+2. Receive `{userId, referenceNumber, documentType, newStatus, requestId}` (Input/Output)
+3. Lookup user and push token details (Data Store)
+4. Decision: Valid Expo push token available? (Decision)
+5. If No -> Skip send and return non-fatal result (Input/Output) -> End (Terminator)
+6. If Yes -> Build notification payload (title/body/data) (Process)
+7. Send push notification via Expo notifications endpoint (Input/Output)
+8. Decision: Send request successful? (Decision)
+9. If No -> Log warning/error and return non-fatal failure (Process -> Input/Output) -> End (Terminator)
+10. If Yes -> Return success result to caller (Input/Output) -> End (Terminator)
+
+## C3-47) Token Generation Service (`tokenManager.generateTokens`)
+
+Start: Auth flow needs new access/refresh tokens.
+End: Signed token pair returned.
+
+1. Start (Terminator)
+2. Receive user/session payload for claims (Input/Output)
+3. Build access token claims and expiry window (Process)
+4. Sign access token with JWT secret (Process)
+5. Build refresh token claims and longer expiry (Process)
+6. Sign refresh token with refresh secret (Process)
+7. Return `{token/accessToken, refreshToken}` (Input/Output) -> End (Terminator)
+
+
+
 ## 8) Cross-reference Matrix (Macro Flow -> Endpoint Flowcharts)
 
 | Macro Step | Endpoint Figure |
@@ -803,17 +1051,23 @@ End: User returns to Home screen.
 | Kiosk e-wallet checkout | C3-8 |
 | Kiosk cash payment | C3-9 |
 | Webhook payment finalization | C3-10 |
-| PDF generation/upload | C3-11 |
+| PDF generation and Drive upload | C3-11, C3-39 |
 | Print dispatch | C3-14 |
 | Queue updates | C3-15, C3-20 |
 | OTP auth | C3-16, C3-17 |
 | Google auth | C3-18 |
+| Mobile Google OAuth redirect flow | C3-44, C3-45 |
 | Token refresh | C3-19 |
 | Admin auth/init/callback | C3-21, C3-22, C3-23 |
 | Admin file list/trash/manage | C3-24 to C3-32 |
 | Admin auth logout/disconnect | C3-33, C3-34 |
 | Kiosk manual/QR track request | C3-35 |
 | Kiosk help video flow | C3-36 |
+| Mobile request details view/toggle hide | C3-37 |
+| Mobile request visibility endpoints | C3-40, C3-41 |
+| Mobile push token lifecycle | C3-42, C3-43 |
+| Push notification dispatch | C3-46 |
+| Access/refresh token generation | C3-47 |
 
 ## 9) Final Validation Checklist
 

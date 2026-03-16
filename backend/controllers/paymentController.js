@@ -10,7 +10,7 @@ const auth = require('../services/google/Auth.js');
 const requestService = require('../services/requestService.js');
 const PushNotificationService = require('../services/notifications/pushNotification');
 const websocketHandler = require('../services/websocketHandler');
-const { computeDocumentFee } = require('../services/feePolicy');
+const {      } = require('../services/feePolicy');
 
 const kioskUrl = process.env.KIOSK_URL || "http://localhost:4000";
 
@@ -37,7 +37,7 @@ function resolveUserIdFromRequest(req, fallbackUserId) {
 exports.createCheckout = async (req, res) => {
     try {
         const newRequest = req.body
-        const feeResult = computeDocumentFee({
+        const feeResult =   ({
             document: newRequest.document,
             purpose: newRequest.purpose,
             isStudent: newRequest.isStudent,
@@ -220,7 +220,7 @@ exports.createCashPayment = async (req, res) => {
         const newRequest = req.body;
         const { fullName, email, contactNumber, address, document, userId, ...templateFields } = newRequest;
         const linkedUserId = resolveUserIdFromRequest(req, userId);
-        const feeResult = computeDocumentFee({
+        const feeResult =   ({
             document,
             purpose: templateFields.purpose,
             isStudent: templateFields.isStudent,
