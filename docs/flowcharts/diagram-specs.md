@@ -1436,11 +1436,17 @@ End: Signed token pair returned.
 ---
 
 C3-48) POST /api/pdf/generate — Process and Upload Document
-       (alias: POST /api/pdf/)
+    (alias: POST /api/pdf/; standalone utility endpoint)
 
 Start: Document processing endpoint called.
 End: Upload metadata or structured error returned
      after guaranteed temp file cleanup.
+
+Usage note: This endpoint exists in the route layer, but the
+primary kiosk/mobile request flows do not call it directly.
+Main citizen payment flows call the PDF generation service
+(C3-11) from backend controllers, then continue to Drive upload.
+Keep C3-48 only as standalone endpoint coverage.
 
 [Outer try-catch-finally — cleanup always runs before response]
 
@@ -1496,12 +1502,16 @@ End: Upload metadata or structured error returned
     └── No  → Return error response (Input/Output)
               → End (Terminator)
 
-## C3-49) Status Update Notification Chain - 45
+## C3-49) Status Update Notification Chain - 44
        (updateStatus inline notification block)
 
 Start: Updated request record available, status is not Pending.
 End: Notification sent via one tier, or all tiers exhausted
      silently. Caller flow never blocked.
+
+Scope note: This figure covers only the inline notification
+fallback logic inside updateStatus. The subsequent WebSocket
+queue broadcast is a separate step and belongs to C3-50.
 
 1.  Start (Terminator)
 
@@ -1604,7 +1614,7 @@ End: Connection established and initial queue snapshot received.
 | Kiosk / mobile cash payment          | C3-9                    |
 | Webhook payment finalization         | C3-10                   |
 | PDF generation service               | C3-11                   |
-| PDF generation endpoint              | C3-48                   |
+| Standalone PDF generation endpoint   | C3-48                   |
 | Google Drive upload service          | C3-39                   |
 | Print dispatch                       | C3-14                   |
 | Queue snapshot                       | C3-15                   |
@@ -1657,3 +1667,7 @@ Before diagram reconstruction in diagrams.net, verify:
 9.  Endpoint figure titles match route method and path exactly.
 10. C3-48 is listed as the Generate PDF Endpoint and is
     distinct from C3-11 the Generate PDF Service.
+11. C3-48 is not implied as part of the primary kiosk/mobile
+    payment flow unless a direct HTTP caller is being diagrammed.
+12. C3-49 ends at notification completion/skip; any subsequent
+    queue broadcast is diagrammed separately in C3-50.

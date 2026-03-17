@@ -2,6 +2,18 @@ import { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
+const formatPaidAt = (value) => {
+  const paidAt = new Date(value);
+
+  if (Number.isNaN(paidAt.getTime())) {
+    return '-';
+  }
+
+  return paidAt.toLocaleString('en-US', {
+    timeZone: 'Asia/Manila',
+  });
+};
+
 const Confirmation = ({ handleNext, resetUI }) => {
   const { t } = useTranslation();
 
@@ -145,6 +157,8 @@ const Confirmation = ({ handleNext, resetUI }) => {
     );
   }
 
+  const formattedPaidAt = formatPaidAt(request.paidAt);
+
   return (
     <div className="w-full flex flex-col items-center justify-center p-4">
       <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-xl border border-gray-100 text-center">
@@ -173,9 +187,7 @@ const Confirmation = ({ handleNext, resetUI }) => {
           <p><span className="font-semibold text-gray-600">{t('label_pay_method')}:</span> {request.paymentMethod}</p>
           <p><span className="font-semibold text-gray-600">{t('label_status') || 'Status'}:</span> {request.status}</p>
           <p><span className="font-semibold text-gray-600">{t('label_payment_status') || 'Payment Status'}:</span> {request.paymentStatus}</p>
-          <p><span className="font-semibold text-gray-600">{t('label_date')}:</span> {new Date(request.paidAt).toLocaleString("en-US", {
-            timeZone: "Asia/Manila"
-          })}</p>
+          <p><span className="font-semibold text-gray-600">{t('label_date')}:</span> {formattedPaidAt}</p>
         </div>
         <div className="mt-6 flex gap-4">
           <button
@@ -183,15 +195,6 @@ const Confirmation = ({ handleNext, resetUI }) => {
               try {
                 await axios.post('https://api.brgybiluso.me/api/print', {
                   referenceNumber: request.referenceNumber,
-                  fullName: request.fullName,
-                  document: request.document,
-                  amount: request.amount,
-                  paymentMethod: request.paymentMethod,
-                  status: request.status,
-                  paymentStatus: request.paymentStatus,
-                  date: new Date(request.paidAt).toLocaleString("en-US", {
-                    timeZone: "Asia/Manila"
-                  }),
                 });
               } catch (err) {
                 console.error('Printing error:', err);

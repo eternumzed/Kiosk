@@ -3,8 +3,10 @@ const { tmpdir } = require("os");
 const { join } = require("path");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
+const Request = require("../models/requestSchema");
 
 const execFileAsync = promisify(execFile);
+const MANILA_TIMEZONE = "Asia/Manila";
 
 // Check if we're running on Windows (can print locally) or Linux (need WebSocket)
 const isWindows = process.platform === "win32";
@@ -39,6 +41,62 @@ async function choosePrinter() {
   if (!printers.length) return null;
   const preferred = printers.find(p => /thermal/i.test(p.name)) || printers.find(p => p.isDefault) || printers[0];
   return preferred.name;
+}
+
+function parseTimestamp(value) {
+  if (!value) return null;
+
+  const timestamp = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(timestamp.getTime()) ? null : timestamp;
+}
+
+function formatReceiptTimestamp(value) {
+  const timestamp = parseTimestamp(value) || new Date();
+
+  return {
+    dateStr: timestamp.toLocaleDateString("en-PH", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      timeZone: MANILA_TIMEZONE,
+    }),
+    timeStr: timestamp.toLocaleTimeString("en-PH", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: MANILA_TIMEZONE,
+    }),
+  };
+}
+
+async function resolvePrintPayload(payload = {}) {
+  const referenceNumber = String(payload.referenceNumber || "").trim();
+  let requestRecord = null;
+
+  if (referenceNumber) {
+    requestRecord = await Request.findOne({ referenceNumber }).lean();
+
+    if (!requestRecord) {
+      const error = new Error(`Request not found for reference number: ${referenceNumber}`);
+      error.status = 404;
+      throw error;
+    }
+  }
+
+  return {
+    ...payload,
+    ...requestRecord,
+    referenceNumber: requestRecord?.referenceNumber || referenceNumber || payload.referenceNumber,
+    fullName: requestRecord?.fullName || payload.fullName,
+    document: requestRecord?.document || payload.document,
+    amount: requestRecord?.amount ?? payload.amount,
+    status: requestRecord?.status || payload.status,
+    paymentStatus: requestRecord?.paymentStatus || payload.paymentStatus,
+    paymentMethod: requestRecord?.paymentMethod || payload.paymentMethod,
+    paidAt: requestRecord?.paidAt || payload.paidAt || payload.date,
+    email: requestRecord?.email || payload.email,
+    phone: requestRecord?.contactNumber || payload.phone || payload.contactNumber,
+  };
 }
 
 function buildPayload(data) {
@@ -207,17 +265,7 @@ function buildPayload(data) {
 
   // === DATE & TIME ===
   receipt += LF;
-  const now = new Date();
-  const dateStr = now.toLocaleDateString("en-PH", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit"
-  });
-  const timeStr = now.toLocaleTimeString("en-PH", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true
-  });
+  const { dateStr, timeStr } = formatReceiptTimestamp(data.paidAt || data.date);
   receipt += alignCenter;
   receipt += `Date: ${dateStr}  Time: ${timeStr}` + LF;
 
@@ -333,6 +381,14 @@ try {
 
 
 exports.print = async (req, res) => {
+  let printData;
+
+  try {
+    printData = await resolvePrintPayload(req.body || {});
+  } catch (err) {
+    return res.status(err.status || 500).json({ success: false, error: err.message });
+  }
+
   // On Linux/VPS, use WebSocket to send to print agent
   if (!isWindows && websocketHandler) {
     if (!websocketHandler.isPrintAgentAvailable()) {
@@ -343,7 +399,7 @@ exports.print = async (req, res) => {
     }
     
     try {
-      const result = await websocketHandler.sendPrintJob(req.body);
+      const result = await websocketHandler.sendPrintJob(printData);
       if (result.success) {
         return res.json({ success: true, message: "Receipt sent to printer" });
       } else {
@@ -360,7 +416,7 @@ exports.print = async (req, res) => {
     return res.status(500).send("No printer found. Add a thermal printer in Windows 'Printers & Scanners'.");
   }
 
-  const payload = buildPayload(req.body);
+  const payload = buildPayload(printData);
 
   try {
     const result = await sendToPrinter(printer, payload);

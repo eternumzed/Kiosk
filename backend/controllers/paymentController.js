@@ -33,6 +33,10 @@ function resolveUserIdFromRequest(req, fallbackUserId) {
     }
 }
 
+function getCurrentPaymentTimestamp() {
+    return new Date();
+}
+
 
 exports.createCheckout = async (req, res) => {
     try {
@@ -127,9 +131,7 @@ exports.handleWebhook = async (req, res) => {
                     break;
             }
 
-            const paidAt = new Date(
-                new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" })
-            );
+            const paidAt = getCurrentPaymentTimestamp();
 
             const updatedRequest = await Request.findOneAndUpdate(
                 { referenceNumber: refNum },
@@ -242,9 +244,7 @@ exports.createCashPayment = async (req, res) => {
         const referenceNumber = `${docCode}-${year}-${seqNum}`;
 
         // Set current Manila time
-        const paidAt = new Date(
-            new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" })
-        );
+        const paidAt = getCurrentPaymentTimestamp();
 
         // Create request with cash payment status
         const request = await Request.create({

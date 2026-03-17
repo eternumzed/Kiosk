@@ -78,6 +78,37 @@ async function choosePrinter(preferredName = null) {
     return printers[0].name;
 }
 
+function parseTimestamp(value) {
+    if (!value) return null;
+
+    const timestamp = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(timestamp.getTime()) ? null : timestamp;
+}
+
+function formatReceiptTimestamp(value) {
+    const timestamp = parseTimestamp(value) || new Date();
+
+    return {
+        dateStr: timestamp.toLocaleDateString("en-PH", {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+            timeZone: "Asia/Manila"
+        }),
+        timeStr: timestamp.toLocaleTimeString("en-PH", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+            timeZone: "Asia/Manila"
+        })
+    };
+}
+
+function buildReceiptDateLine(data = {}) {
+    const { dateStr, timeStr } = formatReceiptTimestamp(data.paidAt || data.date);
+    return `Date: ${dateStr}  Time: ${timeStr}`;
+}
+
 /**
  * Build ESC/POS receipt payload
  */
@@ -237,19 +268,8 @@ function buildReceiptPayload(data) {
 
     // === DATE & TIME ===
     receipt += LF;
-    const now = new Date();
-    const dateStr = now.toLocaleDateString("en-PH", {
-        year: "numeric",
-        month: "short",
-        day: "2-digit"
-    });
-    const timeStr = now.toLocaleTimeString("en-PH", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true
-    });
     receipt += alignCenter;
-    receipt += `Date: ${dateStr}  Time: ${timeStr}` + LF;
+    receipt += buildReceiptDateLine(data) + LF;
 
     // === FOOTER ===
     receipt += LF;
@@ -503,6 +523,8 @@ module.exports = {
     choosePrinter,
     printReceipt,
     testPrint,
+    formatReceiptTimestamp,
+    buildReceiptDateLine,
     buildReceiptPayload,
     sendToPrinter
 };
