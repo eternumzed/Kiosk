@@ -1435,42 +1435,68 @@ End: Signed token pair returned.
 
 ---
 
-## C3-48) POST /api/pdf/generate — Generate PDF Endpoint
-##         (alias: POST /api/pdf/) - 44
+C3-48) POST /api/pdf/generate — Process and Upload Document
+       (alias: POST /api/pdf/)
 
-Start: PDF generation endpoint called.
-End: Uploaded file metadata or structured error returned.
+Start: Document processing endpoint called.
+End: Upload metadata or structured error returned
+     after guaranteed temp file cleanup.
+
+[Outer try-catch-finally — cleanup always runs before response]
 
 1.  Start (Terminator)
-2.  Receive {type, data} payload (Input/Output)
-3.  Generate local temp PDF file
+
+2.  Receive {type, data} request body (Input/Output)
+
+3.  Generate PDF locally
     (Predefined Process, ref. C3-11)
+
 4.  Decision: PDF generation succeeded?
-    ├── No  → Return 500 Failed to process document (Input/Output)
-    │         → Cleanup temp file (Process) → End (Terminator)
-    └── Yes → Create or find request record via
-              createRequestIfMissing (Predefined Process)
-5.  Decision: Request linkage succeeded?
-    ├── No  → Return 500 Failed to create request record (Input/Output)
-    │         → Cleanup temp file (Process) → End (Terminator)
-    └── Yes → Decision: Drive authenticated?
+    ├── No  → Set error: 500 Failed to process document (Process)
+    │         → ○ CL
+    └── Yes → Find or create request record by data (Data Store)
+
+5.  Decision: Record found or created?
+    ├── No  → Log error: Failed to create/find request (Input/Output)
+    │         → Set error: 500 Failed to create request record (Process)
+    │         → ○ CL
+    └── Yes → Resolve namePrefix, requestId,
+              referenceNumber from record (Process)
+
 6.  Decision: Drive authenticated?
-    ├── No  → Return 200 {authenticated:false, authUrl, pdfPath}
-    │         (Input/Output)
-    │         → Cleanup temp file (Process) → End (Terminator)
+    ├── No  → Set response: 200 {authenticated:false,
+    │         authUrl, pdfPath} (Process)
+    │         → ○ CL
     └── Yes → Upload PDF to Google Drive
               (Predefined Process, ref. C3-39)
+
 7.  Decision: Upload succeeded?
-    ├── No  → Return 500 Drive upload failed (Input/Output)
-    │         → Cleanup temp file (Process) → End (Terminator)
-    └── Yes → Return 200 {uploaded:true, file} (Input/Output)
-              → Cleanup temp file (Process) → End (Terminator)
+    ├── No  → Log error: Drive upload failed (Input/Output)
+    │         → Set error: 500 Drive upload failed (Process)
+    │         → ○ CL
+    └── Yes → Set response: uploaded=true,
+              file metadata (Process)
+              → ○ CL
 
-Note: Cleanup temp file appears on every exit path,
-reflecting the finally block in the implementation
-which runs unconditionally regardless of outcome.
+○ CL [finally block — always executes]
+↓
+8.  Decision: Temp file exists?
+    ├── No  → ○ RS
+    └── Yes → Delete temp PDF file (Process)
+              → Decision: Deletion successful?
+                  ├── No  → Log cleanup error (Input/Output)
+                  │         → ○ RS
+                  └── Yes → ○ RS
 
-## C3-49) Status Update Notification Chain
+○ RS [send response]
+↓
+9.  Decision: Upload result available?
+    ├── Yes → Return 200 {uploaded:true, file} (Input/Output)
+    │         → End (Terminator)
+    └── No  → Return error response (Input/Output)
+              → End (Terminator)
+
+## C3-49) Status Update Notification Chain - 45
        (updateStatus inline notification block)
 
 Start: Updated request record available, status is not Pending.
@@ -1536,7 +1562,7 @@ End: Notification sent via one tier, or all tiers exhausted
 9.  Return to caller (Terminator)
 
 
-C3-50) Broadcast Queue Update
+C3-50) Broadcast Queue Update - 46
        (websocketHandler.broadcastQueueUpdate)
 
 Start: Queue state change triggers broadcast call.
@@ -1553,7 +1579,7 @@ End: All subscribed clients receive updated queue snapshot.
 
 ---
 
-C3-51) Connect WebSocket and Subscribe to Queue
+C3-51) Connect WebSocket and Subscribe to Queue - 47
        (admin dashboard client-side subscription)
 
 Start: Admin dashboard initiates WebSocket connection.
