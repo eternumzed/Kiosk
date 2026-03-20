@@ -91,6 +91,13 @@ exports.createRequest = async (req, res) => {
 
 
     } catch (error) {
+        const upstreamStatus = error?.response?.status;
+        const upstreamData = error?.response?.data;
+
+        if (upstreamStatus) {
+            return res.status(upstreamStatus).json(upstreamData || { error: error.message });
+        }
+
         res.status(500).json({ error: error.message });
     }
 }

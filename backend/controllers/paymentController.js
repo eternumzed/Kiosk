@@ -10,7 +10,7 @@ const auth = require('../services/google/Auth.js');
 const requestService = require('../services/requestService.js');
 const PushNotificationService = require('../services/notifications/pushNotification');
 const websocketHandler = require('../services/websocketHandler');
-const {      } = require('../services/feePolicy');
+const { computeDocumentFee } = require('../services/feePolicy');
 
 const kioskUrl = process.env.KIOSK_URL || "http://localhost:4000";
 
@@ -41,12 +41,17 @@ function getCurrentPaymentTimestamp() {
 exports.createCheckout = async (req, res) => {
     try {
         const newRequest = req.body
-        const feeResult =   ({
+        const feeResult = computeDocumentFee({
             document: newRequest.document,
             purpose: newRequest.purpose,
             isStudent: newRequest.isStudent,
         });
         newRequest.amount = feeResult.amount;
+        const amountInCentavos = Math.round(Number(newRequest.amount) * 100);
+
+        if (!Number.isFinite(amountInCentavos) || amountInCentavos < 100) {
+            return res.status(400).json({ error: 'Invalid checkout amount.' });
+        }
         
         // Use client-provided returnUrl (for mobile deep linking) or default to kiosk URL
         const successUrl = newRequest.returnUrl 
@@ -62,7 +67,7 @@ exports.createCheckout = async (req, res) => {
                         line_items: [
                             {
                                 name: newRequest.document,
-                                amount: newRequest.amount * 100,
+                                amount: amountInCentavos,
                                 currency: "PHP",
                                 quantity: 1,
                             },
@@ -222,7 +227,7 @@ exports.createCashPayment = async (req, res) => {
         const newRequest = req.body;
         const { fullName, email, contactNumber, address, document, userId, ...templateFields } = newRequest;
         const linkedUserId = resolveUserIdFromRequest(req, userId);
-        const feeResult =   ({
+        const feeResult = computeDocumentFee({
             document,
             purpose: templateFields.purpose,
             isStudent: templateFields.isStudent,
