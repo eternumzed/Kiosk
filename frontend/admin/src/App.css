@@ -393,6 +393,60 @@ body {
   color: #15803d;
 }
 
+.assistance-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 16px;
+}
+
+.assistance-modal-card {
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gray-200);
+  box-shadow: var(--shadow-lg);
+  padding: 20px;
+}
+
+.assistance-modal-card h2 {
+  margin: 0;
+  color: var(--primary-dark);
+  font-size: 22px;
+}
+
+.assistance-modal-subtitle {
+  margin-top: 8px;
+  color: var(--gray-600);
+}
+
+.assistance-modal-details {
+  margin-top: 16px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  color: var(--gray-800);
+}
+
+.assistance-modal-details p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.assistance-modal-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* Loading & Empty States */
 .loading-state, .empty-state {
   text-align: center;

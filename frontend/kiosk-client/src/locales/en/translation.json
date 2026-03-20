@@ -168,5 +168,13 @@
     "queue_status_for_pickup": "Status: For Pick-up",
     "help_go_back": "Go Back",
     "help_how_to_use": "How to Use the Kiosk",
-    "help_video_not_supported": "Your browser does not support the video tag. Please check the help manual."
+    "help_video_not_supported": "Your browser does not support the video tag. Please check the help manual.",
+    "request_assistance": "Press for Assistance",
+    "assistance_confirm_title": "Need help?",
+    "assistance_confirm_message": "This will notify the admin dashboard right away.",
+    "assistance_sent": "Admin has been notified. Assistance is on the way.",
+    "assistance_failed": "Unable to send assistance request. Please try again.",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "sending": "Sending..."
 }

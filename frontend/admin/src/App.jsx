@@ -68,13 +68,12 @@ function App() {
   const [queueSnapshot, setQueueSnapshot] = useState({ nowServing: [], forPickup: [] });
   const [queueLoading, setQueueLoading] = useState(false);
   const [queueConnected, setQueueConnected] = useState(false);
-  const [assistanceToast, setAssistanceToast] = useState('');
+  const [assistanceModal, setAssistanceModal] = useState(null);
 
   const selectAllCheckbox = useRef(null);
   const trashSelectAllCheckbox = useRef(null);
   const queueSocketRef = useRef(null);
   const queueReconnectTimerRef = useRef(null);
-  const assistanceToastTimerRef = useRef(null);
 
   useEffect(() => {
     checkAuthStatus();
@@ -130,18 +129,13 @@ function App() {
 
           if (msg.type === 'assistance-alert' && msg.payload) {
             const name = msg.payload.fullName || 'Walk-in user';
-            const document = msg.payload.document ? ` (${msg.payload.document})` : '';
-            const reference = msg.payload.referenceNumber ? ` [${msg.payload.referenceNumber}]` : '';
-            setAssistanceToast(`Assistance requested by ${name}${document}${reference}`);
-
-            if (assistanceToastTimerRef.current) {
-              clearTimeout(assistanceToastTimerRef.current);
-            }
-
-            assistanceToastTimerRef.current = setTimeout(() => {
-              setAssistanceToast('');
-              assistanceToastTimerRef.current = null;
-            }, 8000);
+            setAssistanceModal({
+              fullName: name,
+              document: msg.payload.document || '',
+              referenceNumber: msg.payload.referenceNumber || '',
+              currentPath: msg.payload.currentPath || '',
+              requestedAt: msg.payload.requestedAt || new Date().toISOString(),
+            });
           }
         } catch (parseErr) {
           console.error('Queue WS parse error:', parseErr);
@@ -184,11 +178,6 @@ function App() {
     }
 
     setQueueConnected(false);
-
-    if (assistanceToastTimerRef.current) {
-      clearTimeout(assistanceToastTimerRef.current);
-      assistanceToastTimerRef.current = null;
-    }
   };
 
   const checkAuthStatus = async () => {
@@ -739,7 +728,6 @@ function App() {
 
       {error && <div className="alert alert-error">{error}</div>}
       {successMessage && <div className="alert alert-success">{successMessage}</div>}
-      {assistanceToast && <div className="alert alert-success">{assistanceToast}</div>}
 
       {authenticated ? (
         <main className="admin-main">
@@ -1093,6 +1081,27 @@ function App() {
       <footer className="admin-footer">
         <p>Property of Barangay Biluso, Silang, Cavite • Document Management Dashboard</p>
       </footer>
+
+      {assistanceModal && (
+        <div className="assistance-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="assistance-modal-title">
+          <div className="assistance-modal-card">
+            <h2 id="assistance-modal-title">Kiosk Assistance Requested</h2>
+            <p className="assistance-modal-subtitle">A kiosk user is asking for help right now.</p>
+            <div className="assistance-modal-details">
+              <p><strong>Name:</strong> {assistanceModal.fullName}</p>
+              <p><strong>Document:</strong> {assistanceModal.document || '-'}</p>
+              <p><strong>Reference #:</strong> {assistanceModal.referenceNumber || '-'}</p>
+              <p><strong>Screen:</strong> {assistanceModal.currentPath || '-'}</p>
+              <p><strong>Time:</strong> {new Date(assistanceModal.requestedAt).toLocaleString()}</p>
+            </div>
+            <div className="assistance-modal-actions">
+              <button type="button" className="btn btn-primary" onClick={() => setAssistanceModal(null)}>
+                Acknowledge
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

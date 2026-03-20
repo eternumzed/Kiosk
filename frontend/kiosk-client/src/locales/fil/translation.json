@@ -169,4 +169,12 @@
     ,"help_go_back": "Bumalik"
     ,"help_how_to_use": "Paano Gamitin ang Kiosk"
     ,"help_video_not_supported": "Hindi suportado ng browser mo ang video tag. Pakitingnan ang help manual."
+    ,"request_assistance": "Pindutin para sa Tulong"
+    ,"assistance_confirm_title": "Kailangan ng tulong?"
+    ,"assistance_confirm_message": "Aabisuhan nito agad ang admin dashboard."
+    ,"assistance_sent": "Naabisuhan na ang admin. Papunta na ang tulong."
+    ,"assistance_failed": "Hindi naipadala ang hiling na tulong. Subukang muli."
+    ,"cancel": "Kanselahin"
+    ,"confirm": "Kumpirmahin"
+    ,"sending": "Ipinapadala..."
 }
