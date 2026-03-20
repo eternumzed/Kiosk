@@ -4,6 +4,7 @@ import axios from "axios";
 
 import AnimatedRoutes from "./AnimatedRoutes";
 import LanguageSwitcher from "./components/LanguageSwitcher";
+import AssistanceButton from "./components/AssistanceButton";
 
 // API URL from environment variable
 const API_URL = 'https://api.brgybiluso.me/api';
@@ -61,6 +62,12 @@ const App = () => {
   const [paymentStatus, setPaymentStatus] = useState("Pending");
   const [requestRef, setRequestRef] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+
+  const getRequestReferenceNumber = () => {
+    if (typeof requestRef === 'string') return '';
+    if (!requestRef || typeof requestRef !== 'object') return '';
+    return requestRef.reference || requestRef.referenceNumber || '';
+  };
 
   const normalizeBoolean = (value) => {
     if (typeof value === 'boolean') return value;
@@ -182,6 +189,17 @@ const App = () => {
     }
   };
 
+  const handleRequestAssistance = async (currentPath) => {
+    const assistanceData = {
+      fullName: formData.fullName || '',
+      document: formData.document || '',
+      referenceNumber: getRequestReferenceNumber(),
+      currentPath: currentPath || '',
+    };
+
+    await axios.post(`${API_URL}/request/request-assistance`, assistanceData);
+  };
+
   return (
     <KeyboardProvider>
       <Router>
@@ -200,6 +218,7 @@ const App = () => {
           handleCashPayment={handleCashPayment}
           handleFreePayment={handleFreePayment}
           resetUI={resetUI}
+          handleRequestAssistance={handleRequestAssistance}
         />
       </Router>
     </KeyboardProvider>
@@ -222,11 +241,13 @@ const AppContent = ({
   handleCashPayment,
   handleFreePayment,
   resetUI,
+  handleRequestAssistance,
 }) => {
   const location = useLocation();
   const { isVisible, handleKeyPress, handleBackspace, handleEnter, hideKeyboard } = useKeyboard();
   const isPublicStatusView = location.pathname.startsWith('/queue') || location.pathname.startsWith('/request-status');
   const showPersistentLanguageSwitcher = !isPublicStatusView && location.pathname !== '/';
+  const showPersistentAssistanceButton = !isPublicStatusView && location.pathname !== '/';
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 font-sans text-gray-800 flex flex-col overflow-hidden">
@@ -241,6 +262,9 @@ const AppContent = ({
         </div>
       )}
       {showPersistentLanguageSwitcher && <LanguageSwitcher />}
+      {showPersistentAssistanceButton && (
+        <AssistanceButton onRequestAssistance={() => handleRequestAssistance(location.pathname)} />
+      )}
       <div className={`relative z-10 flex-grow ${isPublicStatusView ? '' : `flex flex-col justify-center items-center p-6 ${isVisible ? 'pb-80' : ''}`}`}>
         <AnimatedRoutes
           documents={documents}

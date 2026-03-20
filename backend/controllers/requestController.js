@@ -388,5 +388,32 @@ exports.unhideRequestByReference = async (req, res) => {
     }
 };
 
+exports.requestAssistance = async (req, res) => {
+    try {
+        const fullName = typeof req.body?.fullName === 'string' ? req.body.fullName.trim() : '';
+        const document = typeof req.body?.document === 'string' ? req.body.document.trim() : '';
+        const referenceNumber = typeof req.body?.referenceNumber === 'string' ? req.body.referenceNumber.trim() : '';
+        const currentPath = typeof req.body?.currentPath === 'string' ? req.body.currentPath.trim() : '';
+
+        const assistancePayload = {
+            fullName,
+            document,
+            referenceNumber,
+            currentPath,
+            requestedAt: new Date().toISOString(),
+            source: 'kiosk',
+        };
+
+        websocketHandler.broadcastAssistanceAlert(assistancePayload);
+
+        res.json({
+            success: true,
+            message: 'Assistance request sent to admin dashboard.',
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 
 

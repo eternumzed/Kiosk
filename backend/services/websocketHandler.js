@@ -16,6 +16,7 @@ const AGENT_SECRET = "Ncst12345";
 // Store connected print agents
 const printAgents = new Map();
 const queueClients = new Set();
+const assistanceClients = new Set();
 
 // Store pending print jobs
 const pendingJobs = new Map();
@@ -45,6 +46,7 @@ function initWebSocket(server) {
     ws.agentId = null;
     ws.isAlive = true;
     ws.isQueueSubscriber = false;
+    ws.isAssistanceSubscriber = false;
 
     ws.on("message", (data) => handleMessage(ws, data));
     ws.on("close", () => handleDisconnect(ws));
@@ -110,6 +112,14 @@ function handleMessage(ws, data) {
         handleQueueUnsubscribe(ws);
         break;
 
+      case "subscribe-assistance":
+        handleAssistanceSubscribe(ws);
+        break;
+
+      case "unsubscribe-assistance":
+        handleAssistanceUnsubscribe(ws);
+        break;
+
       default:
         console.log(`[WS] Unknown message type: ${message.type}`);
     }
@@ -133,6 +143,21 @@ async function handleQueueSubscribe(ws) {
 function handleQueueUnsubscribe(ws) {
   ws.isQueueSubscriber = false;
   queueClients.delete(ws);
+}
+
+function handleAssistanceSubscribe(ws) {
+  ws.isAssistanceSubscriber = true;
+  assistanceClients.add(ws);
+
+  ws.send(JSON.stringify({
+    type: "assistance-subscribed",
+    ok: true,
+  }));
+}
+
+function handleAssistanceUnsubscribe(ws) {
+  ws.isAssistanceSubscriber = false;
+  assistanceClients.delete(ws);
 }
 
 async function sendQueueSnapshot(ws) {
@@ -167,6 +192,24 @@ async function broadcastQueueUpdate() {
   } catch (err) {
     console.error("[WS] Failed to broadcast queue update:", err.message);
   }
+}
+
+function broadcastAssistanceAlert(payload = {}) {
+  if (!assistanceClients.size) return;
+
+  const message = JSON.stringify({
+    type: "assistance-alert",
+    payload: {
+      ...payload,
+      requestedAt: payload.requestedAt || new Date().toISOString(),
+    },
+  });
+
+  assistanceClients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
 }
 
 /**
@@ -240,6 +283,10 @@ function handlePrintersList(message) {
 function handleDisconnect(ws) {
   if (ws.isQueueSubscriber) {
     queueClients.delete(ws);
+  }
+
+  if (ws.isAssistanceSubscriber) {
+    assistanceClients.delete(ws);
   }
 
   if (ws.agentId) {
@@ -357,4 +404,5 @@ module.exports = {
   getConnectedAgentsCount,
   isPrintAgentAvailable,
   broadcastQueueUpdate,
+  broadcastAssistanceAlert,
 };

@@ -17,6 +17,7 @@ const { verifyAccessToken } = require('../middleware/authMiddleware');
 
 // 
 
+router.post('/request-assistance', requestController.requestAssistance);
 
 router.post("/create-request/", requestController.createRequest)
 

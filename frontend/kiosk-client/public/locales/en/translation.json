@@ -8,5 +8,13 @@
   "select_document": "Select Document",
   "confirmation": "Confirmation",
   "camera": "Camera",
-  "home": "Home"
+  "home": "Home",
+  "request_assistance": "Press for Assistance",
+  "assistance_confirm_title": "Need help?",
+  "assistance_confirm_message": "This will notify the admin dashboard right away.",
+  "assistance_sent": "Admin has been notified. Assistance is on the way.",
+  "assistance_failed": "Unable to send assistance request. Please try again.",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "sending": "Sending..."
 }

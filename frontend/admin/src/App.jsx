@@ -68,11 +68,13 @@ function App() {
   const [queueSnapshot, setQueueSnapshot] = useState({ nowServing: [], forPickup: [] });
   const [queueLoading, setQueueLoading] = useState(false);
   const [queueConnected, setQueueConnected] = useState(false);
+  const [assistanceToast, setAssistanceToast] = useState('');
 
   const selectAllCheckbox = useRef(null);
   const trashSelectAllCheckbox = useRef(null);
   const queueSocketRef = useRef(null);
   const queueReconnectTimerRef = useRef(null);
+  const assistanceToastTimerRef = useRef(null);
 
   useEffect(() => {
     checkAuthStatus();
@@ -113,6 +115,7 @@ function App() {
       ws.onopen = () => {
         setQueueConnected(true);
         ws.send(JSON.stringify({ type: 'subscribe-queue' }));
+        ws.send(JSON.stringify({ type: 'subscribe-assistance' }));
       };
 
       ws.onmessage = (event) => {
@@ -123,6 +126,22 @@ function App() {
               nowServing: msg.payload.nowServing || [],
               forPickup: msg.payload.forPickup || [],
             });
+          }
+
+          if (msg.type === 'assistance-alert' && msg.payload) {
+            const name = msg.payload.fullName || 'Walk-in user';
+            const document = msg.payload.document ? ` (${msg.payload.document})` : '';
+            const reference = msg.payload.referenceNumber ? ` [${msg.payload.referenceNumber}]` : '';
+            setAssistanceToast(`Assistance requested by ${name}${document}${reference}`);
+
+            if (assistanceToastTimerRef.current) {
+              clearTimeout(assistanceToastTimerRef.current);
+            }
+
+            assistanceToastTimerRef.current = setTimeout(() => {
+              setAssistanceToast('');
+              assistanceToastTimerRef.current = null;
+            }, 8000);
           }
         } catch (parseErr) {
           console.error('Queue WS parse error:', parseErr);
@@ -154,6 +173,9 @@ function App() {
 
     if (queueSocketRef.current) {
       try {
+        if (queueSocketRef.current.readyState === WebSocket.OPEN) {
+          queueSocketRef.current.send(JSON.stringify({ type: 'unsubscribe-assistance' }));
+        }
         queueSocketRef.current.close();
       } catch (err) {
         console.error('Error closing queue socket:', err);
@@ -162,6 +184,11 @@ function App() {
     }
 
     setQueueConnected(false);
+
+    if (assistanceToastTimerRef.current) {
+      clearTimeout(assistanceToastTimerRef.current);
+      assistanceToastTimerRef.current = null;
+    }
   };
 
   const checkAuthStatus = async () => {
@@ -712,6 +739,7 @@ function App() {
 
       {error && <div className="alert alert-error">{error}</div>}
       {successMessage && <div className="alert alert-success">{successMessage}</div>}
+      {assistanceToast && <div className="alert alert-success">{assistanceToast}</div>}
 
       {authenticated ? (
         <main className="admin-main">
