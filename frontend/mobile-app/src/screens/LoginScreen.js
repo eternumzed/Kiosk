@@ -50,14 +50,14 @@ export default function LoginScreen({ navigation, dispatch }) {
         const token = params.get('token');
         const refreshToken = params.get('refreshToken');
         const userJson = params.get('user');
-        
+
         if (token) {
           try {
             await SecureStore.setItemAsync('userToken', token);
             if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
             const user = userJson ? JSON.parse(decodeURIComponent(userJson)) : null;
             if (user) await AsyncStorage.setItem('user', JSON.stringify(user));
-            
+
             dispatch({
               type: 'LOGIN',
               payload: { user, token },
@@ -76,7 +76,7 @@ export default function LoginScreen({ navigation, dispatch }) {
     return () => subscription?.remove();
   }, [dispatch]);
 
-const handleGoogleLogin = async () => {
+  const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     try {
       // Safely dismiss any existing browser session
@@ -85,15 +85,18 @@ const handleGoogleLogin = async () => {
       } catch (_) {
         // No browser open, safe to ignore
       }
-      
+
       const apiUrl = (process.env.EXPO_PUBLIC_API_URL?.trim() ?? 'https://api.brgybiluso.me').replace(/\/api\/?$/i, '');
       const redirectUrl = Linking.createURL('google-auth-callback');
-      
+
+      console.log('Redirect URL:', redirectUrl);
+      Alert.alert('Debug', redirectUrl); // temporary
+
       const result = await WebBrowser.openAuthSessionAsync(
         `${apiUrl}/api/auth/google/mobile?redirectUrl=${encodeURIComponent(redirectUrl)}`,
         redirectUrl
       );
-      
+
       if (result.type === 'success' && result.url) {
         const url = result.url;
         const queryStart = url.indexOf('?');
@@ -102,7 +105,7 @@ const handleGoogleLogin = async () => {
           const token = params.get('token');
           const userJson = params.get('user');
           const error = params.get('error');
-          
+
           if (error) {
             Alert.alert(t('login_google_sign_in'), decodeURIComponent(error));
           } else if (token) {
@@ -111,7 +114,7 @@ const handleGoogleLogin = async () => {
             if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
             const user = userJson ? JSON.parse(decodeURIComponent(userJson)) : null;
             if (user) await AsyncStorage.setItem('user', JSON.stringify(user));
-            
+
             dispatch({
               type: 'LOGIN',
               payload: { user, token },
@@ -163,7 +166,7 @@ const handleGoogleLogin = async () => {
     setLoading(true);
     try {
       const response = await authAPI.verifyOTP(phoneNumber, otp, null, otpToken);
-      
+
       const token = response?.token ?? response?.data?.token;
       const refreshToken = response?.refreshToken ?? response?.data?.refreshToken;
       const user = response?.user ?? response?.data?.user;
@@ -197,8 +200,8 @@ const handleGoogleLogin = async () => {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
     >
@@ -218,7 +221,7 @@ const handleGoogleLogin = async () => {
           {step === 'phone' ? t('login_title_welcome_back') : t('login_title_enter_otp')}
         </Text>
         <Text style={styles.subtitle}>
-          {step === 'phone' 
+          {step === 'phone'
             ? t('login_subtitle_phone')
             : t('login_subtitle_enter_code', { phoneNumber })}
         </Text>
@@ -281,12 +284,12 @@ const handleGoogleLogin = async () => {
 
             <View style={styles.resendRow}>
               <Text style={styles.resendText}>{t('login_didnt_receive')} </Text>
-              <TouchableOpacity 
-                onPress={handleResendOTP} 
+              <TouchableOpacity
+                onPress={handleResendOTP}
                 disabled={countdown > 0}
               >
                 <Text style={[
-                  styles.resendLink, 
+                  styles.resendLink,
                   countdown > 0 && styles.resendDisabled
                 ]}>
                   {countdown > 0 ? t('login_resend_in', { seconds: countdown }) : t('login_resend_otp')}
