@@ -154,6 +154,35 @@ cd frontend/mobile-app
 npx expo start --tunnel
 ```
 
+### Option B.1 (Recommended for thesis demo): Persistent Expo tunnel via PM2
+
+This keeps Expo running on VPS even if your SSH session closes, so you don't need to relaunch it repeatedly.
+
+```bash
+cd /var/www/Kiosk/frontend/mobile-app
+pm2 start ecosystem.expo.config.js
+pm2 save
+pm2 startup
+```
+
+Useful commands during demo:
+
+```bash
+pm2 status
+pm2 logs kiosk-expo-tunnel --lines 100
+pm2 restart kiosk-expo-tunnel
+pm2 stop kiosk-expo-tunnel
+```
+
+Notes:
+- PM2 profile uses `start:tunnel:persistent` with `CI=1` plus stable workers/memory.
+- Avoid running `--clear` for every restart during live demo, because it forces full rebundle each time.
+- If Expo Go appears stuck at `Bundling 100%`, first restart only the PM2 Expo process:
+
+```bash
+pm2 restart kiosk-expo-tunnel
+```
+
 Share the QR/code. Members open Expo Go and scan/connect.
 
 Notes:
