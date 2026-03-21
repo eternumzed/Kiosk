@@ -12,6 +12,7 @@ import Help from "./components/Help";
 import LanguageSelect from "./components/LanguageSelect";
 import QueueDisplay from "./components/QueueDisplay";
 import RequestStatusPage from "./components/RequestStatusPage";
+import DownloadApp from "./components/DownloadApp";
 
 const PageTransition = ({ children }) => (
   <motion.div
@@ -59,6 +60,10 @@ const AnimatedRoutes = ({
         <Route
           path="/request-status"
           element={<PageTransition><RequestStatusPage /></PageTransition>}
+        />
+        <Route
+          path="/download"
+          element={<PageTransition><DownloadApp /></PageTransition>}
         />
         {/* HOME */}
         <Route
