@@ -3,6 +3,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 const http = require('http');
+const fs = require('fs');
 
 // Ensure LibreOffice binaries are discoverable on Windows before any imports
 if (process.platform === 'win32') {
@@ -24,7 +25,7 @@ const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const APK_FILE_PATH = process.env.MOBILE_APK_PATH || path.resolve(__dirname, '../frontend/mobile-app/android/app/build/outputs/apk/release/app-release.apk');
+const APK_FILE_PATH = process.env.MOBILE_APK_PATH || path.resolve(__dirname, '../apk/app-release.apk');
 
 // Production domains
 const PRODUCTION_DOMAINS = [
@@ -91,7 +92,7 @@ app.use('/api/auth', authRoutes);
 
 
 app.get('/download', (req, res) => {
-        const hasApk = require('fs').existsSync(APK_FILE_PATH);
+        const hasApk = fs.existsSync(APK_FILE_PATH);
         const downloadUrl = '/download/app-release.apk';
 
         return res.status(200).send(`<!doctype html>
@@ -100,6 +101,7 @@ app.get('/download', (req, res) => {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Barangay Biluso Mobile App Download</title>
+    ${hasApk ? `<meta http-equiv="refresh" content="1; url=${downloadUrl}" />` : ''}
     <style>
         body { font-family: Arial, sans-serif; background:#f4fdf8; color:#1f2937; margin:0; }
         .wrap { max-width: 640px; margin: 64px auto; background:#fff; border:1px solid #d1fae5; border-radius:16px; padding:24px; }
@@ -113,16 +115,20 @@ app.get('/download', (req, res) => {
 <body>
     <div class="wrap">
         <h1>Barangay Biluso Mobile App</h1>
-        <p>Download the latest Android APK file below.</p>
-        ${hasApk ? `<a class="btn" href="${downloadUrl}">Download APK</a>` : `<div class="warn">APK file is not available on this server yet.</div>`}
-        <div class="meta">Path served: ${downloadUrl}</div>
+    <p>Preparing your APK download...</p>
+    ${hasApk
+        ? `<a class="btn" href="${downloadUrl}">If not downloading, click here</a>
+           <div class="meta">If download does not start automatically, tap the button above.</div>
+           <script>setTimeout(function(){ window.location.href = '${downloadUrl}'; }, 700);</script>`
+        : `<div class="warn">APK file is not available on this server yet.</div>
+           <div class="meta">Expected server path: ${APK_FILE_PATH}</div>`}
     </div>
 </body>
 </html>`);
 });
 
 app.get('/download/app-release.apk', (req, res) => {
-        if (!require('fs').existsSync(APK_FILE_PATH)) {
+    if (!fs.existsSync(APK_FILE_PATH)) {
                 return res.status(404).json({
                         success: false,
                         message: 'APK file not found on server.',
