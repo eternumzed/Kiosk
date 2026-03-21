@@ -24,6 +24,7 @@ const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const APK_FILE_PATH = process.env.MOBILE_APK_PATH || path.resolve(__dirname, '../frontend/mobile-app/android/app/build/outputs/apk/release/app-release.apk');
 
 // Production domains
 const PRODUCTION_DOMAINS = [
@@ -87,6 +88,51 @@ app.use('/api/v1', apiRoutes);
 app.use('/api', apiRoutes);
 app.use('/api/pdf', pdfRoutes);
 app.use('/api/auth', authRoutes);
+
+
+app.get('/download', (req, res) => {
+        const hasApk = require('fs').existsSync(APK_FILE_PATH);
+        const downloadUrl = '/download/app-release.apk';
+
+        return res.status(200).send(`<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Barangay Biluso Mobile App Download</title>
+    <style>
+        body { font-family: Arial, sans-serif; background:#f4fdf8; color:#1f2937; margin:0; }
+        .wrap { max-width: 640px; margin: 64px auto; background:#fff; border:1px solid #d1fae5; border-radius:16px; padding:24px; }
+        h1 { margin:0 0 12px; font-size: 24px; }
+        p { margin: 0 0 16px; line-height:1.5; }
+        .btn { display:inline-block; background:#059669; color:#fff; text-decoration:none; font-weight:700; padding:12px 18px; border-radius:10px; }
+        .meta { margin-top:16px; font-size:13px; color:#4b5563; }
+        .warn { margin-top:12px; padding:10px; border-radius:8px; background:#fef2f2; border:1px solid #fecaca; color:#991b1b; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <h1>Barangay Biluso Mobile App</h1>
+        <p>Download the latest Android APK file below.</p>
+        ${hasApk ? `<a class="btn" href="${downloadUrl}">Download APK</a>` : `<div class="warn">APK file is not available on this server yet.</div>`}
+        <div class="meta">Path served: ${downloadUrl}</div>
+    </div>
+</body>
+</html>`);
+});
+
+app.get('/download/app-release.apk', (req, res) => {
+        if (!require('fs').existsSync(APK_FILE_PATH)) {
+                return res.status(404).json({
+                        success: false,
+                        message: 'APK file not found on server.',
+                        expectedPath: APK_FILE_PATH,
+                });
+        }
+
+        res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+        return res.download(APK_FILE_PATH, 'brgy-biluso-mobile-app.apk');
+});
 
 
 
