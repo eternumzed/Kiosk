@@ -37,6 +37,28 @@ function getGoogleOAuthCredentials() {
   return null;
 }
 
+function encodeOAuthState(payload) {
+  return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+}
+
+function decodeOAuthState(rawState) {
+  try {
+    return JSON.parse(Buffer.from(rawState, 'base64url').toString('utf8'));
+  } catch (_err) {
+    const repaired = String(rawState || '').replace(/ /g, '+');
+    return JSON.parse(Buffer.from(repaired, 'base64').toString('utf8'));
+  }
+}
+
+function isAllowedMobileRedirect(url) {
+  if (typeof url !== 'string' || !url.trim()) return false;
+  const value = url.trim();
+  return (
+    /^kiosk-mobile-app:\/\/google-auth-callback/i.test(value) ||
+    /^exp:\/\/.+\/--\/google-auth-callback/i.test(value)
+  );
+}
+
 /**
  * Request OTP via SMS (TextBee)
  * For phone number login/signup
@@ -759,7 +781,11 @@ exports.googleMobileInit = asyncHandler(async (req, res) => {
   }
 
   // Get the mobile app's redirect URL from query params
-  const mobileRedirectUrl = req.query.redirectUrl || 'kiosk-mobile-app://google-auth-callback';
+  const requestedRedirectUrl = typeof req.query.redirectUrl === 'string' ? req.query.redirectUrl.trim() : '';
+  const defaultRedirectUrl = 'kiosk-mobile-app://google-auth-callback';
+  const mobileRedirectUrl = isAllowedMobileRedirect(requestedRedirectUrl)
+    ? requestedRedirectUrl
+    : defaultRedirectUrl;
 
   // Build the callback URL (backend handles the callback)
   const protocol = req.headers['x-forwarded-proto'] || req.protocol;
@@ -767,7 +793,14 @@ exports.googleMobileInit = asyncHandler(async (req, res) => {
   const callbackUrl = `${protocol}://${host}/api/auth/google/mobile/callback`;
 
   // Encode state with the mobile redirect URL so we can use it in callback
-  const state = Buffer.from(JSON.stringify({ redirectUrl: mobileRedirectUrl })).toString('base64');
+  const state = encodeOAuthState({ redirectUrl: mobileRedirectUrl, ts: Date.now() });
+
+  // Temporary diagnostics for Expo Go callback issues
+  console.log('[google-mobile-oauth-debug] init', {
+    requestedRedirectUrl: requestedRedirectUrl || null,
+    acceptedRedirectUrl: mobileRedirectUrl,
+    usedDefaultRedirect: mobileRedirectUrl === defaultRedirectUrl,
+  });
 
   // Build Google OAuth URL
   const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
@@ -792,14 +825,28 @@ exports.googleMobileCallback = asyncHandler(async (req, res) => {
   
   // Parse state to get mobile redirect URL
   let mobileRedirectUrl = 'kiosk-mobile-app://google-auth-callback';
+  let stateParsed = false;
   if (state) {
     try {
-      const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
-      mobileRedirectUrl = stateData.redirectUrl || mobileRedirectUrl;
+      const stateData = decodeOAuthState(state);
+      if (isAllowedMobileRedirect(stateData?.redirectUrl)) {
+        mobileRedirectUrl = stateData.redirectUrl;
+      }
+      stateParsed = true;
     } catch (e) {
       console.error('Failed to parse state:', e);
     }
   }
+
+  // Temporary diagnostics for Expo Go callback issues
+  console.log('[google-mobile-oauth-debug] callback', {
+    hasCode: Boolean(code),
+    hasError: Boolean(error),
+    hasState: Boolean(state),
+    stateParsed,
+    resolvedRedirectUrl: mobileRedirectUrl,
+    userAgent: req.headers['user-agent'] || 'unknown',
+  });
 
   // Helper to build redirect URL with params
   const buildRedirect = (params) => {
