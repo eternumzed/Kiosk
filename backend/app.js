@@ -25,7 +25,12 @@ const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const APK_FILE_PATH = process.env.MOBILE_APK_PATH || path.resolve(__dirname, '../apk/app-release.apk');
+const APK_CANDIDATE_PATHS = [
+    '/var/www/download/apk/app-release.apk',
+    '/var/www/Kiosk/apk/app-release.apk',
+    path.resolve(__dirname, '../apk/app-release.apk'),
+];
+const APK_FILE_PATH = process.env.MOBILE_APK_PATH || APK_CANDIDATE_PATHS.find((apkPath) => fs.existsSync(apkPath)) || APK_CANDIDATE_PATHS[0];
 
 // Production domains
 const PRODUCTION_DOMAINS = [
