@@ -76,13 +76,16 @@ export default function LoginScreen({ navigation, dispatch }) {
     return () => subscription?.remove();
   }, [dispatch]);
 
-  const handleGoogleLogin = async () => {
+const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     try {
-      await WebBrowser.dismissBrowser();
+      // Safely dismiss any existing browser session
+      try {
+        await WebBrowser.dismissBrowser();
+      } catch (_) {
+        // No browser open, safe to ignore
+      }
       
-      // Use the env URL (or fallback) and only remove a trailing '/api' (and optional slash).
-      // This avoids removing 'api' occurrences from subdomains or other parts of the URL.
       const apiUrl = (process.env.EXPO_PUBLIC_API_URL?.trim() ?? 'https://api.brgybiluso.me').replace(/\/api\/?$/i, '');
       const redirectUrl = Linking.createURL('google-auth-callback');
       
@@ -113,7 +116,6 @@ export default function LoginScreen({ navigation, dispatch }) {
               type: 'LOGIN',
               payload: { user, token },
             });
-
             await NotificationService.registerPendingToken();
           } else {
             Alert.alert(t('login_google_sign_in'), t('login_error_no_token'));
@@ -126,7 +128,6 @@ export default function LoginScreen({ navigation, dispatch }) {
       setGoogleLoading(false);
     }
   };
-
   const formatPhoneNumber = (text) => {
     // Remove non-numeric characters except +
     const cleaned = text.replace(/[^\d+]/g, '');
