@@ -22,6 +22,23 @@ import NotificationService from '../services/notificationService';
 import { colors } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
 
+WebBrowser.maybeCompleteAuthSession();
+
+const withTimeout = async (promise, timeoutMs, label) => {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${label} timed out`));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
 export default function LoginScreen({ navigation, dispatch }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -31,6 +48,7 @@ export default function LoginScreen({ navigation, dispatch }) {
   const [otpToken, setOtpToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleDebugState, setGoogleDebugState] = useState('idle');
   const [countdown, setCountdown] = useState(0);
 
   // Countdown timer for resend OTP
@@ -77,11 +95,14 @@ export default function LoginScreen({ navigation, dispatch }) {
   }, [dispatch]);
 
   const handleGoogleLogin = async () => {
+    console.log('[GoogleLogin] Press detected');
+    setGoogleDebugState('pressed');
     setGoogleLoading(true);
     try {
       // Safely dismiss any existing browser session
       try {
-        await WebBrowser.dismissBrowser();
+        setGoogleDebugState('dismiss_browser');
+        await withTimeout(WebBrowser.dismissBrowser(), 1500, 'Dismiss browser');
       } catch (_) {
         // No browser open, safe to ignore
       }
@@ -89,15 +110,25 @@ export default function LoginScreen({ navigation, dispatch }) {
       const apiUrl = (process.env.EXPO_PUBLIC_API_URL?.trim() ?? 'https://api.brgybiluso.me').replace(/\/api\/?$/i, '');
       const redirectUrl = Linking.createURL('google-auth-callback');
 
-      console.log('Redirect URL:', redirectUrl);
-      Alert.alert('Debug', redirectUrl); // temporary
+      console.log('[GoogleLogin] Redirect URL:', redirectUrl);
+      setGoogleDebugState('open_auth_session');
 
-      const result = await WebBrowser.openAuthSessionAsync(
-        `${apiUrl}/api/auth/google/mobile?redirectUrl=${encodeURIComponent(redirectUrl)}`,
-        redirectUrl
+      const authUrl = `${apiUrl}/api/auth/google/mobile?redirectUrl=${encodeURIComponent(redirectUrl)}`;
+
+      const result = await withTimeout(
+        WebBrowser.openAuthSessionAsync(
+          authUrl,
+          redirectUrl
+        ),
+        25000,
+        'Open auth session'
       );
 
+      setGoogleDebugState('auth_session_result');
+      console.log('[GoogleLogin] AuthSession result:', result?.type);
+
       if (result.type === 'success' && result.url) {
+        setGoogleDebugState('auth_success');
         const url = result.url;
         const queryStart = url.indexOf('?');
         if (queryStart !== -1) {
@@ -120,12 +151,18 @@ export default function LoginScreen({ navigation, dispatch }) {
               payload: { user, token },
             });
             await NotificationService.registerPendingToken();
+            setGoogleDebugState('login_complete');
           } else {
             Alert.alert(t('login_google_sign_in'), t('login_error_no_token'));
+            setGoogleDebugState('missing_token');
           }
         }
+      } else if (result?.type === 'cancel' || result?.type === 'dismiss') {
+        setGoogleDebugState('auth_cancelled');
       }
     } catch (error) {
+      console.error('[GoogleLogin] Failed:', error);
+      setGoogleDebugState('auth_error');
       Alert.alert(t('login_google_sign_in'), error.message || t('login_error_signin_failed'));
     } finally {
       setGoogleLoading(false);
@@ -311,6 +348,10 @@ export default function LoginScreen({ navigation, dispatch }) {
 
         <TouchableOpacity
           style={styles.googleButton}
+          onPressIn={() => {
+            console.log('[GoogleLogin] onPressIn fired');
+            setGoogleDebugState('press_in');
+          }}
           onPress={handleGoogleLogin}
           disabled={googleLoading}
           activeOpacity={0.8}
@@ -324,6 +365,10 @@ export default function LoginScreen({ navigation, dispatch }) {
             </>
           )}
         </TouchableOpacity>
+
+        {__DEV__ && Platform.OS === 'ios' && (
+          <Text style={styles.googleDebugText}>Google auth state: {googleDebugState}</Text>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -474,6 +519,12 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontSize: 16,
     fontWeight: '600',
+  },
+  googleDebugText: {
+    marginTop: 6,
+    color: colors.text.muted,
+    fontSize: 12,
+    textAlign: 'center',
   },
   linkText: {
     color: colors.text.secondary,

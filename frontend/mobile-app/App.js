@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import * as Linking from 'expo-linking';
 
 import AuthStackNavigator from './src/navigation/AuthStackNavigator';
 import AppTabNavigator from './src/navigation/AppTabNavigator';
@@ -25,7 +26,7 @@ LogBox.ignoreLogs([
 export default function App() {
   const navigationRef = useRef(null);
   const linking = {
-    prefixes: ['kiosk-mobile-app://'],
+    prefixes: ['kiosk-mobile-app://', Linking.createURL('/')],
     config: {
       screens: {
         Auth: 'auth',

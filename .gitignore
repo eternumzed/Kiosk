@@ -55,8 +55,7 @@ build/
 *.tgz
 apk/
 *.apk
-frontend/mobile-app/android/app/build/
-frontend/mobile-app/android/build/
+
 
 # OS files
 Thumbs.db

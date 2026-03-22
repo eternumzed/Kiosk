@@ -22,6 +22,23 @@ import { useTranslation } from 'react-i18next';
 import { authAPI } from '../services/api';
 import { colors } from '../theme/colors';
 
+WebBrowser.maybeCompleteAuthSession();
+
+const withTimeout = async (promise, timeoutMs, label) => {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${label} timed out`));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
 export default function SignupScreen({ navigation, dispatch }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -31,6 +48,7 @@ export default function SignupScreen({ navigation, dispatch }) {
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleDebugState, setGoogleDebugState] = useState('idle');
   const [otpToken, setOtpToken] = useState('');
   const [countdown, setCountdown] = useState(0);
 
@@ -43,19 +61,36 @@ export default function SignupScreen({ navigation, dispatch }) {
   }, [countdown]);
 
   const handleGoogleSignup = async () => {
+    console.log('[GoogleSignup] Press detected');
+    setGoogleDebugState('pressed');
     setGoogleLoading(true);
     try {
-      await WebBrowser.dismissBrowser();
+      try {
+        setGoogleDebugState('dismiss_browser');
+        await withTimeout(WebBrowser.dismissBrowser(), 1500, 'Dismiss browser');
+      } catch (_) {
+        // ignore if browser is not active
+      }
 
       const apiUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'https://api.brgybiluso.me';
       const redirectUrl = Linking.createURL('google-auth-callback');
 
-      const result = await WebBrowser.openAuthSessionAsync(
-        `${apiUrl}/api/auth/google/mobile?redirectUrl=${encodeURIComponent(redirectUrl)}`,
-        redirectUrl
+      const authUrl = `${apiUrl}/api/auth/google/mobile?redirectUrl=${encodeURIComponent(redirectUrl)}`;
+      setGoogleDebugState('open_auth_session');
+
+      const result = await withTimeout(
+        WebBrowser.openAuthSessionAsync(
+          authUrl,
+          redirectUrl
+        ),
+        25000,
+        'Open auth session'
       );
+      setGoogleDebugState('auth_session_result');
+      console.log('[GoogleSignup] AuthSession result:', result?.type);
 
       if (result.type === 'success' && result.url) {
+        setGoogleDebugState('auth_success');
         const url = result.url;
         const queryStart = url.indexOf('?');
         if (queryStart !== -1) {
@@ -77,12 +112,18 @@ export default function SignupScreen({ navigation, dispatch }) {
               type: 'LOGIN',
               payload: { user, token },
             });
+            setGoogleDebugState('signup_complete');
           } else {
             Alert.alert(t('signup_google_sign_up'), t('login_error_no_token'));
+            setGoogleDebugState('missing_token');
           }
         }
+      } else if (result?.type === 'cancel' || result?.type === 'dismiss') {
+        setGoogleDebugState('auth_cancelled');
       }
     } catch (error) {
+      console.error('[GoogleSignup] Failed:', error);
+      setGoogleDebugState('auth_error');
       Alert.alert(t('signup_google_sign_up'), error.message || t('signup_error_failed'));
     } finally {
       setGoogleLoading(false);
@@ -242,6 +283,10 @@ export default function SignupScreen({ navigation, dispatch }) {
 
               <TouchableOpacity
                 style={styles.googleButton}
+                onPressIn={() => {
+                  console.log('[GoogleSignup] onPressIn fired');
+                  setGoogleDebugState('press_in');
+                }}
                 onPress={handleGoogleSignup}
                 disabled={googleLoading}
                 activeOpacity={0.8}
@@ -255,6 +300,10 @@ export default function SignupScreen({ navigation, dispatch }) {
                   </>
                 )}
               </TouchableOpacity>
+
+              {__DEV__ && Platform.OS === 'ios' && (
+                <Text style={styles.googleDebugText}>Google auth state: {googleDebugState}</Text>
+              )}
             </>
           )}
 
@@ -494,6 +543,12 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontSize: 16,
     fontWeight: '600',
+  },
+  googleDebugText: {
+    marginTop: 6,
+    color: colors.text.muted,
+    fontSize: 12,
+    textAlign: 'center',
   },
   linkText: {
     color: colors.text.secondary,
