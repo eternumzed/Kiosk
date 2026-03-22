@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
@@ -119,6 +120,7 @@ export default function RequestFormScreen({ navigation, route }) {
 
   const [currentStep, setCurrentStep] = useState(0);
   const [imageLoading, setImageLoading] = useState(false);
+  const [photoFromCamera, setPhotoFromCamera] = useState(false);
   
   // Add photo step at the end if required
   const allFields = [
@@ -180,8 +182,31 @@ export default function RequestFormScreen({ navigation, route }) {
         : await ImagePicker.launchImageLibraryAsync(options);
 
       if (!result.canceled && result.assets[0]) {
-        const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+        let encodedBase64 = result.assets[0].base64;
+
+        if (useCamera && result.assets[0].uri) {
+          try {
+            const flipped = await ImageManipulator.manipulateAsync(
+              result.assets[0].uri,
+              [{ flip: ImageManipulator.FlipType.Horizontal }],
+              {
+                compress: 0.5,
+                format: ImageManipulator.SaveFormat.JPEG,
+                base64: true,
+              }
+            );
+
+            if (flipped?.base64) {
+              encodedBase64 = flipped.base64;
+            }
+          } catch (flipErr) {
+            console.warn('Could not mirror captured image, using original camera output:', flipErr);
+          }
+        }
+
+        const base64Image = `data:image/jpeg;base64,${encodedBase64}`;
         handleChange('photoId', base64Image);
+        setPhotoFromCamera(useCamera);
       }
     } catch (error) {
       console.error('Image picker error:', error);
@@ -295,12 +320,18 @@ export default function RequestFormScreen({ navigation, route }) {
         <View style={styles.photoPreviewContainer}>
           <Image
             source={{ uri: formData.photoId }}
-            style={styles.photoPreview}
+            style={[
+              styles.photoPreview,
+              photoFromCamera && { transform: [{ scaleX: -1 }] }
+            ]}
             resizeMode="cover"
           />
           <TouchableOpacity
             style={styles.retakeButton}
-            onPress={() => handleChange('photoId', '')}
+            onPress={() => {
+              handleChange('photoId', '');
+              setPhotoFromCamera(false);
+            }}
           >
             <Text style={styles.retakeButtonText}>{t('request_form_remove_photo')}</Text>
           </TouchableOpacity>

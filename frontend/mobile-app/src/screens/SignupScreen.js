@@ -39,6 +39,35 @@ const withTimeout = async (promise, timeoutMs, label) => {
   }
 };
 
+const parseAuthParamsFromUrl = (rawUrl) => {
+  const safeUrl = String(rawUrl || '').trim();
+  if (!safeUrl) return new URLSearchParams();
+
+  const noHash = safeUrl.split('#')[0];
+  const queryStart = noHash.indexOf('?');
+  if (queryStart === -1) return new URLSearchParams();
+
+  return new URLSearchParams(noHash.substring(queryStart + 1));
+};
+
+const parseUserPayload = (rawUser) => {
+  if (!rawUser) return null;
+
+  const candidates = [String(rawUser), decodeURIComponent(String(rawUser))]
+    .map((value) => value.split('#')[0].trim())
+    .filter(Boolean);
+
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch (_) {
+      // try next candidate
+    }
+  }
+
+  return null;
+};
+
 export default function SignupScreen({ navigation, dispatch }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -78,45 +107,37 @@ export default function SignupScreen({ navigation, dispatch }) {
       const authUrl = `${apiUrl}/api/auth/google/mobile?redirectUrl=${encodeURIComponent(redirectUrl)}`;
       setGoogleDebugState('open_auth_session');
 
-      const result = await withTimeout(
-        WebBrowser.openAuthSessionAsync(
-          authUrl,
-          redirectUrl
-        ),
-        25000,
-        'Open auth session'
+      const result = await WebBrowser.openAuthSessionAsync(
+        authUrl,
+        redirectUrl
       );
       setGoogleDebugState('auth_session_result');
       console.log('[GoogleSignup] AuthSession result:', result?.type);
 
       if (result.type === 'success' && result.url) {
         setGoogleDebugState('auth_success');
-        const url = result.url;
-        const queryStart = url.indexOf('?');
-        if (queryStart !== -1) {
-          const params = new URLSearchParams(url.substring(queryStart + 1));
-          const token = params.get('token');
-          const userJson = params.get('user');
-          const error = params.get('error');
+        const params = parseAuthParamsFromUrl(result.url);
+        const token = params.get('token');
+        const userJson = params.get('user');
+        const error = params.get('error');
 
-          if (error) {
-            Alert.alert(t('signup_google_sign_up'), decodeURIComponent(error));
-          } else if (token) {
-            await SecureStore.setItemAsync('userToken', token);
-            const refreshToken = params.get('refreshToken');
-            if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
-            const user = userJson ? JSON.parse(decodeURIComponent(userJson)) : null;
-            if (user) await AsyncStorage.setItem('user', JSON.stringify(user));
+        if (error) {
+          Alert.alert(t('signup_google_sign_up'), decodeURIComponent(error));
+        } else if (token) {
+          await SecureStore.setItemAsync('userToken', token);
+          const refreshToken = params.get('refreshToken');
+          if (refreshToken) await SecureStore.setItemAsync('refreshToken', refreshToken);
+          const user = parseUserPayload(userJson);
+          if (user) await AsyncStorage.setItem('user', JSON.stringify(user));
 
-            dispatch({
-              type: 'LOGIN',
-              payload: { user, token },
-            });
-            setGoogleDebugState('signup_complete');
-          } else {
-            Alert.alert(t('signup_google_sign_up'), t('login_error_no_token'));
-            setGoogleDebugState('missing_token');
-          }
+          dispatch({
+            type: 'LOGIN',
+            payload: { user, token },
+          });
+          setGoogleDebugState('signup_complete');
+        } else {
+          Alert.alert(t('signup_google_sign_up'), t('login_error_no_token'));
+          setGoogleDebugState('missing_token');
         }
       } else if (result?.type === 'cancel' || result?.type === 'dismiss') {
         setGoogleDebugState('auth_cancelled');

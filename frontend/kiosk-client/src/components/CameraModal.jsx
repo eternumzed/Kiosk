@@ -388,12 +388,16 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
         canvas.height = squareSize;
         const ctx = canvas.getContext('2d');
         
-        // Draw the centered square crop from the video
+        // Draw mirrored centered square crop from the video (matches mirrored preview)
+        ctx.save();
+        ctx.translate(squareSize, 0);
+        ctx.scale(-1, 1);
         ctx.drawImage(
             videoRef.current,
             offsetX, offsetY, squareSize, squareSize,  // Source rectangle
             0, 0, squareSize, squareSize                // Destination rectangle
         );
+        ctx.restore();
         
         const imageData = canvas.toDataURL('image/jpeg', 0.8);
         setPreviewImage(imageData);
@@ -537,7 +541,8 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
                                                 height: '100%',
                                                 objectFit: 'cover',
                                                 backgroundColor: '#000',
-                                                display: 'block'
+                                                display: 'block',
+                                                transform: 'scaleX(-1)'
                                             }}
                                         />
                                         <canvas
@@ -545,7 +550,8 @@ const CameraModal = ({ isOpen, onClose, onCapture }) => {
                                             className="absolute top-0 left-0 w-full h-full"
                                             style={{
                                                 width: '100%',
-                                                height: '100%'
+                                                height: '100%',
+                                                transform: 'scaleX(-1)'
                                             }}
                                         />
                                     </div>

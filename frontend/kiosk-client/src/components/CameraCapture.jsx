@@ -170,12 +170,16 @@ const CameraCapture = ({ onCapture, capturedImage }) => {
         canvas.height = squareSize;
         const ctx = canvas.getContext('2d');
         
-        // Draw the centered square crop from the video
+        // Draw mirrored centered square crop from the video (matches mirrored preview)
+        ctx.save();
+        ctx.translate(squareSize, 0);
+        ctx.scale(-1, 1);
         ctx.drawImage(
             videoRef.current,
             offsetX, offsetY, squareSize, squareSize,  // Source rectangle
             0, 0, squareSize, squareSize                // Destination rectangle
         );
+        ctx.restore();
         
         const imageData = canvas.toDataURL('image/jpeg', 0.8);
         setPreviewImage(imageData);
@@ -296,12 +300,12 @@ const CameraCapture = ({ onCapture, capturedImage }) => {
                             playsInline
                             muted
                             className="rounded-lg shadow-lg max-w-sm w-full"
-                            style={{ display: isLoading ? 'none' : 'block' }}
+                            style={{ display: isLoading ? 'none' : 'block', transform: 'scaleX(-1)' }}
                         />
                         <canvas
                             ref={canvasRef}
                             className="absolute top-0 left-0 rounded-lg"
-                            style={{ display: isLoading ? 'none' : 'block' }}
+                            style={{ display: isLoading ? 'none' : 'block', transform: 'scaleX(-1)' }}
                         />
                     </div>
 
