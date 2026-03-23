@@ -2,8 +2,14 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 const Help = ({ handleBack }) => {
-    const { t } = useTranslation();
-    const videoUrl = "/kiosk-tutorial.mp4";
+    const { t, i18n } = useTranslation();
+    const currentLanguage = (i18n.resolvedLanguage || i18n.language || '').toLowerCase();
+    const isFilipino =
+        currentLanguage === 'fil' ||
+        currentLanguage.startsWith('fil-') ||
+        currentLanguage === 'tl' ||
+        currentLanguage.startsWith('tl-');
+    const videoUrl = isFilipino ? "/kiosk-tutorial_fil.mp4" : "/kiosk-tutorial.mp4";
 
     return (
         <div className="w-full flex flex-col items-center p-4">
@@ -25,6 +31,7 @@ const Help = ({ handleBack }) => {
                 <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">{t('help_how_to_use')}</h2>
                 <div className="w-full aspect-video rounded-xl overflow-hidden shadow-lg border-4 border-emerald-500">
                     <video
+                        key={videoUrl}
                         className="w-full h-full object-cover"
                         controls 
                         autoPlay 
