@@ -1,5 +1,5 @@
-import { BrowserRouter as Router, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { BrowserRouter as Router, useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 
 import AnimatedRoutes from "./AnimatedRoutes";
@@ -8,6 +8,8 @@ import AssistanceButton from "./components/AssistanceButton";
 
 // API URL from environment variable
 const API_URL = 'https://api.brgybiluso.me/api';
+const IDLE_TO_SCREENSAVER_MS = Number(import.meta.env.VITE_IDLE_TIMEOUT_MS || 10000);
+const SCREENSAVER_RESET_MS = Number(import.meta.env.VITE_SCREENSAVER_RESET_MS || 300000);
 import { KeyboardProvider, useKeyboard } from "./context/KeyboardContext";
 import VirtualKeyboard from "./components/VirtualKeyboard";
 import brgyBilusoSeal from "./assets/images/BRGY_BILUSO_SEAL.jpg";
@@ -244,13 +246,127 @@ const AppContent = ({
   handleRequestAssistance,
 }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isVisible, handleKeyPress, handleBackspace, handleEnter, hideKeyboard } = useKeyboard();
-  const isPublicStatusView = location.pathname.startsWith('/queue') || location.pathname.startsWith('/request-status');
+  const [isScreensaverActive, setIsScreensaverActive] = useState(false);
+  const idleTimerRef = useRef(null);
+  const screensaverResetTimerRef = useRef(null);
+  const isScreensaverActiveRef = useRef(false);
+
+  const isQueueRoute = location.pathname.startsWith('/queue');
+  const isPublicStatusView = isQueueRoute || location.pathname.startsWith('/request-status');
   const showPersistentLanguageSwitcher = !isPublicStatusView && location.pathname !== '/';
   const showPersistentAssistanceButton = !isPublicStatusView && location.pathname !== '/';
 
+  useEffect(() => {
+    isScreensaverActiveRef.current = isScreensaverActive;
+  }, [isScreensaverActive]);
+
+  useEffect(() => {
+    const clearIdleTimer = () => {
+      if (!idleTimerRef.current) return;
+      clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = null;
+    };
+
+    const clearScreensaverResetTimer = () => {
+      if (!screensaverResetTimerRef.current) return;
+      clearTimeout(screensaverResetTimerRef.current);
+      screensaverResetTimerRef.current = null;
+    };
+
+    const clearAllTimers = () => {
+      clearIdleTimer();
+      clearScreensaverResetTimer();
+    };
+
+    const deactivateScreensaver = () => {
+      if (isScreensaverActiveRef.current) {
+        isScreensaverActiveRef.current = false;
+        setIsScreensaverActive(false);
+      }
+      clearScreensaverResetTimer();
+    };
+
+    const activateScreensaver = () => {
+      if (isQueueRoute) return;
+
+      clearIdleTimer();
+      if (!isScreensaverActiveRef.current) {
+        isScreensaverActiveRef.current = true;
+        setIsScreensaverActive(true);
+      }
+
+      clearScreensaverResetTimer();
+      screensaverResetTimerRef.current = setTimeout(() => {
+        if (isQueueRoute) return;
+        isScreensaverActiveRef.current = false;
+        setIsScreensaverActive(false);
+        hideKeyboard();
+        resetUI();
+        navigate('/', { replace: true });
+      }, SCREENSAVER_RESET_MS);
+    };
+
+    const restartIdleTimer = () => {
+      if (isQueueRoute || isScreensaverActiveRef.current) return;
+      clearIdleTimer();
+      idleTimerRef.current = setTimeout(() => {
+        activateScreensaver();
+      }, IDLE_TO_SCREENSAVER_MS);
+    };
+
+    const handleActivity = () => {
+      if (isQueueRoute) return;
+
+      if (isScreensaverActiveRef.current) {
+        deactivateScreensaver();
+      }
+
+      restartIdleTimer();
+    };
+
+    if (isQueueRoute) {
+      deactivateScreensaver();
+      clearAllTimers();
+      return () => {
+        clearAllTimers();
+      };
+    }
+
+    const activityEvents = ['pointerdown', 'pointermove', 'keydown', 'touchstart', 'wheel', 'scroll'];
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, handleActivity);
+    });
+
+    restartIdleTimer();
+
+    return () => {
+      clearAllTimers();
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, handleActivity);
+      });
+    };
+  }, [isQueueRoute, hideKeyboard, navigate, resetUI]);
+
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 font-sans text-gray-800 flex flex-col overflow-hidden">
+      {isScreensaverActive && !isQueueRoute && (
+        <div
+          className="fixed inset-0 z-[9999] bg-black"
+          onPointerDown={() => setIsScreensaverActive(false)}
+          onTouchStart={() => setIsScreensaverActive(false)}
+        >
+          <video
+            src="/screensaver.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="h-full w-full object-cover"
+          />
+        </div>
+      )}
       {!isPublicStatusView && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-0">
           <img
