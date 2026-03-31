@@ -37,6 +37,15 @@ function getCurrentPaymentTimestamp() {
     return new Date();
 }
 
+function normalizeFullName(value) {
+    if (typeof value !== 'string') return '';
+    return value.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function escapeRegex(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 
 exports.createCheckout = async (req, res) => {
     try {
@@ -226,6 +235,7 @@ exports.createCashPayment = async (req, res) => {
     try {
         const newRequest = req.body;
         const { fullName, email, contactNumber, address, document, userId, ...templateFields } = newRequest;
+        const normalizedFullName = normalizeFullName(fullName);
         const linkedUserId = resolveUserIdFromRequest(req, userId);
         const feeResult = computeDocumentFee({
             document,
@@ -245,6 +255,29 @@ exports.createCashPayment = async (req, res) => {
         );
 
         const docCode = requestService.getDocCode(document);
+
+        if (docCode === 'FTJSC' && normalizedFullName) {
+            const parts = normalizedFullName.split(' ').filter(Boolean);
+            const regexPattern = `^\\s*${parts.map(escapeRegex).join('\\s+')}\\s*$`;
+            const nameRegex = new RegExp(regexPattern, 'i');
+
+            const duplicateRequest = await Request.findOne({
+                documentCode: 'FTJSC',
+                status: { $ne: 'Cancelled' },
+                deleted: { $ne: true },
+                $or: [
+                    { fullNameNormalized: normalizedFullName },
+                    { fullName: nameRegex },
+                ],
+            }).lean();
+
+            if (duplicateRequest) {
+                return res.status(409).json({
+                    error: 'You already requested a First Time Job Seeker Certificate under this full name.',
+                });
+            }
+        }
+
         const seqNum = String(counter.seq).padStart(4, '0');
         const referenceNumber = `${docCode}-${year}-${seqNum}`;
 
@@ -254,7 +287,9 @@ exports.createCashPayment = async (req, res) => {
         // Create request with cash payment status
         const request = await Request.create({
             fullName,
+            fullNameNormalized: normalizedFullName,
             document,
+            documentCode: docCode,
             contactNumber,
             email,
             address,

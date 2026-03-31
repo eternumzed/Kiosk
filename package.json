@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "migrate:ftjsc-fullname": "npm --prefix backend run migrate:ftjsc-fullname --",
+    "test:backend": "npm --prefix backend test"
+  },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
     "react-native-vector-icons": "^10.3.0"

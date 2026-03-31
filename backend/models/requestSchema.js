@@ -2,9 +2,15 @@ const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema;
 
+function normalizeFullName(value) {
+    if (typeof value !== 'string') return '';
+    return value.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
 const RequestSchema = new Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     fullName: { type: String, trim: true },
+    fullNameNormalized: { type: String, trim: true, lowercase: true },
     contactNumber: { type: String, trim: true },
     email: { type: String, trim: true, lowercase: true },
     address: { type: String, trim: true },
@@ -78,6 +84,29 @@ const RequestSchema = new Schema({
     hiddenAt: { type: Date },
 
 }, { timestamps: true });
+
+RequestSchema.pre('validate', function applyNormalizedFullName(next) {
+    if (typeof this.fullName === 'string' && this.fullName.trim()) {
+        this.fullNameNormalized = normalizeFullName(this.fullName);
+    } else {
+        this.fullNameNormalized = undefined;
+    }
+    next();
+});
+
+RequestSchema.index(
+    { documentCode: 1, fullNameNormalized: 1 },
+    {
+        name: 'uniq_ftjsc_active_full_name',
+        unique: true,
+        partialFilterExpression: {
+            documentCode: 'FTJSC',
+            status: { $in: ['Pending', 'Processing', 'For Pick-up', 'Completed'] },
+            deleted: false,
+            fullNameNormalized: { $exists: true, $type: 'string', $gt: '' },
+        },
+    }
+);
 
 
 module.exports = mongoose.model('Request', RequestSchema);

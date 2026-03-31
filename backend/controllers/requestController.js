@@ -41,11 +41,21 @@ function getDocCode(documentName) {
     return map[documentName.toLowerCase()] || "DOC";
 }
 
+function normalizeFullName(value) {
+    if (typeof value !== 'string') return '';
+    return value.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function escapeRegex(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 exports.createRequest = async (req, res) => {
     try {
         console.log('createRequest received body:', req.body);
         
         const { fullName, email, contactNumber, address, document, returnUrl, cancelUrl, userId, ...templateFields } = req.body;
+        const normalizedFullName = normalizeFullName(fullName);
         const linkedUserId = resolveUserIdFromRequest(req, userId);
         const feeResult = computeDocumentFee({
             document,
@@ -64,12 +74,37 @@ exports.createRequest = async (req, res) => {
         );
 
         const docCode = getDocCode(document);
+
+        if (docCode === 'FTJSC' && normalizedFullName) {
+            const parts = normalizedFullName.split(' ').filter(Boolean);
+            const regexPattern = `^\\s*${parts.map(escapeRegex).join('\\s+')}\\s*$`;
+            const nameRegex = new RegExp(regexPattern, 'i');
+
+            const duplicateRequest = await Request.findOne({
+                documentCode: 'FTJSC',
+                status: { $ne: 'Cancelled' },
+                deleted: { $ne: true },
+                $or: [
+                    { fullNameNormalized: normalizedFullName },
+                    { fullName: nameRegex },
+                ],
+            }).lean();
+
+            if (duplicateRequest) {
+                return res.status(409).json({
+                    error: 'You already requested a First Time Job Seeker Certificate under this full name.',
+                });
+            }
+        }
+
         const seqNum = String(counter.seq).padStart(4, '0');
         const referenceNumber = `${docCode}-${year}-${seqNum}`;
 
         const newRequest = await Request.create({
             fullName,
             document,
+            documentCode: docCode,
+            fullNameNormalized: normalizedFullName,
             contactNumber,
             email,
             address,

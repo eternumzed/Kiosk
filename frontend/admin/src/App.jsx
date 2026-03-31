@@ -277,7 +277,7 @@ function App() {
     }
 
     if (userFilter !== 'all') {
-      items = items.filter(() => true);
+      items = items.filter((p) => (p.app.appProperties?.fullName || '').toLowerCase()).includes(query.toLowerCase());
     }
 
     if (dateFrom) {
@@ -319,7 +319,8 @@ function App() {
         const code = p.appProperties?.type || '';
         const label = (TYPE_LABELS[code] || code).toLowerCase();
         const referenceNumber = (p.appProperties?.referenceNumber || '').toLowerCase();
-        return name.includes(q) || label.includes(q) || referenceNumber.includes(q);
+        const fullName = (p.appProperties?.fullName || '').toLowerCase();
+        return name.includes(q) || label.includes(q) || referenceNumber.includes(q) || fullName.includes(q);
       });
     }
 
@@ -328,7 +329,7 @@ function App() {
 
   useEffect(() => {
     setPage(1);
-  }, [typeFilter, statusFilter, dateFrom, dateTo, sortBy, sortDir, query]);
+  }, [typeFilter, statusFilter, userFilter, dateFrom, dateTo, sortBy, sortDir, query]);
 
   const totalItems = visiblePdfs.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -765,7 +766,7 @@ function App() {
               <div className="filters-bar">
                 <div className="filter-group filter-search">
                   <label className="filter-label">Search</label>
-                  <input type="text" className="filter-input" placeholder="Search by name or reference number" value={query} onChange={(e) => setQuery(e.target.value)} />
+                  <input type="text" className="filter-input" placeholder="Search by file name, full name, type, or reference number" value={query} onChange={(e) => setQuery(e.target.value)} />
                 </div>
                 <div className="filter-group">
                   <label className="filter-label">Status</label>

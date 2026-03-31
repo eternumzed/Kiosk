@@ -172,6 +172,7 @@ exports.listPdfs = async () => {
         type: request?.type || '',
         status: request?.status || 'Pending',
         referenceNumber: request?.referenceNumber || '',
+        fullName: request?.fullName || '',
       }
     };
     
