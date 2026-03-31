@@ -139,21 +139,13 @@ export default function PaymentReviewScreen({ navigation, route }) {
               paymentMethod: 'Online',
             });
           } else if (result.type === 'cancel' || result.type === 'dismiss') {
-            // User cancelled or closed browser
-            Alert.alert(
-              t('payment_review_payment_status'),
-              t('payment_review_payment_status_message'),
-              [
-                { text: t('payment_review_go_dashboard'), onPress: async () => {
-                  await AsyncStorage.removeItem('tempPhotoId');
-                  navigation.navigate('Dashboard');
-                }},
-                { text: t('payment_review_stay_here'), style: 'cancel' },
-              ]
-            );
+            // User cancelled or closed browser - show in UI banner instead of modal
+            setErrorMessage(t('payment_review_payment_status_message'));
           }
         } else {
-          Alert.alert(t('common_error'), t('payment_review_error_create_session'));
+          // No checkout URL returned - show error in banner
+          const errorDetails = response?.error || response?.message || t('payment_review_error_create_session');
+          setErrorMessage(errorDetails);
         }
       } else {
         // Cash or free request - create request without checkout
@@ -168,7 +160,6 @@ export default function PaymentReviewScreen({ navigation, route }) {
         });
       }
     } catch (error) {
-      console.error('Submit error:', error);
       const errorMsg = getApiErrorMessage(error, t('payment_review_error_submit'));
       setErrorMessage(errorMsg);
     } finally {
