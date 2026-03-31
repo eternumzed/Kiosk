@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 
 import AnimatedRoutes from "./AnimatedRoutes";
@@ -8,7 +8,7 @@ import AssistanceButton from "./components/AssistanceButton";
 
 // API URL from environment variable
 const API_URL = 'https://api.brgybiluso.me/api';
-const IDLE_TO_SCREENSAVER_MS = Number(import.meta.env.VITE_IDLE_TIMEOUT_MS || 10000);
+const IDLE_TO_SCREENSAVER_MS = Number(import.meta.env.VITE_IDLE_TIMEOUT_MS || 120000);
 const SCREENSAVER_RESET_MS = Number(import.meta.env.VITE_SCREENSAVER_RESET_MS || 300000);
 import { KeyboardProvider, useKeyboard } from "./context/KeyboardContext";
 import VirtualKeyboard from "./components/VirtualKeyboard";
@@ -38,7 +38,7 @@ const App = () => {
     };
   });
 
-  const resetUI = () => {
+  const resetUI = useCallback(() => {
     setFormData({
       fullName: '',
       contactNumber: '',
@@ -55,7 +55,7 @@ const App = () => {
       currency: '',
     });
     localStorage.removeItem('documentRequestFormData');
-  };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('documentRequestFormData', JSON.stringify(formData));
@@ -252,6 +252,7 @@ const AppContent = ({
   const idleTimerRef = useRef(null);
   const screensaverResetTimerRef = useRef(null);
   const isScreensaverActiveRef = useRef(false);
+  const lastActivityAtRef = useRef(Date.now());
 
   const isQueueRoute = location.pathname.startsWith('/queue');
   const isPublicStatusView = isQueueRoute || location.pathname.startsWith('/request-status');
@@ -311,19 +312,34 @@ const AppContent = ({
     const restartIdleTimer = () => {
       if (isQueueRoute || isScreensaverActiveRef.current) return;
       clearIdleTimer();
+      lastActivityAtRef.current = Date.now();
       idleTimerRef.current = setTimeout(() => {
+        const idleFor = Date.now() - lastActivityAtRef.current;
+        if (idleFor < IDLE_TO_SCREENSAVER_MS) {
+          restartIdleTimer();
+          return;
+        }
         activateScreensaver();
       }, IDLE_TO_SCREENSAVER_MS);
     };
 
     const handleActivity = () => {
       if (isQueueRoute) return;
+      lastActivityAtRef.current = Date.now();
 
       if (isScreensaverActiveRef.current) {
         deactivateScreensaver();
       }
 
       restartIdleTimer();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        clearAllTimers();
+        return;
+      }
+      handleActivity();
     };
 
     if (isQueueRoute) {
@@ -334,15 +350,32 @@ const AppContent = ({
       };
     }
 
-    const activityEvents = ['pointerdown', 'pointermove', 'keydown', 'touchstart', 'wheel', 'scroll'];
+    const activityEvents = [
+      'pointerdown',
+      'pointerup',
+      'pointermove',
+      'mousedown',
+      'mouseup',
+      'click',
+      'keydown',
+      'touchstart',
+      'touchend',
+      'wheel',
+      'scroll',
+      'input',
+      'change',
+      'focusin',
+    ];
     activityEvents.forEach((eventName) => {
-      window.addEventListener(eventName, handleActivity);
+      window.addEventListener(eventName, handleActivity, { passive: true });
     });
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     restartIdleTimer();
 
     return () => {
       clearAllTimers();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       activityEvents.forEach((eventName) => {
         window.removeEventListener(eventName, handleActivity);
       });
