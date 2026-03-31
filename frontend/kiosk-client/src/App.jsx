@@ -54,6 +54,7 @@ const App = () => {
       amount: '',
       currency: '',
     });
+    setPaymentError('');
     localStorage.removeItem('documentRequestFormData');
   }, []);
 
@@ -62,8 +63,17 @@ const App = () => {
   }, [formData]);
 
   const [paymentStatus, setPaymentStatus] = useState("Pending");
+  const [paymentError, setPaymentError] = useState("");
   const [requestRef, setRequestRef] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+
+  const getApiErrorMessage = (err, fallbackMessage) => {
+    const apiError = err?.response?.data?.error;
+    const apiMessage = err?.response?.data?.message;
+    if (typeof apiError === 'string' && apiError.trim()) return apiError;
+    if (typeof apiMessage === 'string' && apiMessage.trim()) return apiMessage;
+    return fallbackMessage;
+  };
 
   const getRequestReferenceNumber = () => {
     if (typeof requestRef === 'string') return '';
@@ -107,6 +117,7 @@ const App = () => {
   const handlePayment = async () => {
     try {
       setPaymentStatus("Processing");
+      setPaymentError("");
 
       const paymentData = {
         ...formData,
@@ -132,12 +143,14 @@ const App = () => {
     } catch (err) {
       console.error("Payment error:", err.response?.data || err.message);
       setPaymentStatus("Failed");
+      setPaymentError(getApiErrorMessage(err, "Unable to process payment. Please try again."));
     }
   };
 
   const handleCashPayment = async () => {
     try {
       setPaymentStatus("Processing");
+      setPaymentError("");
 
       const paymentData = {
         ...formData,
@@ -160,12 +173,14 @@ const App = () => {
     } catch (err) {
       console.error("Cash payment error:", err.response?.data || err.message);
       setPaymentStatus("Failed");
+      setPaymentError(getApiErrorMessage(err, "Unable to create cash request. Please try again."));
     }
   };
 
   const handleFreePayment = async () => {
     try {
       setPaymentStatus("Processing");
+      setPaymentError("");
 
       const paymentData = {
         ...formData,
@@ -188,6 +203,7 @@ const App = () => {
     } catch (err) {
       console.error("Free request error:", err.response?.data || err.message);
       setPaymentStatus("Failed");
+      setPaymentError(getApiErrorMessage(err, "Unable to create free request. Please try again."));
     }
   };
 
@@ -211,6 +227,8 @@ const App = () => {
           setFormData={setFormData}
           paymentStatus={paymentStatus}
           setPaymentStatus={setPaymentStatus}
+          paymentError={paymentError}
+          setPaymentError={setPaymentError}
           requestRef={requestRef}
           setRequestRef={setRequestRef}
           selectedCategory={selectedCategory}
@@ -234,6 +252,8 @@ const AppContent = ({
   setFormData,
   paymentStatus,
   setPaymentStatus,
+  paymentError,
+  setPaymentError,
   requestRef,
   setRequestRef,
   selectedCategory,
@@ -421,6 +441,8 @@ const AppContent = ({
           setFormData={setFormData}
           paymentStatus={paymentStatus}
           setPaymentStatus={setPaymentStatus}
+          paymentError={paymentError}
+          setPaymentError={setPaymentError}
           requestRef={requestRef}
           setRequestRef={setRequestRef}
           selectedCategory={selectedCategory}

@@ -1,7 +1,7 @@
 
 import { useTranslation } from 'react-i18next';
 
-const Payment = ({ formData, getFee, paymentStatus, setPaymentStatus, handleBack, handlePayment, handleCashPayment, handleFreePayment }) => {
+const Payment = ({ formData, getFee, paymentStatus, paymentError, setPaymentStatus, handleBack, handlePayment, handleCashPayment, handleFreePayment }) => {
   const { t } = useTranslation();
   const fee = Number(getFee() || 0);
   const isFreeRequest = fee === 0;
@@ -26,6 +26,11 @@ const Payment = ({ formData, getFee, paymentStatus, setPaymentStatus, handleBack
             <div className="mt-4 w-full bg-emerald-200 rounded-full h-2 overflow-hidden">
               <div className="bg-emerald-600 h-2 rounded-full animate-pulse w-full"></div>
             </div>
+          </div>
+        )}
+        {paymentStatus === "Failed" && paymentError && (
+          <div className="mb-8 p-4 bg-red-50 rounded-xl border border-red-200">
+            <p className="text-base font-semibold text-red-700 text-center">{paymentError}</p>
           </div>
         )}
         <div className="space-y-4">

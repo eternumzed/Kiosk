@@ -32,6 +32,8 @@ const AnimatedRoutes = ({
   setFormData,
   paymentStatus,
   setPaymentStatus,
+  paymentError,
+  setPaymentError,
   requestRef,
   setRequestRef,
   selectedCategory,
@@ -149,11 +151,16 @@ const AnimatedRoutes = ({
                 getFee={getFee}
                 paymentStatus={paymentStatus}
                 setPaymentStatus={setPaymentStatus}
+                paymentError={paymentError}
                 setRequestRef={setRequestRef}
                 handlePayment={handlePayment}
                 handleCashPayment={handleCashPayment}
                 handleFreePayment={handleFreePayment}
-                handleBack={() => navigate("/document-form")}
+                handleBack={() => {
+                  setPaymentStatus('Pending');
+                  setPaymentError('');
+                  navigate("/document-form");
+                }}
               />
             </PageTransition>
           }
