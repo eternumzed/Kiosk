@@ -26,6 +26,15 @@ export default function PaymentReviewScreen({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('online'); // 'online' | 'cash'
   const [photoId, setPhotoId] = useState(null);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const getApiErrorMessage = (err, fallbackMessage) => {
+    const apiError = err?.response?.data?.error;
+    const apiMessage = err?.response?.data?.message;
+    if (typeof apiError === 'string' && apiError.trim()) return apiError;
+    if (typeof apiMessage === 'string' && apiMessage.trim()) return apiMessage;
+    return fallbackMessage;
+  };
 
   const normalizeBoolean = (value) => {
     if (typeof value === 'boolean') return value;
@@ -80,6 +89,7 @@ export default function PaymentReviewScreen({ navigation, route }) {
 
   const handleSubmit = async () => {
     setLoading(true);
+    setErrorMessage('');
     try {
       const userId = user?._id || user?.id || user?.user?._id || user?.user?.id || null;
 
@@ -159,10 +169,8 @@ export default function PaymentReviewScreen({ navigation, route }) {
       }
     } catch (error) {
       console.error('Submit error:', error);
-      Alert.alert(
-        t('common_error'),
-        error.response?.data?.error || error.message || t('payment_review_error_submit')
-      );
+      const errorMsg = getApiErrorMessage(error, t('payment_review_error_submit'));
+      setErrorMessage(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -193,6 +201,19 @@ export default function PaymentReviewScreen({ navigation, route }) {
         <Text style={styles.headerTitle}>{t('payment_review_title')}</Text>
         <View style={styles.placeholder} />
       </View>
+
+      {/* Error Banner */}
+      {errorMessage ? (
+        <View style={styles.errorBanner}>
+          <Feather name="alert-circle" size={20} color="#dc2626" style={styles.errorIcon} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+          <TouchableOpacity onPress={() => setErrorMessage('')}>
+            <Feather name="x" size={20} color="#dc2626" />
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
       <ScrollView style={styles.content}>
         {/* Document Info */}
@@ -474,5 +495,24 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  errorBanner: {
+    backgroundColor: '#fee2e2',
+    borderBottomWidth: 1,
+    borderBottomColor: '#fca5a5',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  errorIcon: {
+    marginRight: 12,
+    marginTop: 2,
+  },
+  errorText: {
+    color: '#dc2626',
+    fontSize: 14,
+    fontWeight: '500',
+    lineHeight: 20,
   },
 });
