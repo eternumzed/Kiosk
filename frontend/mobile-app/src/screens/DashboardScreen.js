@@ -31,6 +31,7 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   
   // Filter states
   const [statusFilter, setStatusFilter] = useState('All');
@@ -50,13 +51,29 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
 
   const loadRequests = async () => {
     setLoading(true);
+    setErrorMessage('');
     try {
       const data = await requestAPI.getRequestHistory();
       // Backend returns { success, count, requests } - extract the requests array
       setRequests(data?.requests || data || []);
     } catch (error) {
       console.error('Load requests error:', error);
-      Alert.alert(t('common_error'), t('dashboard_error_load_requests'));
+      const statusCode = error?.response?.status;
+      const apiError = error?.response?.data?.error || error?.response?.data?.message;
+      
+      let errorMsg = t('dashboard_error_load_requests');
+      
+      if (statusCode === 401) {
+        errorMsg = 'Session expired. Please log in again to view your requests.';
+      } else if (statusCode === 403) {
+        errorMsg = 'Access denied. Please contact support.';
+      } else if (statusCode === 500) {
+        errorMsg = 'Server error. Please try again later.';
+      } else if (apiError) {
+        errorMsg = apiError;
+      }
+      
+      setErrorMessage(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -64,8 +81,20 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
 
   const handleRefresh = async () => {
     setRefreshing(true);
+    setErrorMessage('');
     await loadRequests();
     setRefreshing(false);
+  };
+
+  const handleRetry = () => {
+    setErrorMessage('');
+    loadRequests();
+  };
+
+  const handleLoginAgain = () => {
+    setErrorMessage('');
+    dispatch({ type: 'LOGOUT' });
+    navigation.navigate('Login');
   };
 
   useFocusEffect(
@@ -188,6 +217,28 @@ export default function DashboardScreen({ navigation, user, dispatch }) {
 
     </TouchableOpacity>
   );
+
+  if (errorMessage && !loading) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.errorContainer}>
+          <Feather name="alert-circle" size={48} color={colors.status.error} />
+          <Text style={styles.errorTitle}>{t('common_error')}</Text>
+          <Text style={styles.errorText}>{errorMessage}</Text>
+          <View style={styles.errorActionButtons}>
+            <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+              <Text style={styles.retryButtonText}>{t('common_retry')}</Text>
+            </TouchableOpacity>
+            {errorMessage.includes('Session expired') && (
+              <TouchableOpacity style={styles.loginAgainButton} onPress={handleLoginAgain}>
+                <Text style={styles.loginAgainButtonText}>Log in again</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   if (loading && requests.length === 0) {
     return (
@@ -840,6 +891,54 @@ const styles = StyleSheet.create({
   },
   applyButtonText: {
     color: '#fff',
+    fontWeight: '600',
+  },
+  // Error Styles
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    backgroundColor: colors.background.primary,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text.primary,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 16,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 24,
+  },
+  errorActionButtons: {
+    width: '100%',
+    gap: 12,
+  },
+  retryButton: {
+    paddingVertical: 14,
+    backgroundColor: colors.primary[600],
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  loginAgainButton: {
+    paddingVertical: 14,
+    backgroundColor: colors.status.warning,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  loginAgainButtonText: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: '600',
   },
 });
